@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Manrope", sans-serif;
+
+  /* Light Theme (Enterprise) */
+  --color-background: #fdfbff;
+  --color-foreground: #1a1c1e;
+
+  --color-primary: #005ac1;
+  --color-primary-foreground: #ffffff;
+  --color-primary-container: #d8e2ff;
+
+  /* Semantic Status Tokens (used instead of Tailwind palette colors) */
+  --color-success: #0f766e;
+  --color-success-foreground: #ecfdf5;
+  --color-warning: #b45309;
+  --color-warning-foreground: #fff7ed;
+  --color-info: #0891b2;
+  --color-info-foreground: #ecfeff;
+  --color-violet: #7c3aed;
+  --color-violet-foreground: #f5f3ff;
+
+  --color-surface-lowest: #ffffff;
+  --color-surface-low: #f2f3f7;
+  --color-surface-high: #e2e2e6;
+  --color-surface-highest: #d1d2d6;
+
+  --color-muted: #f1f3f4;
+  --color-muted-foreground: #5f6368;
+
+  --color-accent: #e8eaed;
+  --color-accent-foreground: #3c4043;
+
+  --color-destructive: #ba1a1a;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #c4c7cf;
+  --color-input: #c4c7cf;
+  --color-ring: #005ac1;
+  --color-scrim: rgba(0, 0, 0, 0.55);
+
+  --shadow-glass: 0 4px 24px -1px rgba(0, 0, 0, 0.05), 0 2px 8px -1px rgba(0, 0, 0, 0.04);
+  --shadow-3xl: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  --shadow-4xl: 0 35px 80px -15px rgba(0, 0, 0, 0.15);
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
+  --radius-sm: 0.125rem;
+}
+
+.dark {
+  /* Dark Theme (Digital Curator) */
+  --color-background: #111318;
+  --color-foreground: #e1e2e9;
+
+  --color-primary: #ADC6FF;
+  --color-primary-foreground: #002e6a;
+  --color-primary-container: #1E2B4B;
+
+  /* Semantic Status Tokens (dark) */
+  --color-success: #2dd4bf;
+  --color-success-foreground: #05332f;
+  --color-warning: #fbbf24;
+  --color-warning-foreground: #3b2a00;
+  --color-info: #22d3ee;
+  --color-info-foreground: #083044;
+  --color-violet: #c4b5fd;
+  --color-violet-foreground: #2a164f;
+
+  --color-surface-lowest: #0A0C10;
+  --color-surface-low: #12151A;
+  --color-surface-high: #1B1F26;
+  --color-surface-highest: #262B35;
+
+  --color-muted: #32353a;
+  --color-muted-foreground: #c2c6d6;
+
+  --color-accent: #272a2f;
+  --color-accent-foreground: #e1e2e9;
+
+  --color-destructive: #ffb4ab;
+  --color-destructive-foreground: #690005;
+
+  --color-border: #424754;
+  --color-input: #424754;
+  --color-ring: #adc6ff;
+  --color-scrim: rgba(0, 0, 0, 0.35);
+
+  --shadow-glass: 0 4px 24px -1px rgba(0, 0, 0, 0.2), 0 2px 8px -1px rgba(0, 0, 0, 0.1);
+  --shadow-3xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --shadow-4xl: 0 35px 80px -15px rgba(0, 0, 0, 0.6);
+}
+
+@theme {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-primary-container: var(--color-primary-container);
+  --color-success: var(--color-success);
+  --color-success-foreground: var(--color-success-foreground);
+  --color-warning: var(--color-warning);
+  --color-warning-foreground: var(--color-warning-foreground);
+  --color-info: var(--color-info);
+  --color-info-foreground: var(--color-info-foreground);
+  --color-violet: var(--color-violet);
+  --color-violet-foreground: var(--color-violet-foreground);
+  --color-surface-lowest: var(--color-surface-lowest);
+  --color-surface-low: var(--color-surface-low);
+  --color-surface-high: var(--color-surface-high);
+  --color-surface-highest: var(--color-surface-highest);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-destructive: var(--color-destructive);
+  --color-destructive-foreground: var(--color-destructive-foreground);
+  --color-border: var(--color-border);
+  --color-input: var(--color-input);
+  --color-ring: var(--color-ring);
+  --color-scrim: var(--color-scrim);
+  --shadow-glass: var(--shadow-glass);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body {
+    @apply bg-surface-lowest text-foreground selection:bg-primary/20 antialiased;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+  }
+
+  /* Consistent cursors app-wide: pointer when actionable, not-allowed when disabled */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select:not(:disabled),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  label[for] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-surface-highest/50 backdrop-blur-xl border border-border/50 shadow-glass;
+  }
+
+  .surface-0 {
+    @apply bg-surface-lowest;
+  }
+
+  .surface-1 {
+    @apply bg-surface-low;
+  }
+
+  .surface-2 {
+    @apply bg-surface-high;
+  }
+
+  .surface-3 {
+    @apply bg-surface-highest;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-br from-primary to-primary-container text-primary-foreground font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-all active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply text-primary hover:bg-primary/10 px-4 py-2 rounded-md transition-all;
+  }
+}
