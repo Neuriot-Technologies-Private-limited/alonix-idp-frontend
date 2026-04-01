@@ -37,6 +37,16 @@ const PrivateRoute = () => {
   return token ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+const LoginRoute = () => {
+  const token = useAuthStore((state) => state.token);
+  return token ? <Navigate to="/dashboard" replace /> : <LoginPage />;
+};
+
+const SignupRoute = () => {
+  const token = useAuthStore((state) => state.token);
+  return token ? <Navigate to="/dashboard" replace /> : <SignupPage />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -45,8 +55,8 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/login" element={<LoginRoute />} />
+            <Route path="/signup" element={<SignupRoute />} />
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
