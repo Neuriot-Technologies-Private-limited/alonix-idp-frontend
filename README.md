@@ -1,73 +1,109 @@
-# React + TypeScript + Vite
+# Alonix IDP Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend application for the Alonix IDP platform, built with React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## Tech stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + TypeScript
+- Vite 8
+- React Router 7
+- TanStack Query (server state)
+- Zustand (auth/UI state)
+- Axios (API client)
+- Tailwind CSS 4 + Framer Motion
+- Socket.IO client (chat/realtime)
+- i18next (internationalization)
 
-## React Compiler
+## Key app areas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Public: landing, login, signup, email verification, forgot/reset password
+- Private: dashboard, documents, chat, profile
+- RBAC-protected: users, groups, org settings, activity logs
 
-## Expanding the ESLint configuration
+Route protection is implemented with:
+- token-based private route guard
+- role/capability guards via `RoleProtectedRoute`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js 20+ (recommended)
+- npm 10+
+- Backend service running from `alonix-idp-node-backend`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Environment variables
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Create a local env file from `.env.example`:
+
+```bash
+cp .env.example .env
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Supported variables:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `VITE_API_BASE_URL`
+  - Dev: optional. If omitted, frontend uses `/api` and Vite proxies to backend.
+  - Prod: set to API origin, e.g. `https://api.example.com/api`
+- `VITE_SOCKET_URL` (optional)
+- `VITE_SOCKET_PATH` (optional, default `/socket.io`)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Local development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start dev server:
+
+```bash
+npm run dev
+```
+
+Default Vite URL: `http://localhost:5173`
+
+Dev API proxy configuration (`vite.config.ts`):
+- `/api` -> `http://localhost:5005`
+
+If API calls fail with 502 in dev, ensure backend is running on port `5005`.
+
+## Scripts
+
+- `npm run dev` - start Vite dev server
+- `npm run build` - type-check + production build
+- `npm run preview` - preview built app locally
+- `npm run lint` - run ESLint
+
+## Build and deploy
+
+Create production build:
+
+```bash
+npm run build
+```
+
+Preview production build:
+
+```bash
+npm run preview
+```
+
+Deploy the generated `dist/` folder to your static hosting platform.
+
+Before production deploy, set:
+- `VITE_API_BASE_URL` to your backend API base
+- optional socket variables if realtime endpoint differs
+
+## Project structure
+
+```text
+src/
+  components/    reusable UI and domain components
+  pages/         route-level pages (auth, dashboard, docs, groups, etc.)
+  services/      API clients and service modules
+  stores/        Zustand stores
+  hooks/         reusable React hooks
+  core/          theme and RBAC core logic
+  layout/        app shell and navigation layout
+  utils/         utility helpers
 ```
