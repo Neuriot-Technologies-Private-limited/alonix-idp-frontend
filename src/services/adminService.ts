@@ -66,6 +66,8 @@ export interface GroupMember {
   email: string;
   role: 'Group Admin' | 'Search User';
   avatar?: string;
+  membershipState?: 'joined' | 'invited' | 'expired';
+  inviteId?: string;
 }
 
 export interface GroupActivity {
@@ -260,10 +262,11 @@ export const adminService = {
 
   getGroupDetail: async (id: string): Promise<GroupDetail> => {
     requireOrgId();
-    const [{ data: g }, { data: mem }, { data: pipe }] = await Promise.all([
+    const [{ data: g }, { data: mem }, { data: pipe }, { data: inv }] = await Promise.all([
       apiClient.get<any>(`/groups/${encodeURIComponent(id)}`),
       apiClient.get<{ members: any[] }>(`/admin/groups/${encodeURIComponent(id)}/members`),
       getOrgPipelineDocuments(),
+      apiClient.get<{ invites: any[] }>(`/admin/groups/${encodeURIComponent(id)}/invites`),
     ]);
 
     const groupName = g.groupName || g.name || 'Workspace';
@@ -275,7 +278,22 @@ export const adminService = {
       email: m.userEmail,
       role: m.role === 'GROUP_ADMIN' ? 'Group Admin' : 'Search User',
       avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(m.userEmail)}`,
+      membershipState: 'joined',
     }));
+
+    const inviteMembers: GroupMember[] = (inv.invites || []).map((item: any) => ({
+      id: `invite:${String(item.id)}`,
+      inviteId: String(item.id),
+      name: String(item.inviteeName || item.email || ''),
+      email: String(item.email || ''),
+      role: 'Search User',
+      membershipState: item.status === 'expired' ? 'expired' : 'invited',
+    }));
+
+    const dedupedInviteMembers = inviteMembers.filter(
+      (im) => !members.some((m) => m.email.toLowerCase() === im.email.toLowerCase())
+    );
+    const mergedMembers = [...members, ...dedupedInviteMembers];
 
     const documents: GroupDocument[] = docsRaw.slice(0, 24).map((d: any) => ({
       id: d.id,
@@ -298,7 +316,7 @@ export const adminService = {
       createdOn: g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
       storageUsed: '—',
       confidenceScore: '—',
-      members,
+      members: mergedMembers,
       documents,
       recentActivity: [
         {

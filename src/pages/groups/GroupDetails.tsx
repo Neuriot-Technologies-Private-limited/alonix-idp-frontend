@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   FileText,
@@ -19,8 +20,10 @@ import {
 } from 'lucide-react';
 import { useGroupDetail, useGroupHealth } from '../../services/adminService';
 import { useUsers } from '../../services/userService';
+import apiClient from '../../services/api/client';
 import { HealthBadge } from '../../components/ui/GroupCard';
 import { Loader } from '../../components/ui/Loader';
+import { useAlert } from '../../components/alert';
 import { InviteUsersToGroupModal } from './modals/InviteUsersToGroupModal';
 import { useRbac } from '../../hooks/useRbac';
 
@@ -32,10 +35,35 @@ export const GroupDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'documents' | 'activity' | 'settings'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const { alert: appAlert } = useAlert();
 
   const { data: group, isLoading } = useGroupDetail(id || '');
   const { data: groups = [] } = useGroupHealth();
   const { data: allUsers = [] } = useUsers();
+  const queryClient = useQueryClient();
+
+  const resendInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      if (!id) return;
+      await apiClient.post(`/admin/groups/${encodeURIComponent(id)}/invites/${encodeURIComponent(inviteId)}/resend`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
+      void appAlert({
+        title: 'Invite resent',
+        description: 'A fresh invitation link has been sent to the user email.',
+        variant: 'success',
+      });
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { message?: string } } };
+      void appAlert({
+        title: 'Resend failed',
+        description: ax.response?.data?.message || 'Could not resend invite',
+        variant: 'danger',
+      });
+    },
+  });
 
   /** Must run every render — do not place after conditional returns (Rules of Hooks). */
   useEffect(() => {
@@ -229,6 +257,7 @@ export const GroupDetails: React.FC = () => {
                       <th className="px-6 py-3.5 font-black">Identity</th>
                       <th className="px-6 py-3.5 font-black">Role</th>
                       <th className="px-6 py-3.5 font-black">Email</th>
+                      <th className="px-6 py-3.5 font-black">Status</th>
                       <th className="px-6 py-3.5 font-black text-right">Settings</th>
                     </tr>
                   </thead>
@@ -248,7 +277,13 @@ export const GroupDetails: React.FC = () => {
                               </div>
                               <div>
                                 <span className="block font-black text-sm leading-tight">{member.name}</span>
-                                <span className="text-[8px] font-bold text-muted-foreground/20 uppercase tracking-widest">Active</span>
+                                <span className="text-[8px] font-bold text-muted-foreground/20 uppercase tracking-widest">
+                                  {member.membershipState === 'invited'
+                                    ? 'Invited'
+                                    : member.membershipState === 'expired'
+                                      ? 'Invite Expired'
+                                      : 'Active'}
+                                </span>
                               </div>
                             </div>
                           </td>
@@ -261,11 +296,39 @@ export const GroupDetails: React.FC = () => {
                           <td className="px-6 py-3.5">
                             <span className="text-[10px] font-medium text-muted-foreground/50">{member.email}</span>
                           </td>
+                          <td className="px-6 py-3.5">
+                            <span
+                              className={`inline-flex items-center rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider border ${
+                                member.membershipState === 'expired'
+                                  ? 'bg-warning/10 text-warning border-warning/30'
+                                  : member.membershipState === 'invited'
+                                    ? 'bg-info/10 text-info border-info/30'
+                                    : 'bg-success/10 text-success border-success/30'
+                              }`}
+                            >
+                              {member.membershipState === 'expired'
+                                ? 'Expired'
+                                : member.membershipState === 'invited'
+                                  ? 'Invited'
+                                  : 'Joined'}
+                            </span>
+                          </td>
                           <td className="px-6 py-3.5 text-right">
                             {canManage ? (
-                            <button type="button" className="p-2 rounded-lg hover:bg-surface-highest/10 text-muted-foreground/30 transition-all">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
+                            member.membershipState === 'expired' && member.inviteId && isCompanyAdmin ? (
+                              <button
+                                type="button"
+                                onClick={() => resendInviteMutation.mutate(member.inviteId as string)}
+                                disabled={resendInviteMutation.isPending}
+                                className="px-3 py-1.5 rounded-lg bg-warning/10 text-warning border border-warning/30 text-[9px] font-black uppercase tracking-widest hover:bg-warning/20 transition-all disabled:opacity-60"
+                              >
+                                Resend Invite
+                              </button>
+                            ) : (
+                              <button type="button" className="p-2 rounded-lg hover:bg-surface-highest/10 text-muted-foreground/30 transition-all">
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            )
                             ) : (
                               <span className="text-[9px] font-bold text-muted-foreground/25 uppercase tracking-widest">—</span>
                             )}
