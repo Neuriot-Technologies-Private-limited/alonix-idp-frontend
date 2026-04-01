@@ -7,6 +7,7 @@ import { useAuthStore } from './stores/authStore';
 import AppLayout from './layout/AppLayout';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import SetupPasswordPage from './pages/auth/SetupPasswordPage';
 import VerifyPage from './pages/auth/VerifyPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
@@ -47,6 +48,11 @@ const SignupRoute = () => {
   return token ? <Navigate to="/dashboard" replace /> : <SignupPage />;
 };
 
+const SetupPasswordRoute = () => {
+  const token = useAuthStore((state) => state.token);
+  return token ? <Navigate to="/dashboard" replace /> : <SetupPasswordPage />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -57,6 +63,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/signup" element={<SignupRoute />} />
+            <Route path="/setup-password" element={<SetupPasswordRoute />} />
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />

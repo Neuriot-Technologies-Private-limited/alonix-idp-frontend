@@ -1,63 +1,74 @@
-import React, { useState } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2, Building2 } from 'lucide-react';
+import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import logoFull from '../../assets/findoutai_logo-w.png';
 import { authApi } from '../../services/authApi';
 
-const SignupPage: React.FC = () => {
-  const [name, setName] = useState('');
-  const [orgName, setOrgName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+const SetupPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('inviteToken') || '';
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loadingInvite, setLoadingInvite] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [inviteInvalid, setInviteInvalid] = useState(false);
+  const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (inviteToken) {
-      navigate(`/setup-password?inviteToken=${encodeURIComponent(inviteToken)}`, { replace: true });
-    }
-  }, [inviteToken, navigate]);
+  useEffect(() => {
+    let mounted = true;
+    const loadInvite = async () => {
+      if (!inviteToken) {
+        setError('Missing invitation token. Please use the invitation email link.');
+        setInviteInvalid(true);
+        setLoadingInvite(false);
+        return;
+      }
+      try {
+        const invite = await authApi.getInviteDetails(inviteToken);
+        if (!mounted) return;
+        setEmail(String(invite.email || ''));
+        if (invite.inviteeName) setName(String(invite.inviteeName));
+      } catch (err: unknown) {
+        if (!mounted) return;
+        const ax = err as { response?: { data?: { message?: string } }; message?: string };
+        setError(ax.response?.data?.message || ax.message || 'Invitation is invalid or expired');
+        setInviteInvalid(true);
+      } finally {
+        if (mounted) setLoadingInvite(false);
+      }
+    };
+    loadInvite();
+    return () => {
+      mounted = false;
+    };
+  }, [inviteToken]);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!inviteToken) {
+      setError('Missing invitation token. Please use the invitation email link.');
+      setInviteInvalid(true);
+      return;
+    }
     setError('');
     setIsLoading(true);
-
     try {
-      let orgIdFromSignup: string | undefined;
-      let emailVerificationSent = true;
-      if (inviteToken) {
-        const inv = (await authApi.onboardInvite({
-          inviteToken,
-          email: email.trim(),
-          password,
-          name: name.trim(),
-        })) as { orgId?: string; emailVerificationSent?: boolean };
-        if (inv.orgId) orgIdFromSignup = String(inv.orgId);
-        if (inv.emailVerificationSent === false) emailVerificationSent = false;
-      } else {
-        const res = (await authApi.onboardCompany({
-          companyName: orgName.trim(),
-          email: email.trim(),
-          password,
-          name: name.trim(),
-        })) as { organization?: { _id?: string }; emailVerificationSent?: boolean };
-        const oid = res.organization?._id;
-        if (oid) orgIdFromSignup = String(oid);
-        if (res.emailVerificationSent === false) emailVerificationSent = false;
-      }
+      const res = (await authApi.onboardInvite({
+        inviteToken,
+        email: email.trim(),
+        password,
+        name: name.trim(),
+      })) as { orgId?: string; emailVerificationSent?: boolean };
       const q = new URLSearchParams({ email: email.trim() });
-      if (inviteToken) q.set('inviteToken', inviteToken);
-      if (orgIdFromSignup) q.set('orgId', orgIdFromSignup);
-      if (!emailVerificationSent) q.set('devMail', '1');
+      if (res.orgId) q.set('orgId', String(res.orgId));
+      if (res.emailVerificationSent === false) q.set('devMail', '1');
       navigate(`/verify?${q.toString()}`);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(ax.response?.data?.message || ax.message || 'Signup failed');
+      setError(ax.response?.data?.message || ax.message || 'Could not set password');
     } finally {
       setIsLoading(false);
     }
@@ -65,16 +76,15 @@ const SignupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
-      {/* Dynamic Background */}
       <div className="absolute inset-0 z-0 opacity-40">
         <motion.div
           animate={{ rotate: [0, 360] }}
-          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
           className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/10 blur-[150px] rounded-full"
         />
         <motion.div
           animate={{ rotate: [360, 0] }}
-          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
           className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] bg-primary-container/5 blur-[120px] rounded-full"
         />
       </div>
@@ -84,7 +94,6 @@ const SignupPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-5xl z-10 grid grid-cols-1 md:grid-cols-2 gap-0 overflow-hidden glass rounded-[2rem] shadow-4xl border border-border/5"
       >
-        {/* Left Side: Branding/Value Prop (Cinematic Style) */}
         <div className="flex flex-col justify-between p-8 md:p-12 bg-surface-highest/10 relative overflow-hidden border-r border-border/5">
           <div className="absolute inset-0 opacity-20 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-transparent" />
@@ -95,17 +104,11 @@ const SignupPage: React.FC = () => {
               <img src={logoFull} alt="FindoutAI" className="h-9 mb-12 object-contain" />
             </Link>
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
-              Establish Your <br />
-
-              <span className="text-primary underline decoration-primary/20 underline-offset-[12px] decoration-4">Intelligence Node</span>
+              Complete Your <br />
+              <span className="text-primary underline decoration-primary/20 underline-offset-[12px] decoration-4">Invitation Access</span>
             </h3>
             <ul className="space-y-6">
-              {[
-                'Neural Document Analysis',
-                'Advanced PII Redaction',
-                'Role-Based Workspace Control',
-                'Isolated Private Data Nodes'
-              ].map((item, i) => (
+              {['Password setup from secure invite', 'Organization-bound access only', 'Email OTP verification required'].map((item, i) => (
                 <motion.li
                   key={i}
                   initial={{ opacity: 0, x: -10 }}
@@ -128,8 +131,8 @@ const SignupPage: React.FC = () => {
                 <ShieldCheck className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-1">Compliance Ready</p>
-                <p className="text-[11px] text-muted-foreground/70 font-bold leading-tight">SOC2 • GDPR • HIPAA <br />Compliant Infrastructure</p>
+                <p className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-1">Invite Protected</p>
+                <p className="text-[11px] text-muted-foreground/70 font-bold leading-tight">No standalone signup <br />Outside your organization</p>
               </div>
             </div>
           </div>
@@ -137,21 +140,38 @@ const SignupPage: React.FC = () => {
 
         <div className="p-8 md:p-12 flex flex-col justify-center bg-surface-lowest/40 backdrop-blur-sm">
           <div className="mb-6">
-            <h2 className="text-2xl font-extrabold font-display mb-2 text-foreground tracking-tight">Create Account</h2>
-            <p className="text-muted-foreground text-sm mb-6 leading-relaxed font-medium">Join the next generation of curators.</p>
+            <h2 className="text-2xl font-extrabold font-display mb-2 text-foreground tracking-tight">Set Up Password</h2>
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed font-medium">Finish your invitation setup to continue.</p>
           </div>
 
-          {inviteToken ? (
-            <p className="mb-4 text-xs font-bold text-primary/90 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-              You are completing signup from a group invitation. Organization fields are not required.
-            </p>
-          ) : null}
           {error ? (
             <p className="mb-4 text-sm font-bold text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
               {error}
             </p>
           ) : null}
-          <form onSubmit={handleSignup} className="space-y-5">
+
+          {inviteInvalid ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This invitation link is no longer valid. Ask your organization admin to send a new invitation.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.12em] border border-border/20 text-foreground hover:bg-surface-highest/10 transition-colors"
+                >
+                  Go To Login
+                </Link>
+                <Link
+                  to="/"
+                  className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.12em] border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                >
+                  Back To Home
+                </Link>
+              </div>
+            </div>
+          ) : (
+          <form onSubmit={handleSetupPassword} className="space-y-5">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Full Name</label>
               <div className="relative group/input">
@@ -163,37 +183,22 @@ const SignupPage: React.FC = () => {
                   className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
                   placeholder="John Curator"
                   required
+                  disabled={loadingInvite || isLoading}
                 />
               </div>
             </div>
-            {!inviteToken ? (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Organization Name</label>
-                <div className="relative group/input">
-                  <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 transition-colors group-focus-within/input:text-primary" />
-                  <input
-                    type="text"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
-                    placeholder="Acme Intelligence"
-                    required={!inviteToken}
-                  />
-                </div>
-              </div>
-            ) : null}
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Work Email</label>
+              <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Invited Email</label>
               <div className="relative group/input">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 transition-colors group-focus-within/input:text-primary" />
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
+                  className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 text-sm font-bold text-foreground"
                   placeholder="name@company.com"
                   required
+                  readOnly
                 />
               </div>
             </div>
@@ -209,6 +214,7 @@ const SignupPage: React.FC = () => {
                   className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
                   placeholder="Min. 8 characters"
                   required
+                  disabled={loadingInvite || isLoading}
                 />
               </div>
             </div>
@@ -217,32 +223,29 @@ const SignupPage: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={isLoading}
-              className="w-full btn-primary py-4 mt-4 flex items-center justify-center gap-4 shadow-xl shadow-primary/20 rounded-2xl relative overflow-hidden group/btn"
+              disabled={loadingInvite || isLoading || !email}
+              className="w-full btn-primary py-4 mt-4 flex items-center justify-center gap-4 shadow-xl shadow-primary/20 rounded-2xl relative overflow-hidden group/btn disabled:opacity-50"
             >
               <div className="absolute inset-0 bg-surface-highest/10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-              {isLoading ? (
+              {loadingInvite || isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>
-                  <span className="text-sm font-black font-display uppercase tracking-[0.2em]">Create Workspace</span>
+                  <span className="text-sm font-black font-display uppercase tracking-[0.2em]">Set Password & Continue</span>
                   <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1.5 transition-transform" />
                 </>
               )}
             </motion.button>
           </form>
+          )}
 
           <p className="mt-8 text-center text-sm font-bold text-muted-foreground/60">
-            Have an account? <Link to="/login" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">Sign In</Link>
+            Already verified? <Link to="/login" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">Sign In</Link>
           </p>
         </div>
       </motion.div>
-
-      <footer className="mt-12 text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.4em] relative z-10 transition-opacity hover:opacity-100 opacity-50">
-        &copy; 2026 Alonix Intelligence Systems.
-      </footer>
     </div>
   );
 };
 
-export default SignupPage;
+export default SetupPasswordPage;

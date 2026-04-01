@@ -150,10 +150,10 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
             {mutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving…
+                Inviting…
               </>
             ) : (
-              'Apply'
+              'Invite'
             )}
           </button>
         </div>

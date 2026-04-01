@@ -66,6 +66,18 @@ export const authApi = {
     };
   },
 
+  async getInviteDetails(inviteToken: string) {
+    const { data } = await apiClient.get('/users/invite-details', {
+      params: { inviteToken: inviteToken.trim() },
+    });
+    return data as {
+      email: string;
+      inviteeName?: string;
+      orgId?: string;
+      groupId?: string;
+    };
+  },
+
   async verifyEmail(email: string, otp: string, orgId?: string | null) {
     const { data } = await apiClient.post('/users/verify-email', {
       email: email.trim(),
