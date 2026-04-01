@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const proxyTarget = env.VITE_API_BASE_URL || 'http://localhost:5005';
+  const proxyTarget = env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_URL || 'http://localhost:5005';
 
   return {
     plugins: [
@@ -13,8 +13,17 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         // Use same-origin /api in browser, proxy to backend target from env.
-        '/api': { target: proxyTarget, changeOrigin: true },
-        '/socket.io': { target: proxyTarget, changeOrigin: true, ws: true },
+        '/api': {
+          target: proxyTarget,
+          changeOrigin: true,
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        },
+        '/socket.io': {
+          target: proxyTarget,
+          changeOrigin: true,
+          ws: true,
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        },
       },
     },
   };
