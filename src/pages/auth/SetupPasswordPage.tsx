@@ -14,7 +14,9 @@ const SetupPasswordPage: React.FC = () => {
   const [loadingInvite, setLoadingInvite] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [inviteInvalid, setInviteInvalid] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,12 +50,18 @@ const SetupPasswordPage: React.FC = () => {
 
   const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     if (!inviteToken) {
       setError('Missing invitation token. Please use the invitation email link.');
       setInviteInvalid(true);
       return;
     }
+    if (String(password).length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
     setError('');
+    setInfo('');
     setIsLoading(true);
     try {
       const res = (await authApi.onboardInvite({
@@ -65,7 +73,11 @@ const SetupPasswordPage: React.FC = () => {
       const q = new URLSearchParams({ email: email.trim() });
       if (res.orgId) q.set('orgId', String(res.orgId));
       if (res.emailVerificationSent === false) q.set('devMail', '1');
-      navigate(`/verify?${q.toString()}`);
+      setInfo('Password set successfully. Redirecting to OTP verification...');
+      setIsRedirecting(true);
+      window.setTimeout(() => {
+        navigate(`/verify?${q.toString()}`, { replace: true });
+      }, 550);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } }; message?: string };
       setError(ax.response?.data?.message || ax.message || 'Could not set password');
@@ -149,8 +161,20 @@ const SetupPasswordPage: React.FC = () => {
               {error}
             </p>
           ) : null}
+          {info ? (
+            <p className="mb-4 text-sm font-bold text-primary bg-primary/10 border border-primary/20 rounded-xl px-4 py-3">
+              {info}
+            </p>
+          ) : null}
 
-          {inviteInvalid ? (
+          {isRedirecting ? (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-6 flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
+              <p className="text-sm font-semibold text-primary">
+                Preparing your OTP verification screen...
+              </p>
+            </div>
+          ) : inviteInvalid ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 This invitation link is no longer valid. Ask your organization admin to send a new invitation.
@@ -183,7 +207,7 @@ const SetupPasswordPage: React.FC = () => {
                   className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
                   placeholder="John Curator"
                   required
-                  disabled={loadingInvite || isLoading}
+                  disabled={loadingInvite || isLoading || isRedirecting}
                 />
               </div>
             </div>
@@ -211,10 +235,11 @@ const SetupPasswordPage: React.FC = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
                   className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
                   placeholder="Min. 8 characters"
                   required
-                  disabled={loadingInvite || isLoading}
+                  disabled={loadingInvite || isLoading || isRedirecting}
                 />
               </div>
             </div>
@@ -223,7 +248,7 @@ const SetupPasswordPage: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loadingInvite || isLoading || !email}
+              disabled={loadingInvite || isLoading || isRedirecting || !email}
               className="w-full btn-primary py-4 mt-4 flex items-center justify-center gap-4 shadow-xl shadow-primary/20 rounded-2xl relative overflow-hidden group/btn disabled:opacity-50"
             >
               <div className="absolute inset-0 bg-surface-highest/10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
