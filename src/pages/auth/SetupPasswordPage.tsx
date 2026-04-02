@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
@@ -17,11 +17,17 @@ const SetupPasswordPage: React.FC = () => {
   const [info, setInfo] = useState('');
   const [inviteInvalid, setInviteInvalid] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const submitLockRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
     const loadInvite = async () => {
+      // Reset any prior UI state when loading a new invite token
+      setError('');
+      setInfo('');
+      setInviteInvalid(false);
+      setIsRedirecting(false);
       if (!inviteToken) {
         setError('Missing invitation token. Please use the invitation email link.');
         setInviteInvalid(true);
@@ -50,14 +56,18 @@ const SetupPasswordPage: React.FC = () => {
 
   const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    // Prevent duplicate submissions even if React state hasn't flushed yet.
+    if (submitLockRef.current || isLoading) return;
+    submitLockRef.current = true;
     if (!inviteToken) {
       setError('Missing invitation token. Please use the invitation email link.');
       setInviteInvalid(true);
+      submitLockRef.current = false;
       return;
     }
     if (String(password).length < 8) {
       setError('Password must be at least 8 characters.');
+      submitLockRef.current = false;
       return;
     }
     setError('');
@@ -79,10 +89,25 @@ const SetupPasswordPage: React.FC = () => {
         navigate(`/verify?${q.toString()}`, { replace: true });
       }, 550);
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(ax.response?.data?.message || ax.message || 'Could not set password');
+      const ax = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const msg = ax.response?.data?.message || ax.message || 'Could not set password';
+
+      // The backend may return 409 duplicate-key when the same invite is submitted twice
+      // (e.g., double-click / slow UI). In that case, try OTP verification flow anyway.
+      if (ax.response?.status === 409 && /already exists/i.test(msg) && email.trim()) {
+        setError('');
+        setInfo('Account already exists. Redirecting to OTP verification...');
+        setIsRedirecting(true);
+        const q = new URLSearchParams({ email: email.trim() });
+        window.setTimeout(() => {
+          navigate(`/verify?${q.toString()}`, { replace: true });
+        }, 550);
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
+      submitLockRef.current = false;
     }
   };
 
