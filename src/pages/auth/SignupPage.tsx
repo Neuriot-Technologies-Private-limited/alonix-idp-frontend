@@ -239,7 +239,7 @@ const SignupPage: React.FC = () => {
       </motion.div>
 
       <footer className="mt-12 text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.4em] relative z-10 transition-opacity hover:opacity-100 opacity-50">
-        &copy; 2026 Alonix Intelligence Systems.
+        &copy; {new Date().getFullYear()} Alonix Intelligence Systems.
       </footer>
     </div>
   );

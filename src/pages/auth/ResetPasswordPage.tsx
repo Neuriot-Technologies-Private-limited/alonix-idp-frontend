@@ -167,7 +167,7 @@ const ResetPasswordPage: React.FC = () => {
       </motion.div>
 
       <footer className="relative z-10 mt-12 text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30">
-        &copy; 2026 Alonix Intelligence Systems.
+        &copy; {new Date().getFullYear()} Alonix Intelligence Systems.
       </footer>
     </div>
   );

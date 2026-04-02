@@ -581,7 +581,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
           <div className="pt-8 border-t border-border/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
-            <p>© 2026 Alonix Intelligence. The Digital Curator.</p>
+            <p>© {new Date().getFullYear()} Alonix Intelligence Systems. The Digital Curator.</p>
             <div className="flex gap-8">
               <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
