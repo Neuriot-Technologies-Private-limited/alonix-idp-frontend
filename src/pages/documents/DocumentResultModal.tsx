@@ -26,6 +26,12 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
   allowExport = true,
 }) => {
   if (!documentItem) return null;
+  const normalizeJobStatus = (status: unknown): 'Complete' | 'Processing' | 'Failed' => {
+    const upper = String(status ?? '').toUpperCase();
+    if (upper === 'COMPLETED' || upper === 'DONE') return 'Complete';
+    if (upper === 'PROCESSING' || upper === 'PENDING' || upper === 'RUNNING') return 'Processing';
+    return 'Failed';
+  };
 
   return (
     <Modal
@@ -38,13 +44,13 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
     >
       <div className="space-y-8">
         {documentItem.extractionResult && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
+          <section className="space-y-4 rounded-2xl border border-border/25 bg-gradient-to-b from-surface-highest/20 to-transparent p-4 sm:p-5">
+            <div className="flex items-center justify-between rounded-xl border border-primary/25 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent px-3 py-2">
               <div className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
                 <Database className="w-4 h-4" />
                 Extracted Intelligence
               </div>
-              <div className="flex items-center gap-1.5 bg-surface-highest/5 p-1 rounded-xl border border-border/10">
+              <div className="flex items-center gap-1.5 bg-surface-highest/30 p-1 rounded-xl border border-border/30">
                 {(['json', 'csv', 'md'] as const).map((f) => (
                   <button
                     key={f}
@@ -63,7 +69,7 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
               </div>
             </div>
 
-            <div className="bg-scrim border border-border/10 rounded-2xl overflow-hidden relative group/code">
+            <div className="bg-scrim/90 border border-border/30 rounded-2xl overflow-hidden relative group/code">
               {allowExport ? (
                 <div className="absolute top-4 right-4 z-10 opacity-0 group-hover/code:opacity-100 transition-opacity">
                   <button
@@ -91,8 +97,8 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
         )}
 
         {documentItem.classificationData && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-violet">
+          <section className="space-y-4 rounded-2xl border border-border/25 bg-gradient-to-b from-surface-highest/20 to-transparent p-4 sm:p-5">
+            <div className="flex items-center gap-2.5 rounded-xl border border-violet/25 bg-gradient-to-r from-violet/20 via-violet/10 to-transparent px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-violet">
               <Sparkles className="w-4 h-4" />
               AI Classification
             </div>
@@ -100,7 +106,7 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
               {Object.entries(documentItem.classificationData).map(([k, v]) => (
                 <div
                   key={k}
-                  className="bg-surface-highest/5 border border-border/10 rounded-2xl p-4 hover:bg-surface-highest/10 transition-colors"
+                  className="bg-surface-highest/20 border border-border/30 rounded-2xl p-4 hover:bg-surface-highest/30 transition-colors"
                 >
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30 mb-2">{k}</p>
                   <p className="text-xs font-black text-foreground truncate">
@@ -117,12 +123,12 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
         )}
 
         {documentItem.jobs && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-success">
+          <section className="space-y-4 rounded-2xl border border-border/25 bg-gradient-to-b from-surface-highest/20 to-transparent p-4 sm:p-5">
+            <div className="flex items-center gap-2.5 rounded-xl border border-success/25 bg-gradient-to-r from-success/20 via-success/10 to-transparent px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-success">
               <Activity className="w-4 h-4" />
               Process Ledger
             </div>
-            <div className="bg-surface-highest/5 border border-border/10 rounded-2xl overflow-hidden">
+            <div className="bg-surface-highest/20 border border-border/30 rounded-2xl overflow-hidden">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-border/10 bg-surface-highest/10">
@@ -147,11 +153,7 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
                       <td className="px-5 py-3">
                         <StatusBadge
                           status={
-                            j.status === 'completed'
-                              ? 'Complete'
-                              : j.status === 'running'
-                                ? 'Processing'
-                                : 'Failed'
+                            normalizeJobStatus(j.status)
                           }
                         />
                       </td>

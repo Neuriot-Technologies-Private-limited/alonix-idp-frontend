@@ -158,6 +158,18 @@ export const DocumentsPage: React.FC = () => {
         await triggerClassify(docId, gid || null);
       }
       await queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
+      const msg =
+        ax.response?.data?.detail ||
+        ax.response?.data?.error ||
+        ax.message ||
+        `Could not start ${action}.`;
+      await appAlert({
+        title: `Could not start ${action}`,
+        description: msg,
+        variant: 'danger',
+      });
     } finally {
       setActionBusyKey(null);
     }
@@ -418,10 +430,6 @@ export const DocumentsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (isLoading) {
-    return <Loader variant="page" label="Syncing vault assets..." />;
-  }
-
   const headerSubtitle = isCompanyAdmin
     ? 'Organization-wide vault: ingest, run pipeline stages, and review AI outputs across all workspaces.'
     : isPureViewOnly
@@ -514,9 +522,22 @@ export const DocumentsPage: React.FC = () => {
 
       <section
         id="documents-vault-table"
-        className="bg-surface-highest/5 rounded-2xl overflow-hidden border border-border/5 backdrop-blur-xl shadow-xl relative scroll-mt-24"
+        className={cn(
+          'bg-gradient-to-b from-surface-highest/20 via-surface-highest/10 to-transparent rounded-2xl overflow-hidden border border-border/20 backdrop-blur-xl shadow-xl relative scroll-mt-24',
+          isLoading && 'min-h-[min(420px,52vh)]'
+        )}
       >
-        <div className="px-3 sm:px-6 py-3 border-b border-border/5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {isLoading ? (
+          <div
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 rounded-2xl bg-background/70 backdrop-blur-md"
+            aria-busy="true"
+            aria-label="Loading documents"
+          >
+            <Loader variant="section" label="Syncing vault assets..." />
+          </div>
+        ) : null}
+        <div className={cn(isLoading && 'pointer-events-none select-none opacity-[0.38]')}>
+        <div className="px-3 sm:px-6 py-3 border-b border-border/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 tabular-nums order-2 sm:order-1">
             {filtered.length} document{filtered.length !== 1 ? 's' : ''}
             {filtered.length > 0 ? (
@@ -728,7 +749,7 @@ export const DocumentsPage: React.FC = () => {
                 <article
                   key={docItem.id}
                   className={cn(
-                    'rounded-2xl border border-border/10 bg-gradient-to-br from-surface-highest/5 to-transparent p-4 shadow-sm transition-all',
+                    'rounded-2xl border border-border/20 bg-gradient-to-br from-surface-highest/20 to-transparent p-4 shadow-sm transition-all',
                     isSelected && 'ring-1 ring-primary/35 bg-primary/[0.04]'
                   )}
                 >
@@ -796,6 +817,7 @@ export const DocumentsPage: React.FC = () => {
           totalItems={filtered.length}
           itemsPerPage={itemsPerPage}
         />
+        </div>
       </section>
 
       <DocumentResultModal

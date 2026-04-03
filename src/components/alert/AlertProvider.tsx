@@ -150,109 +150,110 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
             className={cn(
               'relative z-10 w-full max-w-[min(100%,420px)] overflow-hidden rounded-[28px]',
-              'border border-border/20',
-              'bg-gradient-to-br from-surface-highest/10 via-surface-highest/5 to-surface-highest/5',
-              'backdrop-blur-[28px] backdrop-saturate-175',
-              'shadow-[0_24px_64px_-16px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.14),inset_0_0_80px_-20px_rgba(173,198,255,0.06)]',
-              'ring-1 ring-border/10'
+              'border-2 border-border/55 dark:border-border/50',
+              'bg-surface-lowest',
+              'shadow-[0_24px_64px_-16px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.08)]',
+              'ring-1 ring-border/25 dark:ring-border/30'
             )}
           >
             <div
-              className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.07)_0%,transparent_42%,rgba(173,198,255,0.04)_100%)]"
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.04)_0%,transparent_45%,rgba(173,198,255,0.03)_100%)] dark:bg-[linear-gradient(135deg,rgba(255,255,255,0.03)_0%,transparent_50%,rgba(173,198,255,0.04)_100%)]"
               aria-hidden
             />
             <div
               className={cn(
-                'pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r opacity-[0.85]',
+                'pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r opacity-[0.9]',
                 variantStyles(current.options.variant ?? 'default').accentLine
               )}
             />
-            <div className="relative px-6 pb-6 pt-7 sm:px-8 sm:pb-8 sm:pt-8">
-              <div className="flex gap-4">
-                <div
-                  className={cn(
-                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border',
-                    variantStyles(current.options.variant ?? 'default').iconWrap
-                  )}
-                >
-                  {current.options.icon ? (
-                    <span className="flex h-6 w-6 items-center justify-center [&>svg]:h-6 [&>svg]:w-6">
-                      {current.options.icon}
-                    </span>
-                  ) : (
-                    (() => {
-                      const V = variantIcon(current.options.variant ?? 'default');
-                      return (
-                        <V
-                          className={cn('h-6 w-6', variantStyles(current.options.variant ?? 'default').icon)}
-                          strokeWidth={1.75}
-                          aria-hidden
-                        />
-                      );
-                    })()
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+            <div className="relative">
+              <div className="border-b border-border/45 bg-surface-high/90 px-6 py-3.5 sm:px-8 dark:border-border/40 dark:bg-surface-high">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border',
+                      variantStyles(current.options.variant ?? 'default').iconWrap
+                    )}
+                  >
+                    {current.options.icon ? (
+                      <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                        {current.options.icon}
+                      </span>
+                    ) : (
+                      (() => {
+                        const V = variantIcon(current.options.variant ?? 'default');
+                        return (
+                          <V
+                            className={cn('h-5 w-5', variantStyles(current.options.variant ?? 'default').icon)}
+                            strokeWidth={1.75}
+                            aria-hidden
+                          />
+                        );
+                      })()
+                    )}
+                  </div>
                   <h2
                     id={titleId}
-                    className="font-display text-lg font-black leading-snug tracking-tight text-foreground drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)] sm:text-xl"
+                    className="min-w-0 flex-1 font-display text-lg font-bold leading-snug tracking-tight text-foreground"
                   >
                     {current.options.title}
                   </h2>
-                  {current.options.description != null && current.options.description !== '' && (
-                    <div
-                      id={descId}
-                      className="text-sm leading-relaxed text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground/90"
-                    >
-                      {current.options.description}
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-                {current.kind === 'confirm' && (
+              <div className="space-y-5 px-6 pb-6 pt-5 sm:px-8 sm:pb-7">
+                {current.options.description != null && current.options.description !== '' && (
+                  <div
+                    id={descId}
+                    className="text-sm leading-relaxed text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground/90"
+                  >
+                    {current.options.description}
+                  </div>
+                )}
+
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+                  {current.kind === 'confirm' && (
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-xl px-4 py-2.5 text-sm font-semibold text-muted-foreground',
+                        'border border-border/45 bg-surface-low dark:border-border/50 dark:bg-surface-low/80',
+                        'hover:border-border hover:bg-surface-high/50 hover:text-foreground',
+                        'transition-colors active:scale-[0.99]'
+                      )}
+                      onClick={() => {
+                        flush((item) => {
+                          if (item.kind === 'confirm') item.resolve(false);
+                        });
+                      }}
+                    >
+                      {current.options.cancelLabel ?? 'Cancel'}
+                    </button>
+                  )}
                   <button
+                    ref={confirmBtnRef}
                     type="button"
                     className={cn(
-                      'rounded-xl px-4 py-2.5 text-sm font-semibold text-muted-foreground',
-                      'border border-border/20 bg-surface-highest/5 backdrop-blur-md',
-                      'shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]',
-                      'hover:bg-surface-highest/10 hover:text-foreground hover:border-border/25',
-                      'transition-colors active:scale-[0.99]'
+                      'rounded-xl px-5 py-2.5 text-sm font-bold tracking-wide transition-all active:scale-[0.99]',
+                      variantStyles(current.options.variant ?? 'default').primaryBtn
                     )}
                     onClick={() => {
-                      flush((item) => {
-                        if (item.kind === 'confirm') item.resolve(false);
-                      });
+                      if (current.kind === 'confirm') {
+                        flush((item) => {
+                          if (item.kind === 'confirm') item.resolve(true);
+                        });
+                      } else {
+                        flush((item) => {
+                          if (item.kind === 'alert') item.resolve();
+                        });
+                      }
                     }}
                   >
-                    {current.options.cancelLabel ?? 'Cancel'}
+                    {current.kind === 'alert'
+                      ? current.options.confirmLabel ?? 'Got it'
+                      : current.options.confirmLabel ?? 'Continue'}
                   </button>
-                )}
-                <button
-                  ref={confirmBtnRef}
-                  type="button"
-                  className={cn(
-                    'rounded-xl px-5 py-2.5 text-sm font-bold tracking-wide transition-all active:scale-[0.99]',
-                    variantStyles(current.options.variant ?? 'default').primaryBtn
-                  )}
-                  onClick={() => {
-                    if (current.kind === 'confirm') {
-                      flush((item) => {
-                        if (item.kind === 'confirm') item.resolve(true);
-                      });
-                    } else {
-                      flush((item) => {
-                        if (item.kind === 'alert') item.resolve();
-                      });
-                    }
-                  }}
-                >
-                  {current.kind === 'alert'
-                    ? current.options.confirmLabel ?? 'Got it'
-                    : current.options.confirmLabel ?? 'Continue'}
-                </button>
+                </div>
               </div>
             </div>
           </motion.div>

@@ -58,29 +58,45 @@ export const Modal: React.FC<ModalProps> = ({
         />
         <div
           className={cn(
-            'relative z-10 my-auto w-full bg-surface-lowest border border-border/20 dark:border-border/10 rounded-[32px] shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden',
+            'relative z-10 my-auto w-full flex flex-col overflow-hidden rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-300',
+            'bg-surface-lowest',
+            'border-2 border-border/55 dark:border-border/50',
+            'ring-1 ring-border/25 dark:ring-border/35',
             maxWidth,
             maxHeight
           )}
         >
-        {/* Header */}
-        <div 
+        {/* Header: elevated “rail” vs deeper body */}
+        <div
           className={cn(
-            "flex items-start justify-between p-5 border-b border-border/10 relative",
-            headerGradient && "bg-gradient-to-br from-primary/5 to-transparent"
+            'relative flex items-center justify-between gap-3 px-5 py-3 sm:py-3.5',
+            'border-b border-border/45 dark:border-border/40',
+            headerGradient
+              ? 'bg-gradient-to-b from-surface-high/95 via-surface-high/85 to-surface-high/70 dark:from-surface-high dark:via-surface-high/95 dark:to-surface-low'
+              : 'bg-surface-high/90 dark:bg-surface-high'
           )}
         >
-          <div className="flex items-center gap-4">
+          {headerGradient ? (
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.07] to-transparent dark:from-primary/[0.1]"
+              aria-hidden
+            />
+          ) : null}
+          <div className="relative flex min-w-0 flex-1 items-center gap-3">
             {icon && (
-              <div className="w-11 h-11 rounded-xl bg-surface-highest/10 border border-border/20 flex items-center justify-center text-primary shadow-inner">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/45 bg-surface-lowest/60 text-primary shadow-inner dark:bg-surface-lowest/40">
                 {icon}
               </div>
             )}
             <div className="min-w-0">
-              <h2 className="text-xl font-black text-foreground font-display tracking-tight truncate">{title}</h2>
+              <h2 className="truncate font-display text-lg font-bold tracking-tight text-foreground">
+                {title}
+              </h2>
               {subtitle && (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-widest">{subtitle}</span>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">
+                    {subtitle}
+                  </span>
                 </div>
               )}
             </div>
@@ -88,20 +104,26 @@ export const Modal: React.FC<ModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-surface-highest/10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-highest/20 transition-all active:scale-95"
+            aria-label="Close"
+            className={cn(
+              'relative shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-95',
+              'border border-border/50 bg-surface-lowest/70 text-muted-foreground shadow-sm',
+              'hover:border-border hover:bg-surface-lowest hover:text-foreground',
+              'dark:border-border/55 dark:bg-surface-lowest/50 dark:hover:bg-surface-highest/40'
+            )}
           >
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" strokeWidth={2.25} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+        <div className="custom-scrollbar flex-1 overflow-y-auto bg-surface-lowest p-5">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="p-5 border-t border-border/10 bg-surface-highest/10">
+          <div className="border-t border-border/45 bg-surface-high/35 px-5 py-4 dark:border-border/40 dark:bg-surface-high/25">
             {footer}
           </div>
         )}

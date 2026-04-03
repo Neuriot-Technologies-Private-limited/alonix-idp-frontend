@@ -41,10 +41,34 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   const ingestDone = ingestionStatus === 'done';
   const extractDone = extractionStatus === 'done';
   const classifyDone = classificationStatus === 'done';
+  const rawExtractionStatus = String(docItem?.extractionStatus ?? '').toUpperCase();
+  const rawClassificationStatus = String(docItem?.classificationStatus ?? '').toUpperCase();
+  const hasExtractionPayload = Boolean(
+    docItem?.extractionResult &&
+      (Array.isArray(docItem.extractionResult)
+        ? docItem.extractionResult.length
+        : typeof docItem.extractionResult === 'object'
+          ? Object.keys(docItem.extractionResult).length
+          : true)
+  );
+  const hasClassificationPayload = Boolean(
+    docItem?.classificationData &&
+      (Array.isArray(docItem.classificationData)
+        ? docItem.classificationData.length
+        : typeof docItem.classificationData === 'object'
+          ? Object.keys(docItem.classificationData).length
+          : true)
+  );
   const ingestEnabled = !bulkBusyActive && !docBusy && !ingestRunning && !ingestDone;
   const extractEnabled = !bulkBusyActive && !docBusy && !extractRunning && !extractDone;
   const classifyEnabled = !bulkBusyActive && !docBusy && !classifyRunning && !classifyDone;
-  const showResults = extractDone || classifyDone;
+  const showResults =
+    extractDone ||
+    classifyDone ||
+    hasExtractionPayload ||
+    hasClassificationPayload ||
+    rawExtractionStatus === 'COMPLETED' ||
+    rawClassificationStatus === 'COMPLETED';
 
   const isCard = variant === 'card';
 
@@ -112,7 +136,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           : tone === 'violet'
             ? 'bg-violet/10 text-violet border-violet/20 hover:bg-violet/20 active:scale-95'
             : 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20 active:scale-95'
-        : 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
+        : 'bg-surface-highest/15 text-muted-foreground/45 border-border/20'
     );
 
   return (
@@ -197,7 +221,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           onDeleteDocument?.(docItem);
         }}
         className={cn(
-          'shrink-0 h-9 w-9 rounded-lg bg-surface-highest/10 flex items-center justify-center border border-border/10 touch-manipulation transition-colors',
+          'shrink-0 h-9 w-9 rounded-lg bg-surface-highest/15 flex items-center justify-center border border-border/20 touch-manipulation transition-colors',
           onDeleteDocument
             ? 'text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 active:scale-95'
             : 'text-muted-foreground/20 cursor-not-allowed opacity-50',

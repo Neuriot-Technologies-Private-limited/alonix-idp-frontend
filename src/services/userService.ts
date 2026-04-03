@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
 
+export type UserWorkspace = { groupId: string; groupName?: string; role?: string | null };
+
 export interface User {
   _id: string;
   id?: string;
@@ -12,6 +14,8 @@ export interface User {
   group: string;
   groupID: string;
   lastActive: string;
+  /** Populated from admin users API for group-scoped actions */
+  workspaces?: UserWorkspace[];
 }
 
 export type InviteUsersToGroupPayload = {
@@ -41,7 +45,12 @@ function mapApiUser(u: Record<string, unknown>): User {
   const orgRole = u.orgRole as string | undefined;
   const groupLabel = typeof u.groupLabel === 'string' ? u.groupLabel.trim() : '';
   const groupNames = Array.isArray(u.groupNames) ? (u.groupNames as unknown[]).map(String) : [];
-  const workspaces = Array.isArray(u.workspaces) ? (u.workspaces as { groupName?: string }[]) : [];
+  const workspacesRaw = Array.isArray(u.workspaces) ? (u.workspaces as Record<string, unknown>[]) : [];
+  const workspaces: UserWorkspace[] = workspacesRaw.map((w) => ({
+    groupId: String(w.groupId ?? ''),
+    groupName: typeof w.groupName === 'string' ? w.groupName : undefined,
+    role: (w.role as string | null) ?? null,
+  }));
   const fromWorkspaces = workspaces.map((w) => w.groupName).filter(Boolean) as string[];
   const displayGroup =
     (groupLabel && groupLabel !== '—' ? groupLabel : '') ||
@@ -58,15 +67,22 @@ function mapApiUser(u: Record<string, unknown>): User {
     if (hasGroupAdmin) role = 'GROUP_ADMIN';
   }
 
+  const dbStatus = String(u.status || '').toUpperCase();
+  let status: User['status'] = 'Pending';
+  if (dbStatus === 'INACTIVE') status = 'Inactive';
+  else if (u.emailVerified === true) status = 'Active';
+  else status = 'Pending';
+
   return {
     _id: String(u._id),
     name: String(u.name || u.email || ''),
     email: String(u.email || ''),
     role,
-    status: u.emailVerified === true ? 'Active' : 'Pending',
+    status,
     group: displayGroup,
     groupID,
     lastActive: formatLastActiveFromRecord(u),
+    workspaces: workspaces.length ? workspaces : undefined,
   };
 }
 
@@ -126,14 +142,43 @@ export const userService = {
 
     return { ok: true, addedExisting, invitedNew: false };
   },
+
+  /**
+   * Single user update: `PATCH /api/users/update/:userId` with orgId (+ groupId for group admins).
+   */
+  patchOrgUser: async (
+    userId: string,
+    body: { name?: string; status?: 'ACTIVE' | 'INACTIVE' },
+    opts?: { groupId?: string }
+  ): Promise<void> => {
+    const orgId = useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId;
+    if (!orgId) throw new Error('Not signed in');
+    const payload: Record<string, unknown> = { orgId, ...body };
+    if (opts?.groupId) payload.groupId = opts.groupId;
+    await apiClient.patch(`/users/update/${encodeURIComponent(userId)}`, payload);
+  },
+
+  deleteOrgUser: async (userId: string): Promise<void> => {
+    const orgId = useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId;
+    if (!orgId) throw new Error('Not signed in');
+    await apiClient.delete(`/admin/orgs/${encodeURIComponent(orgId)}/users/${encodeURIComponent(userId)}`);
+  },
+
+  removeUserFromGroup: async (groupId: string, userEmail: string): Promise<void> => {
+    const enc = encodeURIComponent(userEmail.toLowerCase().trim());
+    await apiClient.delete(`/admin/groups/${encodeURIComponent(groupId)}/members/${enc}`);
+  },
 };
 
 export const useUsers = () => {
   const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
+  const orgRole = useAuthStore((s) => s.context?.orgRole);
+  const groups = useAuthStore((s) => s.context?.groups ?? []);
+  const canLoadDirectory =
+    orgRole === 'COMPANY_ADMIN' || groups.some((g) => g.role === 'GROUP_ADMIN');
   return useQuery({
     queryKey: ['directory-users', orgId],
     queryFn: userService.getUsers,
-    enabled: !!orgId && isCompanyAdmin,
+    enabled: !!orgId && canLoadDirectory,
   });
 };
