@@ -5,6 +5,26 @@ import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2 } from
 import logoFull from '../../assets/findoutai_logo-w.png';
 import { authApi } from '../../services/authApi';
 
+const EXPIRED_INVITE_COPY = 'Your invitation is expired. Please request a new invite.';
+
+const getInviteErrorMessage = (err: unknown): string => {
+  const ax = err as {
+    response?: { status?: number; data?: { code?: string; message?: string } };
+    message?: string;
+  };
+  const code = String(ax.response?.data?.code || '').toUpperCase();
+  const message = String(ax.response?.data?.message || '');
+
+  if (
+    ax.response?.status === 410 ||
+    code === 'INVITE_EXPIRED' ||
+    /expired invitation|invitation is expired|invitation link is no longer valid/i.test(message)
+  ) {
+    return EXPIRED_INVITE_COPY;
+  }
+  return message || ax.message || 'Invitation is invalid or expired';
+};
+
 const SetupPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('inviteToken') || '';
@@ -41,8 +61,7 @@ const SetupPasswordPage: React.FC = () => {
         if (invite.inviteeName) setName(String(invite.inviteeName));
       } catch (err: unknown) {
         if (!mounted) return;
-        const ax = err as { response?: { data?: { message?: string } }; message?: string };
-        setError(ax.response?.data?.message || ax.message || 'Invitation is invalid or expired');
+        setError(getInviteErrorMessage(err));
         setInviteInvalid(true);
       } finally {
         if (mounted) setLoadingInvite(false);
@@ -90,7 +109,7 @@ const SetupPasswordPage: React.FC = () => {
       }, 550);
     } catch (err: unknown) {
       const ax = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
-      const msg = ax.response?.data?.message || ax.message || 'Could not set password';
+      const msg = getInviteErrorMessage(err);
 
       // The backend may return 409 duplicate-key when the same invite is submitted twice
       // (e.g., double-click / slow UI). In that case, try OTP verification flow anyway.
@@ -202,7 +221,7 @@ const SetupPasswordPage: React.FC = () => {
           ) : inviteInvalid ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                This invitation link is no longer valid. Ask your organization admin to send a new invitation.
+                {EXPIRED_INVITE_COPY}
               </p>
               <div className="flex gap-3">
                 <Link

@@ -152,21 +152,40 @@ const ProfilePage: React.FC = () => {
         return;
       }
       setAvatarBusy(true);
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = typeof reader.result === 'string' ? reader.result : null;
-        if (dataUrl) updateUser({ avatarUrl: dataUrl });
+      try {
+        const { avatarUrl } = await authApi.uploadAvatar(file);
+        updateUser({ avatarUrl });
+      } catch (err: unknown) {
+        const ax = err as { response?: { data?: { message?: string } }; message?: string };
+        await appAlert({
+          title: 'Upload failed',
+          description: ax.response?.data?.message || ax.message || 'Could not upload avatar.',
+          variant: 'danger',
+        });
+      } finally {
         setAvatarBusy(false);
-      };
-      reader.onerror = () => setAvatarBusy(false);
-      reader.readAsDataURL(file);
+      }
     },
     [appAlert, updateUser]
   );
 
-  const removeAvatar = useCallback(() => {
-    updateUser({ avatarUrl: null });
-  }, [updateUser]);
+  const removeAvatar = useCallback(async () => {
+    if (avatarBusy) return;
+    setAvatarBusy(true);
+    try {
+      await authApi.removeAvatar();
+      updateUser({ avatarUrl: null });
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      await appAlert({
+        title: 'Remove failed',
+        description: ax.response?.data?.message || ax.message || 'Could not remove avatar.',
+        variant: 'danger',
+      });
+    } finally {
+      setAvatarBusy(false);
+    }
+  }, [appAlert, updateUser, avatarBusy]);
 
   const saveProfile = useCallback(() => {
     if (!user) return;
@@ -307,6 +326,7 @@ const ProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={removeAvatar}
+                disabled={avatarBusy}
                 className="self-center rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-destructive transition hover:bg-destructive/20 sm:self-auto"
               >
               <span className="inline-flex items-center gap-2">

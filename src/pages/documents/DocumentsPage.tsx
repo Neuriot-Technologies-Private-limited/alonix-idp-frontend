@@ -15,6 +15,7 @@ import {
   uploadDocument,
   deleteDocument,
 } from '../../services/chatApi';
+import { connectSocket, getSocket } from '../../services/chatSocket';
 import { Pagination } from '../../components/ui/Pagination';
 import { mergePipeline, useGroupHealth } from '../../services/adminService';
 import { useUsers } from '../../services/userService';
@@ -261,6 +262,26 @@ export const DocumentsPage: React.FC = () => {
   React.useEffect(() => {
     if (!hasBulkActions) setSelectedIds(new Set());
   }, [hasBulkActions]);
+
+  React.useEffect(() => {
+    const email = String(user?.email || '').trim();
+    const gid = String(context?.activeGroupId || user?.groupID || user?.groupId || '').trim();
+    if (!email) return;
+
+    connectSocket(email, gid);
+    const socket = getSocket();
+    if (!socket) return;
+
+    const onJobUpdate = () => {
+      void queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+      void queryClient.invalidateQueries({ queryKey: ['documents'] });
+    };
+
+    socket.on('job.update', onJobUpdate);
+    return () => {
+      socket.off('job.update', onJobUpdate);
+    };
+  }, [context?.activeGroupId, queryClient, user?.email, user?.groupID, user?.groupId]);
 
   const filtered = React.useMemo(() => {
     if (!documents) return [];

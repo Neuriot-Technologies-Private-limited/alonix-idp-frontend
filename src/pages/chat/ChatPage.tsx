@@ -14,7 +14,7 @@ import {
   getMyContext,
   type ChatSessionDto,
 } from '../../services/chatApi';
-import { connectSocket } from '../../services/chatSocket';
+import { connectSocket, disconnectSocket } from '../../services/chatSocket';
 
 /** Referenced in DOM createElement — keep so Tailwind can scan utility strings */
 const SOURCE_PILL_CLASS =
@@ -480,6 +480,12 @@ const ChatPage: React.FC = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap: refresh context once when user/context ids settle
   }, [user?.email, context?.activeGroupId]);
+
+  useEffect(() => {
+    return () => {
+      disconnectSocket();
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollToLastItem.current) {

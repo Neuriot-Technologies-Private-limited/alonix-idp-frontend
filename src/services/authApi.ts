@@ -10,6 +10,7 @@ function mapApiUser(u: Record<string, unknown>): UserDetails {
     email,
     username: username || email,
     name: (u.name as string) || undefined,
+    avatarUrl: u.avatarUrl as string | null | undefined,
     groupID: u.groupID as string | undefined,
     groupId: (u.groupId as string | undefined) ?? (u.groupID as string | undefined),
     orgId: (u.orgId as string | null | undefined) ?? null,
@@ -129,5 +130,19 @@ export const authApi = {
       ...(payload.orgId ? { orgId: payload.orgId } : {}),
     });
     return data as { message: string };
+  },
+
+  async uploadAvatar(file: File): Promise<{ avatarUrl: string | null; avatarKey: string | null }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { data } = await apiClient.post('/users/me/avatar', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data as { avatarUrl: string | null; avatarKey: string | null };
+  },
+
+  async removeAvatar(): Promise<{ avatarUrl: null; avatarKey: null }> {
+    const { data } = await apiClient.delete('/users/me/avatar');
+    return data as { avatarUrl: null; avatarKey: null };
   },
 };

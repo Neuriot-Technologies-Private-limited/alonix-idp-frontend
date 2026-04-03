@@ -27,6 +27,15 @@ import { useAlert } from '../../components/alert';
 import { InviteUsersToGroupModal } from './modals/InviteUsersToGroupModal';
 import { useRbac } from '../../hooks/useRbac';
 
+function getNameInitials(name?: string) {
+  const clean = String(name ?? '').trim();
+  if (!clean) return '—';
+  const parts = clean.split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
+  return `${first}${last}`.toUpperCase() || '—';
+}
+
 export const GroupDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -196,7 +205,10 @@ export const GroupDetails: React.FC = () => {
                   <span className="text-[9px] font-black text-success bg-success/10 px-1.5 py-0.5 rounded-full">Active</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-black">{group.members.length}</p>
+                  {/* Count only approved/joined members; invites are shown in the table below */}
+                  <p className="text-2xl font-black">
+                    {group.members.filter((m) => m.membershipState === 'joined').length}
+                  </p>
                   <p className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-widest">Members</p>
                 </div>
               </div>
@@ -272,7 +284,7 @@ export const GroupDetails: React.FC = () => {
                                 {member.avatar ? (
                                   <img src={member.avatar} alt={member.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
                                 ) : (
-                                  member.name.charAt(0)
+                                  getNameInitials(member.name)
                                 )}
                               </div>
                               <div>

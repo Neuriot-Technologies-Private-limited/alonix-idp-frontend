@@ -277,7 +277,6 @@ export const adminService = {
       name: m.userEmail,
       email: m.userEmail,
       role: m.role === 'GROUP_ADMIN' ? 'Group Admin' : 'Search User',
-      avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(m.userEmail)}`,
       membershipState: 'joined',
     }));
 

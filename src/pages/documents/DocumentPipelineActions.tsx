@@ -31,13 +31,16 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   variant = 'table',
   readOnly = false,
 }) => {
-  const p = docItem.pipeline;
-  const ingestRunning = p.ingestion.status === 'processing';
-  const extractRunning = p.extraction.status === 'processing';
-  const classifyRunning = p.classification.status === 'processing';
-  const ingestDone = p.ingestion.status === 'done';
-  const extractDone = p.extraction.status === 'done';
-  const classifyDone = p.classification.status === 'done';
+  const p = docItem?.pipeline ?? {};
+  const ingestionStatus = p?.ingestion?.status ?? 'idle';
+  const extractionStatus = p?.extraction?.status ?? 'idle';
+  const classificationStatus = p?.classification?.status ?? 'idle';
+  const ingestRunning = ingestionStatus === 'processing';
+  const extractRunning = extractionStatus === 'processing';
+  const classifyRunning = classificationStatus === 'processing';
+  const ingestDone = ingestionStatus === 'done';
+  const extractDone = extractionStatus === 'done';
+  const classifyDone = classificationStatus === 'done';
   const ingestEnabled = !bulkBusyActive && !docBusy && !ingestRunning && !ingestDone;
   const extractEnabled = !bulkBusyActive && !docBusy && !extractRunning && !extractDone;
   const classifyEnabled = !bulkBusyActive && !docBusy && !classifyRunning && !classifyDone;
