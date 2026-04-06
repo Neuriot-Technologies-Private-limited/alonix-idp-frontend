@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus, Mail, Users, ChevronDown, X } from 'lucide-react';
+import { UserPlus, Mail, Users, UserCheck, ChevronDown, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUsers, userService, type User } from '../../services/userService';
 import { useGroupHealth } from '../../services/adminService';
@@ -15,6 +15,7 @@ import { StatusBadge, RoleBadge } from './userManagement/UserManagementBadges';
 import { UserRowActions } from './userManagement/UserRowActions';
 import { EditUserModal } from './userManagement/EditUserModal';
 import { pickManagedGroupId } from './userManagement/pickManagedGroupId';
+import { MetricStateCard } from '../../components/ui/MetricStateCard';
 
 export const UserManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -232,7 +233,7 @@ export const UserManagement: React.FC = () => {
         <button
           type="button"
           onClick={openInviteHeader}
-          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-border/10 bg-primary px-5 py-3 font-bold text-[11px] uppercase tracking-widest text-primary-foreground transition-all hover:opacity-90 active:scale-95 sm:w-auto"
+          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/35 bg-gradient-to-r from-primary to-primary/90 px-5 py-3 font-bold text-[11px] uppercase tracking-widest text-primary-foreground transition-all shadow-[0_16px_32px_rgba(173,198,255,0.24)] hover:opacity-90 active:scale-95 sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
           {isCompanyAdmin ? 'Invite User' : 'Add To Group'}
@@ -260,38 +261,25 @@ export const UserManagement: React.FC = () => {
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        {[
-          { label: 'Total Users', value: totalUsers, sub: 'All members', color: 'text-primary' },
-          { label: 'Active', value: activeCount, sub: 'Online / verified', color: 'text-success' },
-          { label: 'Pending', value: pendingCount, sub: 'Awaiting onboard', color: 'text-warning' },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="flex items-center gap-4 rounded-2xl border border-border/5 bg-surface-highest/5 p-3.5 sm:p-4"
-          >
-            <div className="min-w-0">
-              <p className={cn('text-xl font-black sm:text-2xl', s.color)}>{s.value}</p>
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">{s.label}</p>
-              <p className="mt-0.5 text-[8px] text-muted-foreground/20">{s.sub}</p>
-            </div>
-          </div>
-        ))}
+        <MetricStateCard label="Total Users" value={totalUsers} tone="primary" icon={Users} />
+        <MetricStateCard label="Active" value={activeCount} tone="emerald" icon={UserCheck} />
+        <MetricStateCard label="Pending" value={pendingCount} tone="amber" icon={UserCheck} />
       </section>
 
-      <section className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-center">
+      <section className="flex flex-col items-stretch gap-3 rounded-2xl border border-border/35 dark:border-border/50 bg-gradient-to-r from-surface-highest/26 via-surface-highest/14 to-transparent p-3 sm:p-4 md:flex-row md:flex-wrap md:items-center shadow-[0_18px_38px_-28px_hsl(var(--background)/0.9)] backdrop-blur-xl">
         <SearchInput
           value={search}
           onChange={setSearch}
           placeholder="Search by name, email or role..."
           showClear
-          inputClassName="focus:ring-primary/20"
+          inputClassName="focus:ring-primary/20 border-border/35 dark:border-border/50 bg-surface-highest/24 dark:bg-surface-highest/16"
         />
         <div className="relative shrink-0">
-          <Users className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/30" />
+          <Users className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/55 dark:text-muted-foreground/45" />
           <select
             value={groupFilter}
             onChange={(e) => setGroupFilter(e.target.value)}
-            className="appearance-none rounded-xl border border-border/10 bg-surface-highest/5 py-3 pl-9 pr-8 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="appearance-none rounded-xl border border-border/35 dark:border-border/50 bg-surface-highest/24 dark:bg-surface-highest/16 py-3 pl-9 pr-8 text-[11px] font-black uppercase tracking-widest text-muted-foreground/75 transition-all shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05)] focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             {groups.map((g) => (
               <option key={g} value={g}>
@@ -299,9 +287,9 @@ export const UserManagement: React.FC = () => {
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/30" />
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/50 dark:text-muted-foreground/40" />
         </div>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-xl border border-border/10 bg-surface-highest/5 p-1 md:max-w-none md:flex-initial md:shrink-0">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-xl border border-border/35 dark:border-border/50 bg-surface-highest/30 dark:bg-surface-highest/20 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05)] md:max-w-none md:flex-initial md:shrink-0">
           {statuses.map((s) => (
             <button
               key={s}
@@ -310,8 +298,8 @@ export const UserManagement: React.FC = () => {
               className={cn(
                 'rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all',
                 statusFilter === s
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground/40 hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                  : 'text-muted-foreground/65 dark:text-muted-foreground/55 hover:text-foreground'
               )}
             >
               {s}
@@ -333,9 +321,9 @@ export const UserManagement: React.FC = () => {
         )}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border/5 bg-surface-highest/5 shadow-xl backdrop-blur-xl">
-        <div className="flex items-center justify-between border-b border-border/5 px-4 py-3 sm:px-6">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
+      <section className="overflow-hidden rounded-2xl border border-border/35 dark:border-border/50 bg-gradient-to-b from-surface-highest/25 via-surface-highest/12 to-transparent shadow-xl shadow-black/5 dark:shadow-black/25 backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/30 dark:border-border/45 bg-gradient-to-r from-primary/14 via-primary/6 to-transparent px-4 py-3 sm:px-6">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/65 dark:text-muted-foreground/55">
             {filtered.length} User{filtered.length !== 1 ? 's' : ''}
             {hasFilters ? ` matching filters` : ''}
           </p>
@@ -343,12 +331,12 @@ export const UserManagement: React.FC = () => {
         <div className="-mx-px overflow-x-auto overscroll-x-contain sm:mx-0">
           <table className="w-full min-w-[640px] border-collapse text-left sm:min-w-0">
             <thead>
-              <tr className="border-b border-border/5 bg-muted/5">
+              <tr className="border-b border-border/25 dark:border-border/35 bg-muted/5">
                 {['User', 'Role', 'Group', 'Status', 'Last Active', 'Actions'].map((h) => (
                   <th
                     key={h}
                     className={cn(
-                      'px-4 py-3 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 sm:px-6',
+                      'px-4 py-3 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/45 dark:text-muted-foreground/35 sm:px-6',
                       h === 'Actions' && 'text-right'
                     )}
                   >
@@ -357,7 +345,7 @@ export const UserManagement: React.FC = () => {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/10">
+            <tbody className="divide-y divide-border/20 dark:divide-border/30">
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="py-6">
@@ -375,17 +363,17 @@ export const UserManagement: React.FC = () => {
                 </tr>
               ) : (
                 paginatedUsers.map((user: User) => (
-                  <tr key={user._id} className="group/row transition-all hover:bg-surface-highest/5">
+                  <tr key={user._id} className="group/row transition-all hover:bg-surface-highest/8">
                     <td className="px-4 py-4 sm:px-6">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/10 bg-gradient-to-br from-primary/20 to-primary/5 text-sm font-black text-primary">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-gradient-to-br from-primary/25 to-primary/8 text-sm font-black text-primary shadow-[0_0_0_1px_hsl(var(--foreground)/0.03)]">
                           {user.name.charAt(0)}
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-[13px] font-bold text-foreground transition-colors group-hover/row:text-primary">
                             {user.name}
                           </p>
-                          <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted-foreground/30">
+                          <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted-foreground/55 dark:text-muted-foreground/45">
                             <Mail className="h-3 w-3 shrink-0" /> {user.email}
                           </p>
                         </div>
@@ -397,7 +385,7 @@ export const UserManagement: React.FC = () => {
                     <td className="max-w-[min(14rem,40vw)] px-4 py-4 sm:px-6">
                       <span
                         title={user.group}
-                        className="inline-block max-w-full truncate rounded-lg border border-border/10 bg-surface-highest/5 px-3 py-1.5 text-left text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80"
+                        className="inline-block max-w-full truncate rounded-lg border border-border/25 dark:border-border/40 bg-surface-highest/8 px-3 py-1.5 text-left text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80"
                       >
                         {user.group}
                       </span>
@@ -406,7 +394,7 @@ export const UserManagement: React.FC = () => {
                       <StatusBadge status={user.status} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-4 sm:px-6">
-                      <span className="text-[10px] font-bold text-muted-foreground/30">{user.lastActive}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground/60 dark:text-muted-foreground/50">{user.lastActive}</span>
                     </td>
                     <td className="px-4 py-4 text-right sm:px-6">
                       <UserRowActions

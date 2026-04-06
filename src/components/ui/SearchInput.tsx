@@ -54,7 +54,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
         placeholder={placeholder}
         aria-label={label}
         className={cn(
-          'w-full bg-surface-highest/10 border border-border/20 dark:bg-surface-highest/5 dark:border-border/20 rounded-xl pl-10 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/35 min-h-[44px]',
+          'w-full bg-gradient-to-r from-surface-highest/14 to-surface-highest/8 border border-border/30 dark:border-border/45 dark:bg-surface-highest/10 rounded-xl pl-10 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/35 min-h-[44px] shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]',
           showClear ? 'pr-10' : 'pr-5',
           'py-3',
           inputClassName

@@ -76,7 +76,7 @@ export const Dashboard: React.FC = () => {
       {/* ── Header ── */}
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-base font-black font-display text-foreground tracking-tight sm:text-lg">
+          <h1 className="bg-gradient-to-r from-foreground to-foreground/55 bg-clip-text text-base font-black font-display text-transparent tracking-tight sm:text-lg">
             {greeting()}, {user?.name || user?.email?.split('@')[0] || 'User'} 👋
           </h1>
           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
@@ -92,7 +92,7 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
         {isCompanyAdmin && (
-          <div className="flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-success/20 bg-success/10 px-2.5 py-1.5 sm:self-auto sm:px-3">
+          <div className="flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-success/30 bg-gradient-to-r from-success/15 to-success/8 px-2.5 py-1.5 sm:self-auto sm:px-3 shadow-[0_8px_24px_rgba(56,178,114,0.14)]">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
             <span className="text-[8px] font-black uppercase tracking-widest text-success sm:text-[9px]">
               All Systems Nominal
@@ -163,8 +163,8 @@ export const Dashboard: React.FC = () => {
 
           {/* Group Health */}
           {(isCompanyAdmin || accessibleGroupIds.length > 0) && (
-            <div className="bg-surface-lowest dark:bg-surface-highest/5 rounded-2xl border border-border/20 dark:border-border/10 overflow-hidden shadow-sm dark:shadow-none">
-              <div className="px-5 py-3 border-b border-border/15 dark:border-border/10 flex items-center justify-between">
+            <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
+              <div className="px-5 py-3 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex items-center justify-between">
                 <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
                   {isCompanyAdmin ? 'Group Health' : 'Group Performance'}
                 </h2>
@@ -197,8 +197,8 @@ export const Dashboard: React.FC = () => {
 
           {/* Activity Feed */}
           {isCompanyAdmin && (
-          <div className="bg-surface-lowest dark:bg-surface-highest/5 rounded-2xl border border-border/20 dark:border-border/10 overflow-hidden shadow-sm dark:shadow-none">
-            <div className="px-5 py-3 border-b border-border/15 dark:border-border/10 flex items-center justify-between">
+          <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
+            <div className="px-5 py-3 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex items-center justify-between">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
                 <Activity className="w-3.5 h-3.5 text-primary" />
                 Activity Feed
@@ -229,8 +229,8 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-4 space-y-5">
 
           {/* Recent Documents */}
-          <div className="bg-surface-lowest dark:bg-surface-highest/5 rounded-2xl border border-border/20 dark:border-border/10 overflow-hidden shadow-sm dark:shadow-none">
-            <div className="px-5 py-3 border-b border-border/15 dark:border-border/10 flex items-center justify-between">
+          <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
+            <div className="px-5 py-3 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex items-center justify-between">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5 text-primary" />
                 Recent Documents
@@ -251,10 +251,10 @@ export const Dashboard: React.FC = () => {
                   <div
                     key={d.id}
                     onClick={() => navigate('/documents')}
-                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-surface-low dark:hover:bg-surface-highest/10 transition-all group cursor-pointer"
+                    className="flex items-center justify-between p-2.5 rounded-xl border border-transparent hover:border-border/25 dark:hover:border-border/35 hover:bg-surface-low/50 dark:hover:bg-surface-highest/10 transition-all group cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-surface-low dark:bg-surface-highest/10 flex items-center justify-center text-muted-foreground/40 shrink-0">
+                      <div className="w-7 h-7 rounded-lg border border-border/20 dark:border-border/35 bg-surface-low dark:bg-surface-highest/10 flex items-center justify-center text-muted-foreground/40 shrink-0">
                         <FileText className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
@@ -280,8 +280,8 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Recent Users */}
-          <div className="bg-surface-lowest dark:bg-surface-highest/5 rounded-2xl border border-border/20 dark:border-border/10 overflow-hidden shadow-sm dark:shadow-none">
-            <div className="px-5 py-3 border-b border-border/15 dark:border-border/10 flex items-center justify-between">
+          <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
+            <div className="px-5 py-3 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex items-center justify-between">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-primary" />
                 Recent Users
@@ -312,7 +312,7 @@ export const Dashboard: React.FC = () => {
                     )}
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-[9px] font-black text-primary shrink-0">
+                      <div className="w-7 h-7 rounded-lg border border-primary/20 bg-primary/12 flex items-center justify-center text-[9px] font-black text-primary shrink-0">
                         {u.name.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div>
@@ -331,7 +331,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-surface-lowest dark:bg-surface-highest/5 rounded-2xl border border-border/20 dark:border-border/10 p-4 space-y-2 shadow-sm dark:shadow-none">
+          <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 p-4 space-y-2 shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
             <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-3">Quick Actions</h2>
             {[
               ...(hasAnyGroupAdmin ? [{ label: 'Invite User', path: '/users', icon: Users }] : []),
@@ -342,10 +342,10 @@ export const Dashboard: React.FC = () => {
               <button
                 key={label}
                 onClick={() => navigate(path)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-surface-low dark:hover:bg-surface-highest/10 border border-transparent hover:border-border/20 dark:hover:border-border/10 transition-all group text-left"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-surface-low/50 dark:hover:bg-surface-highest/10 border border-border/15 dark:border-border/30 hover:border-border/30 dark:hover:border-border/45 transition-all group text-left"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="w-6 h-6 rounded-lg border border-primary/20 bg-primary/12 flex items-center justify-center text-primary shadow-[0_0_0_1px_hsl(var(--foreground)/0.02)]">
                     <Icon className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-[11px] font-bold text-muted-foreground/60 group-hover:text-foreground transition-colors">{label}</span>

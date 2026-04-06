@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Upload, Loader2 } from 'lucide-react';
+import {
+  Upload,
+  Loader2,
+  Files,
+  DatabaseZap,
+  ScanSearch,
+  Tags,
+  AlertTriangle,
+} from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { formatDiscoveryUploadedAt } from '../../utils/formatDateTime';
 import { usePipelineDocuments } from '../../hooks/useDocuments';
@@ -474,11 +482,11 @@ export const DocumentsPage: React.FC = () => {
       </section>
 
       <MetricStateGrid>
-        <MetricStateCard label="Total Documents" value={counts.all} tone="primary" />
-        <MetricStateCard label="Ingested" value={counts.ingested} tone="emerald" />
-        <MetricStateCard label="Extracted" value={counts.extracted} tone="violet" />
-        <MetricStateCard label="Classified" value={counts.classified} tone="amber" />
-        <MetricStateCard label="Failed" value={counts.failed} tone="rose" />
+        <MetricStateCard label="Total Documents" value={counts.all} tone="primary" icon={Files} />
+        <MetricStateCard label="Ingested" value={counts.ingested} tone="emerald" icon={DatabaseZap} />
+        <MetricStateCard label="Extracted" value={counts.extracted} tone="violet" icon={ScanSearch} />
+        <MetricStateCard label="Classified" value={counts.classified} tone="amber" icon={Tags} />
+        <MetricStateCard label="Failed" value={counts.failed} tone="rose" icon={AlertTriangle} />
       </MetricStateGrid>
 
       <SearchToolbarRow
@@ -488,7 +496,7 @@ export const DocumentsPage: React.FC = () => {
           placeholder: 'Search by file name, email, or custodian name…',
         }}
         end={
-          <div className="flex min-w-max items-center gap-1 bg-surface-highest/5 p-1 rounded-xl border border-border/10 shrink-0">
+          <div className="flex min-w-max items-center gap-1 bg-surface-highest/30 dark:bg-surface-highest/20 p-1 rounded-xl border border-border/35 dark:border-border/50 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05)] shrink-0">
             {pipelineTabs.map((t) => (
               <button
                 key={t.id}
@@ -497,8 +505,8 @@ export const DocumentsPage: React.FC = () => {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all relative flex items-center gap-2',
                   activeTab === t.id
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'text-muted-foreground/40 hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                    : 'text-muted-foreground/65 dark:text-muted-foreground/55 hover:text-foreground'
                 )}
               >
                 {t.label}
@@ -508,7 +516,7 @@ export const DocumentsPage: React.FC = () => {
                       'px-1.5 py-0.5 rounded-md text-[8px] font-black',
                       activeTab === t.id
                         ? 'bg-primary-foreground/20 text-primary-foreground'
-                        : 'bg-surface-highest/5 text-muted-foreground/20'
+                        : 'bg-surface-highest/50 text-muted-foreground/55 dark:text-muted-foreground/45'
                     )}
                   >
                     {t.count}
@@ -523,7 +531,7 @@ export const DocumentsPage: React.FC = () => {
       <section
         id="documents-vault-table"
         className={cn(
-          'bg-gradient-to-b from-surface-highest/20 via-surface-highest/10 to-transparent rounded-2xl overflow-hidden border border-border/20 backdrop-blur-xl shadow-xl relative scroll-mt-24',
+          'bg-gradient-to-b from-surface-highest/25 via-surface-highest/12 to-transparent rounded-2xl overflow-hidden border border-border/35 dark:border-border/50 backdrop-blur-xl shadow-xl relative scroll-mt-24',
           isLoading && 'min-h-[min(420px,52vh)]'
         )}
       >
@@ -537,8 +545,8 @@ export const DocumentsPage: React.FC = () => {
           </div>
         ) : null}
         <div className={cn(isLoading && 'pointer-events-none select-none opacity-[0.38]')}>
-        <div className="px-3 sm:px-6 py-3 border-b border-border/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 tabular-nums order-2 sm:order-1">
+        <div className="px-3 sm:px-6 py-3 border-b border-border/30 dark:border-border/45 bg-gradient-to-r from-primary/14 via-primary/6 to-transparent flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/65 dark:text-muted-foreground/55 tabular-nums order-2 sm:order-1">
             {filtered.length} document{filtered.length !== 1 ? 's' : ''}
             {filtered.length > 0 ? (
               <span className="text-muted-foreground/35">
@@ -635,36 +643,36 @@ export const DocumentsPage: React.FC = () => {
             <thead className="bg-muted/5">
               <tr>
                 {hasBulkActions ? (
-                  <th className="w-10 px-3 py-3">
+                      <th className="w-10 px-3 py-3">
                     <input
                       ref={headerCheckboxRef}
                       type="checkbox"
                       checked={allPageSelected}
                       onChange={toggleSelectPage}
                       disabled={manageableOnPage.length === 0}
-                      className="h-3.5 w-3.5 rounded border-border/20 bg-surface-highest/40 text-primary focus:ring-primary/30 cursor-pointer accent-primary disabled:opacity-40"
+                      className="h-3.5 w-3.5 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 cursor-pointer accent-primary disabled:opacity-40"
                       title="Select this page"
                     />
                   </th>
                 ) : null}
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.2em]">
+                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em]">
                   Asset Identity
                 </th>
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.2em] text-center">
+                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em] text-center">
                   Pipeline Lifecycle
                 </th>
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.2em]">
+                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em]">
                   Custodian
                 </th>
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.2em]">
+                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em]">
                   Discovery
                 </th>
-                <th className="w-[260px] px-3 py-3 text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.2em] text-right">
+                <th className="w-[260px] px-3 py-3 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em] text-right">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.03]">
+            <tbody className="divide-y divide-border/20 dark:divide-border/30">
               {paginatedDocuments.map((docItem: any) => {
                 const docBusy = Boolean(actionBusyKey?.startsWith(`${docItem.id}:`));
                 const isSelected = selectedIds.has(docItem.id);
@@ -672,7 +680,7 @@ export const DocumentsPage: React.FC = () => {
                   <tr
                     key={docItem.id}
                     className={cn(
-                      'hover:bg-surface-highest/5 transition-all group/row cursor-pointer',
+                      'hover:bg-surface-highest/8 transition-all group/row cursor-pointer',
                       isSelected && 'bg-primary/[0.04]'
                     )}
                   >
@@ -685,7 +693,7 @@ export const DocumentsPage: React.FC = () => {
                           onChange={() => toggleSelected(docItem.id)}
                           onClick={(e) => e.stopPropagation()}
                           className={cn(
-                            'h-3.5 w-3.5 rounded border-border/20 bg-surface-highest/40 text-primary focus:ring-primary/30 accent-primary',
+                            'h-3.5 w-3.5 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 accent-primary',
                             docCanManage(docItem) ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
                           )}
                         />
@@ -710,7 +718,7 @@ export const DocumentsPage: React.FC = () => {
                       />
                     </td>
                     <td className="px-2 py-4 whitespace-nowrap">
-                      <span className="text-[10px] font-bold text-muted-foreground/40 tabular-nums tracking-wide">
+                      <span className="text-[10px] font-bold text-muted-foreground/60 dark:text-muted-foreground/50 tabular-nums tracking-wide">
                         {formatDiscoveryUploadedAt(docItem.uploadedAt)}
                       </span>
                     </td>
@@ -736,7 +744,7 @@ export const DocumentsPage: React.FC = () => {
           </table>
         </div>
 
-        <div className="xl:hidden px-3 sm:px-4 py-4 space-y-3 border-t border-border/5">
+        <div className="xl:hidden px-3 sm:px-4 py-4 space-y-3 border-t border-border/20 dark:border-border/35">
           {paginatedDocuments.length === 0 ? (
             <p className="text-center text-[12px] text-muted-foreground/50 py-12 font-medium">
               No documents match your filters.
@@ -749,8 +757,8 @@ export const DocumentsPage: React.FC = () => {
                 <article
                   key={docItem.id}
                   className={cn(
-                    'rounded-2xl border border-border/20 bg-gradient-to-br from-surface-highest/20 to-transparent p-4 shadow-sm transition-all',
-                    isSelected && 'ring-1 ring-primary/35 bg-primary/[0.04]'
+                    'rounded-2xl border border-border/35 dark:border-border/50 bg-gradient-to-br from-surface-highest/26 to-transparent p-4 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all',
+                    isSelected && 'ring-1 ring-primary/35 bg-primary/[0.05]'
                   )}
                 >
                   <div className={cn('flex gap-3', !hasBulkActions && 'gap-0')}>
@@ -761,7 +769,7 @@ export const DocumentsPage: React.FC = () => {
                         disabled={!docCanManage(docItem)}
                         onChange={() => toggleSelected(docItem.id)}
                         className={cn(
-                          'mt-1 h-4 w-4 shrink-0 rounded border-border/20 bg-surface-highest/40 text-primary focus:ring-primary/30 accent-primary',
+                          'mt-1 h-4 w-4 shrink-0 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 accent-primary',
                           docCanManage(docItem) ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
                         )}
                       />
@@ -783,11 +791,11 @@ export const DocumentsPage: React.FC = () => {
                           nameByEmail={custodianNameByEmail}
                           variant="card"
                         />
-                        <span className="text-[10px] font-bold tracking-wide text-muted-foreground/40 tabular-nums">
+                        <span className="text-[10px] font-bold tracking-wide text-muted-foreground/60 dark:text-muted-foreground/50 tabular-nums">
                           {formatDiscoveryUploadedAt(docItem.uploadedAt)}
                         </span>
                       </div>
-                      <div className="pt-1 border-t border-border/5">
+                      <div className="pt-1 border-t border-border/20 dark:border-border/35">
                         <DocumentPipelineActions
                           docItem={docItem}
                           bulkBusyActive={bulkBusyActive}

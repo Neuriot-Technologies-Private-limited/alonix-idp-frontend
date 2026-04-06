@@ -26,7 +26,7 @@ export const HealthBadge: React.FC<{ status: string, label: string, className?: 
   };
   return (
     <div className={cn(
-      "flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-[0.15em] backdrop-blur-sm shrink-0",
+      "flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-[0.15em] backdrop-blur-sm shrink-0 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.08)]",
       styles[status as keyof typeof styles],
       className
     )}>
@@ -42,11 +42,12 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
       <div
         onClick={onClick}
         className={cn(
-          "bg-surface-lowest border border-border/20 rounded-xl py-3 px-4 hover:bg-surface-low transition-all group/card cursor-pointer flex items-center gap-4 relative overflow-hidden shadow-sm dark:bg-surface-highest/5 dark:border-border/10 dark:hover:bg-surface-highest/10",
+          "bg-gradient-to-br from-surface-highest/22 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 rounded-xl py-3 px-4 transition-all group/card cursor-pointer flex items-center gap-4 relative overflow-hidden shadow-sm dark:shadow-black/20 hover:border-primary/30 dark:hover:border-primary/25 hover:shadow-md",
           className
         )}
       >
-        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0 group-hover/card:scale-105 transition-transform dark:bg-surface-highest/10 dark:border-border/10">
+        <div className="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-primary/12 blur-3xl transition-all duration-500 group-hover/card:bg-primary/20" />
+        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0 group-hover/card:scale-105 transition-transform dark:bg-primary/10 dark:border-primary/25">
           {group.name.length % 2 === 0 ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
         </div>
 
@@ -64,7 +65,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
           </p>
         </div>
 
-        <div className="flex items-center gap-6 px-4 border-x border-border/10 shrink-0">
+        <div className="flex items-center gap-6 px-4 border-x border-border/25 dark:border-border/40 shrink-0">
           <div className="flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-muted-foreground/30" />
             <span className="text-sm font-bold text-foreground">{group.users}</span>
@@ -76,7 +77,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button type="button" className="bg-primary/10 hover:bg-primary/20 text-primary text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all">
+          <button type="button" className="bg-primary/12 hover:bg-primary/20 text-primary text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-primary/20 transition-all">
             {primaryActionLabel ?? 'Enter'}
           </button>
           <ArrowUpRight className="w-4 h-4 text-muted-foreground/20 group-hover/card:text-primary transition-all" />
@@ -89,15 +90,15 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
     <div
       onClick={onClick}
       className={cn(
-        "bg-surface-lowest border border-border/20 rounded-2xl p-4 hover:bg-surface-low transition-all group/card cursor-pointer relative overflow-hidden flex flex-col h-[260px] shadow-md hover:shadow-lg hover:-translate-y-1 duration-500 dark:bg-surface-highest/10 dark:border-border/10 dark:hover:bg-surface-highest/20 dark:shadow-2xl dark:hover:shadow-primary/5 dark:hover:-translate-y-1.5",
+        "bg-gradient-to-br from-surface-highest/26 via-surface-highest/12 to-transparent border border-border/35 dark:border-border/50 rounded-2xl p-4 transition-all group/card cursor-pointer relative overflow-hidden flex flex-col h-[260px] shadow-md shadow-black/5 dark:shadow-black/25 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 duration-500 dark:hover:-translate-y-1.5 dark:hover:border-primary/25",
         className
       )}
     >
       {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-40 h-28 bg-primary/10 blur-[60px] rounded-full translate-x-1/3 -translate-y-1/3 transition-all group-hover/card:bg-primary/20 dark:bg-primary/5" />
+      <div className="absolute top-0 right-0 w-40 h-28 bg-primary/12 blur-[60px] rounded-full translate-x-1/3 -translate-y-1/3 transition-all group-hover/card:bg-primary/22 dark:bg-primary/8" />
 
       <div className="flex justify-between items-start mb-3 relative">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 transition-all duration-500 group-hover/card:scale-110 dark:bg-surface-highest/10 dark:border-border/10">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/25 transition-all duration-500 group-hover/card:scale-110 dark:bg-primary/10 dark:border-primary/25 shadow-[0_0_0_1px_hsl(var(--foreground)/0.03)]">
           {group.name.length % 2 === 0 ? <Globe className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
         </div>
         <HealthBadge status={group.status} label={group.statusLabel} className="scale-75 origin-top-right" />
@@ -115,9 +116,9 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
         </p>
       </div>
 
-      <div className="mt-auto pt-4 border-t border-border/10 relative grid grid-cols-2 gap-2">
+      <div className="mt-auto pt-4 border-t border-border/25 dark:border-border/40 relative grid grid-cols-2 gap-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-surface-low flex items-center justify-center text-muted-foreground transition-colors dark:bg-surface-highest/10 dark:text-muted-foreground/60">
+          <div className="w-8 h-8 rounded-lg border border-border/25 dark:border-border/35 bg-surface-low flex items-center justify-center text-muted-foreground transition-colors dark:bg-surface-highest/10 dark:text-muted-foreground/60">
             <Users className="w-4 h-4" />
           </div>
           <div>
@@ -126,7 +127,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-surface-low flex items-center justify-center text-muted-foreground transition-colors dark:bg-surface-highest/10 dark:text-muted-foreground/60">
+          <div className="w-8 h-8 rounded-lg border border-border/25 dark:border-border/35 bg-surface-low flex items-center justify-center text-muted-foreground transition-colors dark:bg-surface-highest/10 dark:text-muted-foreground/60">
             <FileText className="w-4 h-4" />
           </div>
           <div>
@@ -136,7 +137,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 bg-primary translate-y-full group-hover/card:translate-y-0 transition-transform duration-300 py-3 flex items-center justify-center gap-2 cursor-pointer">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-r from-primary to-primary/90 translate-y-full group-hover/card:translate-y-0 transition-transform duration-300 py-3 flex items-center justify-center gap-2 cursor-pointer border-t border-primary-foreground/15">
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground">{primaryActionLabel ?? 'Enter Workspace'}</span>
         <ArrowUpRight className="w-3.5 h-3.5 text-primary-foreground" />
       </div>

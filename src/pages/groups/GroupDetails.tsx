@@ -101,8 +101,8 @@ export const GroupDetails: React.FC = () => {
   return (
     <div className="w-full min-w-0 space-y-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:space-y-6 sm:pb-12">
       {/* Hero Header Section - Compact */}
-      <div className="relative group/hero overflow-hidden rounded-2xl border border-border/40 bg-muted/5 backdrop-blur-xl p-6 md:p-8 shadow-xl shadow-black/5">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -z-10 group-hover/hero:bg-primary/10 transition-all duration-1000" />
+      <div className="relative group/hero overflow-hidden rounded-2xl border border-border/40 dark:border-border/55 bg-gradient-to-br from-surface-highest/28 via-surface-highest/12 to-transparent backdrop-blur-xl p-6 md:p-8 shadow-xl shadow-black/5 dark:shadow-black/25">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/8 rounded-full blur-[100px] -z-10 group-hover/hero:bg-primary/14 transition-all duration-1000" />
 
         <div className="relative space-y-4">
           <button
@@ -116,7 +116,7 @@ export const GroupDetails: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center text-primary border border-primary/25 shadow-inner shadow-primary/10">
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
@@ -145,7 +145,7 @@ export const GroupDetails: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInviteOpen(true)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary/90 text-primary-foreground hover:bg-primary transition-all text-[10px] font-black uppercase tracking-[0.1em] shadow-lg shadow-primary/10 active:scale-[0.98]"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-primary/35 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground hover:opacity-90 transition-all text-[10px] font-black uppercase tracking-[0.1em] shadow-lg shadow-primary/20 active:scale-[0.98]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Member
@@ -161,7 +161,7 @@ export const GroupDetails: React.FC = () => {
       </div>
 
       {/* View Switcher Tabs - Compact Sticky */}
-      <div className="sticky top-2 z-30 flex items-center gap-1 p-1 bg-background/60 backdrop-blur-3xl rounded-xl border border-border/20 w-fit mx-auto shadow-xl shadow-black/5">
+      <div className="sticky top-2 z-30 flex items-center gap-1 p-1 bg-background/70 backdrop-blur-3xl rounded-xl border border-border/35 dark:border-border/50 w-fit mx-auto shadow-xl shadow-black/5">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -170,7 +170,7 @@ export const GroupDetails: React.FC = () => {
               flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all
               ${activeTab === tab.id
                 ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10'
-                : 'text-muted-foreground/50 hover:bg-muted/30 hover:text-foreground'}
+                : 'text-muted-foreground/60 dark:text-muted-foreground/50 hover:bg-muted/30 hover:text-foreground'}
             `}
           >
             <tab.icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-primary-foreground' : ''}`} />
@@ -186,7 +186,7 @@ export const GroupDetails: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {/* Stats Overview Cards */}
-              <div className="bg-muted/5 border border-border/20 p-5 rounded-xl space-y-3">
+              <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-5 rounded-xl space-y-3 shadow-sm shadow-black/5 dark:shadow-black/20">
                 <div className="flex justify-between items-start">
                   <div className="p-2 rounded-lg bg-info/10 text-info"><FileText className="w-4 h-4" /></div>
                   <span className="text-[9px] font-black text-success bg-success/10 px-1.5 py-0.5 rounded-full">+12%</span>
@@ -196,7 +196,7 @@ export const GroupDetails: React.FC = () => {
                   <p className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-widest">Assets</p>
                 </div>
               </div>
-              <div className="bg-muted/5 border border-border/20 p-5 rounded-xl space-y-3">
+              <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-5 rounded-xl space-y-3 shadow-sm shadow-black/5 dark:shadow-black/20">
                 <div className="flex justify-between items-start">
                   <div className="p-2 rounded-lg bg-warning/10 text-warning"><Users className="w-4 h-4" /></div>
                   <span className="text-[9px] font-black text-success bg-success/10 px-1.5 py-0.5 rounded-full">Active</span>
@@ -209,7 +209,7 @@ export const GroupDetails: React.FC = () => {
                   <p className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-widest">Members</p>
                 </div>
               </div>
-              <div className="bg-muted/5 border border-border/20 p-5 rounded-xl space-y-3">
+              <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-5 rounded-xl space-y-3 shadow-sm shadow-black/5 dark:shadow-black/20">
                 <div className="flex justify-between items-start">
                   <div className="p-2 rounded-lg bg-violet/10 text-violet"><Shield className="w-4 h-4" /></div>
                   <span className="text-[9px] font-black text-violet bg-violet/10 px-1.5 py-0.5 rounded-full">Secure</span>
@@ -221,7 +221,7 @@ export const GroupDetails: React.FC = () => {
               </div>
 
               {/* Quick Chart Simulation */}
-              <div className="md:col-span-2 lg:col-span-3 bg-muted/5 border border-border/20 p-6 rounded-xl">
+              <div className="md:col-span-2 lg:col-span-3 bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-6 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground/40">Ingest Pulse</h3>
@@ -241,8 +241,8 @@ export const GroupDetails: React.FC = () => {
           )}
 
           {activeTab === 'members' && (
-            <div className="bg-muted/5 backdrop-blur-xl rounded-xl border border-border/30 overflow-hidden shadow-lg">
-              <div className="p-5 border-b border-border/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-gradient-to-b from-surface-highest/24 via-surface-highest/10 to-transparent backdrop-blur-xl rounded-xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20">
+              <div className="p-5 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-0.5">
                   <h3 className="text-base font-black">Authorized Members</h3>
                   <p className="text-[9px] text-muted-foreground/40 font-bold uppercase tracking-wider">Access Rights & Verification</p>
@@ -254,7 +254,7 @@ export const GroupDetails: React.FC = () => {
                     placeholder="Search Members..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-background/40 rounded-lg border border-border/5 focus:border-primary/30 outline-none transition-all text-[11px] font-medium"
+                    className="w-full pl-9 pr-4 py-2 bg-background/45 rounded-lg border border-border/30 dark:border-border/45 focus:border-primary/30 outline-none transition-all text-[11px] font-medium"
                   />
                 </div>
               </div>
@@ -262,7 +262,7 @@ export const GroupDetails: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-border/5 bg-muted/5 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/30">
+                    <tr className="border-b border-border/25 dark:border-border/40 bg-muted/7 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/35">
                       <th className="px-6 py-3.5 font-black">Identity</th>
                       <th className="px-6 py-3.5 font-black">Role</th>
                       <th className="px-6 py-3.5 font-black">Email</th>
@@ -270,14 +270,14 @@ export const GroupDetails: React.FC = () => {
                       <th className="px-6 py-3.5 font-black text-right">Settings</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-border/20 dark:divide-border/30">
                     {group.members
                       .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.email.toLowerCase().includes(searchTerm.toLowerCase()))
                       .map((member) => (
                         <tr key={member.id} className="group hover:bg-primary/[0.01] transition-colors">
                           <td className="px-6 py-3.5">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-surface-highest/10 border border-border/5 overflow-hidden flex items-center justify-center font-black group-hover:scale-105 transition-transform text-[10px]">
+                            <div className="w-8 h-8 rounded-lg bg-surface-highest/12 border border-border/30 dark:border-border/40 overflow-hidden flex items-center justify-center font-black group-hover:scale-105 transition-transform text-[10px]">
                                 {member.avatar ? (
                                   <img src={member.avatar} alt={member.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
                                 ) : (
@@ -297,7 +297,7 @@ export const GroupDetails: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-3.5">
-                            <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-surface-highest/5 border border-border/5 w-fit">
+                            <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-surface-highest/8 border border-border/25 dark:border-border/35 w-fit">
                               <Shield className={`w-2.5 h-2.5 ${member.role === 'Group Admin' ? 'text-primary' : 'text-muted-foreground/20'}`} />
                               <span className="text-[9px] font-black uppercase tracking-widest">{member.role}</span>
                             </div>
@@ -351,8 +351,8 @@ export const GroupDetails: React.FC = () => {
           )}
 
           {activeTab === 'documents' && (
-            <div className="bg-muted/5 backdrop-blur-xl rounded-xl border border-border/30 overflow-hidden">
-              <div className="p-6 border-b border-border/5 flex justify-between items-center">
+            <div className="bg-gradient-to-b from-surface-highest/24 via-surface-highest/10 to-transparent backdrop-blur-xl rounded-xl border border-border/35 dark:border-border/50 overflow-hidden">
+              <div className="p-6 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex justify-between items-center">
                 <div>
                   <h3 className="text-base font-black">Group Assets</h3>
                   <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-wider">Internal Mapping</p>
@@ -365,9 +365,9 @@ export const GroupDetails: React.FC = () => {
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {group.documents.map((doc) => (
-                  <div key={doc.id} className="p-4 rounded-xl bg-muted/10 border border-border/5 hover:border-primary/20 transition-all group flex items-center justify-between">
+                  <div key={doc.id} className="p-4 rounded-xl bg-muted/10 border border-border/25 dark:border-border/35 hover:border-primary/25 transition-all group flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-lg bg-background/50 text-muted-foreground/40 group-hover:text-primary group-hover:bg-primary/10 transition-all">
+                      <div className="p-2.5 rounded-lg border border-border/20 dark:border-border/35 bg-background/50 text-muted-foreground/40 group-hover:text-primary group-hover:bg-primary/10 transition-all">
                         <FileText className="w-5 h-5" />
                       </div>
                       <div>
@@ -400,8 +400,8 @@ export const GroupDetails: React.FC = () => {
                 <div
                   className={
                     isCompanyAdmin
-                      ? 'lg:col-span-2 bg-muted/5 border border-border/30 rounded-xl p-6 space-y-6'
-                      : 'bg-muted/5 border border-border/30 rounded-xl p-6 space-y-6'
+                      ? 'lg:col-span-2 bg-gradient-to-b from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 rounded-xl p-6 space-y-6'
+                      : 'bg-gradient-to-b from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 rounded-xl p-6 space-y-6'
                   }
                 >
                   <div className="space-y-4">
@@ -410,7 +410,7 @@ export const GroupDetails: React.FC = () => {
                       <input
                         type="text"
                         defaultValue={group.name}
-                        className="w-full bg-background/50 border border-border/5 rounded-xl p-3 text-base font-black focus:border-primary/50 outline-none transition-all"
+                        className="w-full bg-background/50 border border-border/30 dark:border-border/40 rounded-xl p-3 text-base font-black focus:border-primary/50 outline-none transition-all"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -418,18 +418,18 @@ export const GroupDetails: React.FC = () => {
                       <textarea
                         rows={3}
                         defaultValue={group.description}
-                        className="w-full bg-background/50 border border-border/5 rounded-xl p-3 text-xs font-medium focus:border-primary/40 outline-none transition-all resize-none"
+                        className="w-full bg-background/50 border border-border/30 dark:border-border/40 rounded-xl p-3 text-xs font-medium focus:border-primary/40 outline-none transition-all resize-none"
                       />
                     </div>
                   </div>
-                  <div className="pt-6 border-t border-border/5 flex justify-end gap-2">
+                  <div className="pt-6 border-t border-border/20 dark:border-border/35 flex justify-end gap-2">
                     <button type="button" className="px-4 py-2 rounded-lg hover:bg-muted text-[10px] font-bold transition-all">Reset</button>
                     <button type="button" className="px-6 py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/10">Update Manifest</button>
                   </div>
                 </div>
 
                 {isCompanyAdmin ? (
-                  <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-6 space-y-4">
+                  <div className="bg-gradient-to-b from-destructive/12 via-destructive/6 to-transparent border border-destructive/30 rounded-xl p-6 space-y-4">
                     <div className="flex items-center gap-2 text-destructive">
                       <AlertCircle className="w-5 h-5" />
                       <h4 className="text-sm font-black uppercase">Danger Zone</h4>
@@ -448,7 +448,7 @@ export const GroupDetails: React.FC = () => {
                 ) : null}
               </div>
               {!isCompanyAdmin && (
-                <div className="rounded-xl border border-border/10 bg-muted/5 p-5 text-[10px] font-medium leading-relaxed text-muted-foreground/80">
+                <div className="rounded-xl border border-border/30 dark:border-border/45 bg-gradient-to-b from-surface-highest/18 to-surface-highest/8 p-5 text-[10px] font-medium leading-relaxed text-muted-foreground/80">
                   <p className="font-black uppercase tracking-widest text-muted-foreground/45 mb-1.5">Workspace lifecycle</p>
                   <p>
                     Only a company administrator can delete or deactivate this group. Contact your org admin if you need this workspace removed.
@@ -459,7 +459,7 @@ export const GroupDetails: React.FC = () => {
           )}
 
           {activeTab === 'activity' && (
-            <div className="bg-muted/5 border border-border/5 rounded-2xl p-8 space-y-8">
+            <div className="bg-gradient-to-b from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/30 dark:border-border/45 rounded-2xl p-8 space-y-8">
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-black uppercase tracking-widest italic opacity-60">Intelligence Timeline</h3>
               </div>
