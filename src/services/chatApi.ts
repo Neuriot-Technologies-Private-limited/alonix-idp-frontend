@@ -118,6 +118,22 @@ export async function getJobStatus(jobId: string, groupId?: string | null) {
   );
 }
 
+export async function getDocumentResults(documentId: string, groupId?: string | null) {
+  const base = documentsBase(groupId);
+  return apiClient.get<{
+    id: string;
+    fileName: string;
+    status: string;
+    ingestionStatus?: string | null;
+    extractionStatus?: string | null;
+    classificationStatus?: string | null;
+    extractionResult?: unknown;
+    classificationData?: unknown;
+    extractedData?: unknown;
+    jobs?: unknown[];
+  }>(`${base}/${encodeURIComponent(documentId)}/results`);
+}
+
 export async function getFreshSourceUrl(
   fileKey: string,
   _mimeHint: string | null,

@@ -22,6 +22,7 @@ import {
   triggerClassify,
   uploadDocument,
   deleteDocument,
+  getDocumentResults,
 } from '../../services/chatApi';
 import { connectSocket, getSocket } from '../../services/chatSocket';
 import { Pagination } from '../../components/ui/Pagination';
@@ -61,6 +62,7 @@ export const DocumentsPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'All' | 'Ingest' | 'Extract' | 'Classify'>('All');
   const [resultModal, setResultModal] = useState<any | null>(null);
+  const [resultLoadingDocId, setResultLoadingDocId] = useState<string | null>(null);
   const [extractFormat, setExtractFormat] = useState<'json' | 'csv' | 'md'>('json');
   const [search, setSearch] = useState('');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -407,20 +409,96 @@ export const DocumentsPage: React.FC = () => {
 
   const getExtractionText = (res: any, fmt: string) => {
     if (!res) return '';
-    if (fmt === 'json') return JSON.stringify(res, null, 2);
-    if (fmt === 'csv') {
-      return (
-        Object.keys(res).join(',') +
-        '\n' +
-        Object.values(res)
-          .map((v) => (Array.isArray(v) ? `"${v.join(';')}"` : `"${v}"`))
-          .join(',')
-      );
+
+    const formats = res?.formats && typeof res.formats === 'object' ? res.formats : null;
+    if (formats && typeof formats[fmt] === 'string') {
+      return formats[fmt] as string;
     }
+    if (formats && formats[fmt] && fmt === 'json') {
+      return JSON.stringify(formats[fmt], null, 2);
+    }
+
+    if (fmt === 'json') return JSON.stringify(res, null, 2);
+
+    const pages = Array.isArray(res?.pages) ? res.pages : [];
+    const toCellString = (value: unknown) => {
+      if (value == null) return '';
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      return JSON.stringify(value);
+    };
+    const getPageNumber = (page: any, idx: number) => {
+      const candidate =
+        page?.page_number ??
+        page?.page ??
+        page?.pageIndex ??
+        page?.index ??
+        page?.page_content?.page_number;
+      const n = Number(candidate);
+      return Number.isFinite(n) && n > 0 ? n : idx + 1;
+    };
+    const getPageKeyValues = (page: any): Record<string, unknown> | null => {
+      const kv =
+        page?.key_value_pairs ??
+        page?.page_content?.key_value_pairs ??
+        page?.fields;
+      if (!kv || typeof kv !== 'object' || Array.isArray(kv)) return null;
+      return kv as Record<string, unknown>;
+    };
+    const kvRows: Array<{ page: number; key: string; value: unknown }> = [];
+    const pageChunks: Array<{ page: number; keyValues: Record<string, unknown> }> = [];
+    pages.forEach((p: any, idx: number) => {
+      const pageNum = getPageNumber(p, idx);
+      const keyValues = getPageKeyValues(p);
+      if (keyValues) {
+        pageChunks.push({ page: pageNum, keyValues });
+        for (const [k, v] of Object.entries(keyValues)) {
+          kvRows.push({ page: pageNum, key: String(k), value: v });
+        }
+      }
+    });
+
+    if (fmt === 'csv') {
+      if (kvRows.length > 0) {
+        return [
+          'page,key,value',
+          ...kvRows.map((r) => `${r.page},"${r.key.replace(/"/g, '""')}","${toCellString(r.value).replace(/"/g, '""')}"`),
+        ].join('\n');
+      }
+      if (res && typeof res === 'object' && !Array.isArray(res)) {
+        return (
+          Object.keys(res).join(',') +
+          '\n' +
+          Object.values(res)
+            .map((v) => (Array.isArray(v) ? `"${v.join(';')}"` : `"${v}"`))
+            .join(',')
+        );
+      }
+      return String(res);
+    }
+
     if (fmt === 'md') {
-      return Object.entries(res)
-        .map(([k, v]) => `**${k}**: ${Array.isArray(v) ? v.join(', ') : v}`)
-        .join('\n\n');
+      if (pageChunks.length > 0) {
+        return pageChunks
+          .map(({ page, keyValues }) =>
+            [`### Page ${page}`, ...Object.entries(keyValues).map(([k, v]) => `- **${k}**: ${toCellString(v)}`)].join('\n')
+          )
+          .join('\n\n');
+      }
+      if (pages.length > 0) {
+        return pages
+          .map((p: any, idx: number) => {
+            const pageNum = getPageNumber(p, idx);
+            return `### Page ${pageNum}\n\`\`\`json\n${JSON.stringify(p, null, 2)}\n\`\`\``;
+          })
+          .join('\n\n');
+      }
+      if (res && typeof res === 'object' && !Array.isArray(res)) {
+        return Object.entries(res)
+          .map(([k, v]) => `**${k}**: ${Array.isArray(v) ? v.map(toCellString).join(', ') : toCellString(v)}`)
+          .join('\n\n');
+      }
+      return String(res);
     }
     return '';
   };
@@ -437,6 +515,34 @@ export const DocumentsPage: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const handleOpenResults = React.useCallback(
+    async (docItem: any) => {
+      if (!docItem?.id) return;
+      const gid = docItem?.groupId ? String(docItem.groupId) : undefined;
+      setResultLoadingDocId(String(docItem.id));
+      try {
+        const { data } = await getDocumentResults(String(docItem.id), gid || null);
+        setResultModal({
+          ...docItem,
+          ...data,
+          extractionResult: (data as any).extractionResult ?? (data as any).extractedData ?? docItem.extractionResult,
+          classificationData: (data as any).classificationData ?? docItem.classificationData,
+          jobs: Array.isArray((data as any).jobs) ? (data as any).jobs : docItem.jobs,
+        });
+      } catch (err: unknown) {
+        const ax = err as { response?: { data?: { error?: string } }; message?: string };
+        await appAlert({
+          title: 'Could not fetch results',
+          description: ax.response?.data?.error || ax.message || 'Please try again.',
+          variant: 'danger',
+        });
+      } finally {
+        setResultLoadingDocId(null);
+      }
+    },
+    [appAlert]
+  );
 
   const headerSubtitle = isCompanyAdmin
     ? 'Organization-wide vault: ingest, run pipeline stages, and review AI outputs across all workspaces.'
@@ -730,7 +836,9 @@ export const DocumentsPage: React.FC = () => {
                         actionBusyKey={actionBusyKey}
                         bustKey={bustKey}
                         runPipeline={runPipeline}
-                        onOpenResults={setResultModal}
+                        onOpenResults={(doc) => {
+                          void handleOpenResults(doc);
+                        }}
                         onDeleteDocument={handleDeleteDocument}
                         deleteBusyId={deleteBusyId}
                         variant="table"
@@ -803,7 +911,9 @@ export const DocumentsPage: React.FC = () => {
                           actionBusyKey={actionBusyKey}
                           bustKey={bustKey}
                           runPipeline={runPipeline}
-                          onOpenResults={setResultModal}
+                          onOpenResults={(doc) => {
+                            void handleOpenResults(doc);
+                          }}
                           onDeleteDocument={handleDeleteDocument}
                           deleteBusyId={deleteBusyId}
                           variant="card"
@@ -838,6 +948,11 @@ export const DocumentsPage: React.FC = () => {
         getExtractionText={getExtractionText}
         allowExport={hasCapability('GROUP_DOC_VIEW')}
       />
+      {resultLoadingDocId ? (
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl border border-border/35 bg-surface-highest/80 backdrop-blur-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 shadow-xl">
+          Loading results...
+        </div>
+      ) : null}
 
       <DocumentUploadModal
         isOpen={isUploadModalOpen}
