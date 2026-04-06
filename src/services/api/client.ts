@@ -29,6 +29,9 @@ apiClient.interceptors.request.use((config) => {
   const rawOrg =
     useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId;
   const orgId = typeof rawOrg === 'string' && rawOrg.length > 0 ? rawOrg : undefined;
+  const rawGroup = useAuthStore.getState().context?.activeGroupId;
+  const activeGroupId =
+    typeof rawGroup === 'string' && rawGroup.trim().length > 0 ? rawGroup.trim() : undefined;
   if (orgId) {
     config.headers['X-Org-Id'] = orgId;
     const method = (config.method || 'get').toLowerCase();
@@ -46,6 +49,10 @@ apiClient.interceptors.request.use((config) => {
     } else if (config.data instanceof FormData && !config.data.has('orgId')) {
       config.data.append('orgId', orgId);
     }
+  }
+
+  if (activeGroupId) {
+    config.headers['X-Group-Id'] = activeGroupId;
   }
 
   return config;

@@ -29,7 +29,7 @@ interface NavItem {
 
 const Sidebar: React.FC = () => {
   const { isSidebarCollapsed: isMinimized, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useUIStore();
-  const { hasCapability, orgRole, hasAnyGroupAdmin, accessibleGroupIds } = useRbac();
+  const { hasCapability, orgRole, hasAnyGroupAdmin, activeGroupRole, accessibleGroupIds } = useRbac();
   const [isDarkTheme, setIsDarkTheme] = React.useState(() =>
     document.documentElement.classList.contains('dark')
   );
@@ -45,7 +45,6 @@ const Sidebar: React.FC = () => {
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
   /** JWT may omit dashboard caps on older tokens; org + workspace admins always use the dashboard. */
   const canSeeDashboard =
-    hasAnyGroupAdmin ||
     hasCapability('ADMIN_DASHBOARD_VIEW') ||
     hasCapability('USER_DASHBOARD_VIEW');
   /** Matches `RoleProtectedRoute requiredWorkspaceMember`: company admin or at least one workspace. */
@@ -68,7 +67,7 @@ const Sidebar: React.FC = () => {
       icon: Users,
       label: 'Users',
       path: '/users',
-      show: isCompanyAdmin || hasAnyGroupAdmin,
+      show: isCompanyAdmin || activeGroupRole === 'GROUP_ADMIN',
     },
     {
       icon: FileText,

@@ -6,10 +6,11 @@ import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
+import { getMyContext } from '../services/chatApi';
 
 const TopNavBar: React.FC = () => {
   const navigate = useNavigate();
-  const { user, context, setActiveGroup, logout } = useAuthStore();
+  const { user, context, setActiveGroup, updateContext, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const toggleMobileNav = useUIStore((s) => s.toggleMobileNav);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
@@ -36,6 +37,18 @@ const TopNavBar: React.FC = () => {
   }, []);
 
   // Close dropdowns on click outside
+  useEffect(() => {
+    const syncContext = async () => {
+      try {
+        const { data } = await getMyContext();
+        if (data?.context) updateContext(data.context);
+      } catch {
+        // ignore; existing context remains usable
+      }
+    };
+    void syncContext();
+  }, [updateContext]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {

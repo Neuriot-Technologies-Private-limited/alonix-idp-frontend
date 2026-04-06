@@ -34,7 +34,8 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     if (requiredOrgRole && orgRole !== requiredOrgRole) return false;
     if (requiredGroupRole && activeGroupRole !== requiredGroupRole) return false;
     if (requiredAnyGroupAdmin) {
-      if (orgRole !== 'COMPANY_ADMIN' && !groups.some((g) => g.role === 'GROUP_ADMIN')) return false;
+      // Scope-sensitive: allow when company admin OR active workspace role is GROUP_ADMIN.
+      if (orgRole !== 'COMPANY_ADMIN' && activeGroupRole !== 'GROUP_ADMIN') return false;
     }
     if (requiredWorkspaceMember) {
       if (orgRole !== 'COMPANY_ADMIN' && groups.length === 0) return false;

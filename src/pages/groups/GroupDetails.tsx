@@ -23,6 +23,7 @@ import { Loader } from '../../components/ui/Loader';
 import { useAlert } from '../../components/alert';
 import { InviteUsersToGroupModal } from './modals/InviteUsersToGroupModal';
 import { useRbac } from '../../hooks/useRbac';
+import { useAuthStore } from '../../stores/authStore';
 
 function getNameInitials(name?: string) {
   const clean = String(name ?? '').trim();
@@ -41,7 +42,8 @@ export const GroupDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'documents' | 'activity' | 'settings'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
-  const { alert: appAlert } = useAlert();
+  const { alert: appAlert, confirm } = useAlert();
+  const authUser = useAuthStore((s) => s.user);
 
   const { data: group, isLoading } = useGroupDetail(id || '');
   const { data: groups = [] } = useGroupHealth();
@@ -71,6 +73,60 @@ export const GroupDetails: React.FC = () => {
     },
   });
 
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async (payload: { userEmail: string; role: 'GROUP_ADMIN' | 'SEARCH_USER' }) => {
+      if (!id) return;
+      await apiClient.patch(
+        `/admin/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(payload.userEmail)}`,
+        { role: payload.role }
+      );
+    },
+    onSuccess: (_, payload) => {
+      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
+      void appAlert({
+        title: 'Member role updated',
+        description:
+          payload.role === 'GROUP_ADMIN'
+            ? 'User can now manage members and document pipeline for this group.'
+            : 'User is now a search member with view/chat access for this group.',
+        variant: 'success',
+      });
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      void appAlert({
+        title: 'Role update failed',
+        description: ax.response?.data?.message || ax.message || 'Could not update member role',
+        variant: 'danger',
+      });
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userEmail: string) => {
+      if (!id) return;
+      await apiClient.delete(
+        `/admin/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(userEmail)}`
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
+      void appAlert({
+        title: 'Member removed',
+        description: 'User has been removed from this group.',
+        variant: 'success',
+      });
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      void appAlert({
+        title: 'Remove failed',
+        description: ax.response?.data?.message || ax.message || 'Could not remove member',
+        variant: 'danger',
+      });
+    },
+  });
+
   /** Must run every render — do not place after conditional returns (Rules of Hooks). */
   useEffect(() => {
     if (!group) return;
@@ -89,6 +145,40 @@ export const GroupDetails: React.FC = () => {
   if (!inDirectory) return <Navigate to="/forbidden" replace />;
 
   const canManage = isCompanyAdmin || isGroupAdminFor(String(group.id));
+
+  const handlePromoteToAdmin = async (member: { email: string; name: string }) => {
+    if (!member.email) return;
+    await updateMemberRoleMutation.mutateAsync({
+      userEmail: member.email,
+      role: 'GROUP_ADMIN',
+    });
+  };
+
+  const handleSetSearchMember = async (member: { email: string; name: string }) => {
+    if (!member.email) return;
+    await updateMemberRoleMutation.mutateAsync({
+      userEmail: member.email,
+      role: 'SEARCH_USER',
+    });
+  };
+
+  const handleRemoveMember = async (member: { email: string; name: string }) => {
+    if (!member.email) return;
+    const ok = await confirm({
+      title: 'Remove member from this group?',
+      description: (
+        <>
+          Remove <span className="font-semibold text-foreground/95">{member.name || member.email}</span> from this
+          group? They will lose access to this workspace immediately.
+        </>
+      ),
+      confirmLabel: 'Remove',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    await removeMemberMutation.mutateAsync(member.email);
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: TrendingUp },
@@ -333,10 +423,50 @@ export const GroupDetails: React.FC = () => {
                               >
                                 Resend Invite
                               </button>
+                            ) : member.membershipState !== 'joined' ? (
+                              <span className="text-[9px] font-bold text-muted-foreground/25 uppercase tracking-widest">—</span>
                             ) : (
-                              <button type="button" className="p-2 rounded-lg hover:bg-surface-highest/10 text-muted-foreground/30 transition-all">
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                {member.email !== authUser?.email &&
+                                member.role !== 'Group Admin' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void handlePromoteToAdmin({ email: member.email, name: member.name })}
+                                    disabled={updateMemberRoleMutation.isPending || removeMemberMutation.isPending}
+                                    className="px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/25 text-[9px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all disabled:opacity-60"
+                                    title="Grant group admin access"
+                                  >
+                                    Make Admin
+                                  </button>
+                                ) : null}
+                                {member.email !== authUser?.email &&
+                                member.role === 'Group Admin' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleSetSearchMember({ email: member.email, name: member.name })}
+                                    disabled={updateMemberRoleMutation.isPending || removeMemberMutation.isPending}
+                                    className="px-2.5 py-1.5 rounded-lg bg-warning/10 text-warning border border-warning/25 text-[9px] font-black uppercase tracking-widest hover:bg-warning/20 transition-all disabled:opacity-60"
+                                    title="Remove admin rights; keep as search member"
+                                  >
+                                    Set Search
+                                  </button>
+                                ) : null}
+                                {member.email !== authUser?.email ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleRemoveMember({ email: member.email, name: member.name })}
+                                    disabled={updateMemberRoleMutation.isPending || removeMemberMutation.isPending}
+                                    className="px-2.5 py-1.5 rounded-lg bg-destructive/10 text-destructive border border-destructive/25 text-[9px] font-black uppercase tracking-widest hover:bg-destructive/20 transition-all disabled:opacity-60"
+                                    title="Remove from this group"
+                                  >
+                                    Remove
+                                  </button>
+                                ) : (
+                                  <button type="button" className="p-2 rounded-lg hover:bg-surface-highest/10 text-muted-foreground/30 transition-all" title="You cannot change your own role here">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
                             )
                             ) : (
                               <span className="text-[9px] font-bold text-muted-foreground/25 uppercase tracking-widest">—</span>
