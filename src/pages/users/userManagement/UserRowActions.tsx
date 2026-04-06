@@ -42,7 +42,16 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
   onRemoveFromGroup,
 }) => {
   const selfEmail = useAuthStore((s) => s.user?.email?.toLowerCase().trim() ?? '');
+  const activeGroupId = useAuthStore((s) => s.context?.activeGroupId ?? '');
   const isSelf = Boolean(selfEmail && user.email.toLowerCase().trim() === selfEmail);
+  const isInActiveGroup = React.useMemo(() => {
+    const gid = String(activeGroupId || '').trim();
+    if (!gid) return false;
+    if (Array.isArray(user.workspaces) && user.workspaces.some((w) => String(w.groupId || '') === gid)) {
+      return true;
+    }
+    return String(user.groupID || '') === gid;
+  }, [activeGroupId, user.groupID, user.workspaces]);
 
   const companyActions: ActionItem[] = React.useMemo(() => {
     const suspendOrActivate: ActionItem =
@@ -80,8 +89,19 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
     ];
   }, [user, onEdit, onSuspend, onActivate, onRemove]);
 
-  const groupActions: ActionItem[] = React.useMemo(
-    () => [
+  const groupActions: ActionItem[] = React.useMemo(() => {
+    if (isInActiveGroup) {
+      return [
+        {
+          key: 'removeGroup',
+          icon: UserX,
+          title: 'Remove from group',
+          className: rowActionVariants.dangerSoft,
+          onClick: () => onRemoveFromGroup(user),
+        },
+      ];
+    }
+    return [
       {
         key: 'add',
         icon: UserPlus,
@@ -89,16 +109,8 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
         className: rowActionVariants.neutral,
         onClick: () => onAddToGroup(user),
       },
-      {
-        key: 'removeGroup',
-        icon: UserX,
-        title: 'Remove from group',
-        className: rowActionVariants.dangerSoft,
-        onClick: () => onRemoveFromGroup(user),
-      },
-    ],
-    [user, onAddToGroup, onRemoveFromGroup]
-  );
+    ];
+  }, [isInActiveGroup, user, onAddToGroup, onRemoveFromGroup]);
 
   const actions = React.useMemo(() => {
     if (canManageCompany) {
