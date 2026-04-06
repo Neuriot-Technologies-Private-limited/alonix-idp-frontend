@@ -11,10 +11,7 @@ import {
   Search,
   MoreVertical,
   Shield,
-  Database,
-  Clock,
   TrendingUp,
-  ExternalLink,
   Trash2,
   AlertCircle,
 } from 'lucide-react';
@@ -182,9 +179,9 @@ export const GroupDetails: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 px-1">
+      <div className="px-1">
         {/* Main Intelligence View */}
-        <div className="xl:col-span-9 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -494,39 +491,6 @@ export const GroupDetails: React.FC = () => {
           )}
         </div>
 
-        {/* Intelligence Sidebar */}
-        <div className="xl:col-span-3 space-y-6">
-          {/* Metadata Card */}
-          <div className="p-5 bg-muted/5 backdrop-blur-2xl rounded-xl border border-border/20 space-y-6 shadow-xl shadow-black/5 relative overflow-hidden group/meta">
-            <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 flex items-center gap-3">
-              <Database className="w-3 h-3 text-primary" />
-              Pulse Metrics
-            </h3>
-
-            <div className="space-y-4">
-              {[
-                { label: 'Initialization', value: group.createdOn, icon: Clock },
-                { label: 'Assets', value: `${group.docs.toLocaleString()} Files`, icon: FileText },
-                { label: 'Footprint', value: group.storageUsed, icon: Database },
-              ].map((item, i) => (
-                <div key={i} className="flex flex-col gap-0.5 group/metric cursor-default">
-                  <div className="flex items-center gap-2 text-muted-foreground/20 group-hover/metric:text-primary transition-colors">
-                    <item.icon className="w-2.5 h-2.5" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">{item.label}</span>
-                  </div>
-                  <span className="text-lg font-black tracking-tight">{item.value}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t border-border/5">
-              <button className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-muted/20 hover:bg-muted text-[9px] font-black uppercase tracking-widest transition-all">
-                <ExternalLink className="w-3 h-3" />
-                Audit Schema
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       {canManage ? (

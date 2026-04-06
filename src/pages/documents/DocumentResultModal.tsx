@@ -26,6 +26,15 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
   allowExport = true,
 }) => {
   if (!documentItem) return null;
+  const classificationLabels =
+    documentItem?.classificationData &&
+    typeof documentItem.classificationData === 'object' &&
+    !Array.isArray(documentItem.classificationData) &&
+    documentItem.classificationData.labels &&
+    typeof documentItem.classificationData.labels === 'object' &&
+    !Array.isArray(documentItem.classificationData.labels)
+      ? documentItem.classificationData.labels
+      : documentItem.classificationData;
   const normalizeJobStatus = (status: unknown): 'Complete' | 'Processing' | 'Failed' => {
     const upper = String(status ?? '').toUpperCase();
     if (upper === 'COMPLETED' || upper === 'DONE') return 'Complete';
@@ -96,14 +105,14 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
           </section>
         )}
 
-        {documentItem.classificationData && (
+        {classificationLabels && (
           <section className="space-y-4 rounded-2xl border border-border/25 bg-gradient-to-b from-surface-highest/20 to-transparent p-4 sm:p-5">
             <div className="flex items-center gap-2.5 rounded-xl border border-violet/25 bg-gradient-to-r from-violet/20 via-violet/10 to-transparent px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-violet">
               <Sparkles className="w-4 h-4" />
               AI Classification
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(documentItem.classificationData).map(([k, v]) => (
+              {Object.entries(classificationLabels).map(([k, v]) => (
                 <div
                   key={k}
                   className="bg-surface-highest/20 border border-border/30 rounded-2xl p-4 hover:bg-surface-highest/30 transition-colors"
