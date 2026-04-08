@@ -22,14 +22,19 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={[
-        'relative inline-flex h-[18px] w-[34px] items-center rounded-full transition-colors',
-        checked ? 'bg-primary/30' : 'bg-surface-highest/10',
+        'relative inline-flex h-5 w-10 shrink-0 items-center rounded-full border transition-all duration-200',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-low',
+        checked
+          ? 'bg-primary/80 border-primary/70 shadow-[0_0_0_1px_rgba(59,130,246,0.28)]'
+          : 'bg-surface-highest/30 border-border/40 hover:bg-surface-highest/45',
       ].join(' ')}
     >
       <span
         className={[
-          'inline-block h-[14px] w-[14px] transform rounded-full bg-background transition-transform',
-          checked ? 'translate-x-[16px]' : 'translate-x-1',
+          'pointer-events-none inline-block h-4 w-4 rounded-full border shadow-sm',
+          checked ? 'border-primary-foreground/30 bg-primary-foreground' : 'border-white/30 bg-zinc-50',
+          'transform transition-transform duration-200 will-change-transform',
+          checked ? 'translate-x-5' : 'translate-x-0.5',
         ].join(' ')}
       />
     </button>
@@ -74,17 +79,38 @@ export const OrgAiSettingsPanel: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useOrgAiSettings();
   const [provider, setProvider] = useState<AiProvider>('OPEN_SOURCE');
-  const [model, setModel] = useState('');
+  const [providerModels, setProviderModels] = useState<Record<AiProvider, string>>({
+    OPENAI: '',
+    ANTHROPIC: '',
+    GEMINI: '',
+    OPEN_SOURCE: '',
+  });
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [switchingProvider, setSwitchingProvider] = useState(false);
   const [status, setStatus] = useState<string>('');
   // `keyStatus` is evaluated per-provider where needed.
+  const effectiveModel = providerModels[provider]?.trim() || 'Not set';
+  const effectiveKeyConfigured = keyStatus(settings, provider);
 
   useEffect(() => {
     if (!settings) return;
     setProvider(settings.provider);
-    setModel(settings.model || '');
+    const fallbackModel = settings.model || '';
+    setProviderModels({
+      OPENAI:
+        settings.providerModels?.OPENAI ??
+        (settings.provider === 'OPENAI' ? fallbackModel : ''),
+      ANTHROPIC:
+        settings.providerModels?.ANTHROPIC ??
+        (settings.provider === 'ANTHROPIC' ? fallbackModel : ''),
+      GEMINI:
+        settings.providerModels?.GEMINI ??
+        (settings.provider === 'GEMINI' ? fallbackModel : ''),
+      OPEN_SOURCE:
+        settings.providerModels?.OPEN_SOURCE ??
+        (settings.provider === 'OPEN_SOURCE' ? fallbackModel : ''),
+    });
     setApiKey('');
   }, [settings]);
 
@@ -121,7 +147,7 @@ export const OrgAiSettingsPanel: React.FC = () => {
         provider,
       };
       if (provider !== 'OPEN_SOURCE') {
-        payload.model = model;
+        payload.model = providerModels[provider] || '';
       }
 
       // OPEN_SOURCE is configured without API keys/base URLs in this UI.
@@ -131,7 +157,7 @@ export const OrgAiSettingsPanel: React.FC = () => {
         if (provider === 'GEMINI') payload.geminiApiKey = apiKey.trim();
       }
       await adminService.updateOrgAiSettings(payload);
-      setStatus('Organization AI settings saved.');
+      setStatus(`Saved to ${provider}. This model/key is used whenever this provider is active.`);
       setApiKey('');
       await queryClient.invalidateQueries({ queryKey: ['org-ai-settings'] });
     } catch (err) {
@@ -158,7 +184,26 @@ export const OrgAiSettingsPanel: React.FC = () => {
           Configure one organization-level provider policy. Chat requests use this selection and key for all members.
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground/80">
+          Switching provider applies its saved model and key to all AI actions: ingest, extract, classify, and chat.
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground/80">
           Last updated: {formatUpdatedAt(settings?.updatedAt)}
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground/85">
+          Effective runtime config: <span className="font-semibold text-foreground">{provider}</span> · model{' '}
+          <span className="font-semibold text-foreground">{effectiveModel}</span>
+          {' · '}
+          key{' '}
+          <span
+            className={[
+              'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+              effectiveKeyConfigured
+                ? 'border-primary/30 bg-primary/10 text-primary'
+                : 'border-border/30 bg-surface-highest/10 text-muted-foreground',
+            ].join(' ')}
+          >
+            {effectiveKeyConfigured ? 'saved' : 'missing'}
+          </span>
         </p>
       </div>
 
@@ -194,6 +239,7 @@ export const OrgAiSettingsPanel: React.FC = () => {
         {(['OPENAI', 'ANTHROPIC', 'GEMINI'] as const).map((p) => {
           const active = provider === p;
           const configured = keyStatus(settings, p);
+          const modelForProvider = providerModels[p] || '';
           const title = p === 'OPENAI' ? 'OpenAI API Key' : p === 'ANTHROPIC' ? 'Anthropic API Key' : 'Gemini API Key';
           const help =
             p === 'OPENAI'
@@ -205,7 +251,12 @@ export const OrgAiSettingsPanel: React.FC = () => {
           return (
             <div
               key={p}
-              className="rounded-xl border border-border/20 bg-surface-low p-4 dark:bg-surface-highest/10"
+              className={[
+                'rounded-xl border bg-surface-low p-4 dark:bg-surface-highest/10 transition-all',
+                active
+                  ? 'border-primary/45 bg-primary/[0.06]'
+                  : 'border-border/20',
+              ].join(' ')}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -241,8 +292,13 @@ export const OrgAiSettingsPanel: React.FC = () => {
                       Model
                     </span>
                     <input
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
+                      value={modelForProvider}
+                      onChange={(e) =>
+                        setProviderModels((prev) => ({
+                          ...prev,
+                          [p]: e.target.value,
+                        }))
+                      }
                       placeholder={PROVIDER_HINTS[p].modelPlaceholder}
                       className="rounded-xl border border-border/20 bg-surface-high/10 px-3 py-2 text-sm"
                     />

@@ -129,6 +129,7 @@ export interface OrgAiSettings {
   orgId: string;
   provider: AiProvider;
   model: string;
+  providerModels?: Record<AiProvider, string>;
   openSourceBaseUrl: string;
   hasOpenaiKey: boolean;
   hasAnthropicKey: boolean;
