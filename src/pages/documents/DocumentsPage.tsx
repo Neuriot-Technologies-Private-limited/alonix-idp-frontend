@@ -23,6 +23,7 @@ import {
   uploadDocument,
   deleteDocument,
   getDocumentResults,
+  getDocumentAccessUrl,
 } from '../../services/chatApi';
 import { connectSocket, getSocket } from '../../services/chatSocket';
 import { Pagination } from '../../components/ui/Pagination';
@@ -74,6 +75,7 @@ export const DocumentsPage: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkBusy, setBulkBusy] = useState<'ingest' | 'extract' | 'classify' | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
   const headerCheckboxRef = React.useRef<HTMLInputElement>(null);
   const itemsPerPage = 8;
 
@@ -150,6 +152,48 @@ export const DocumentsPage: React.FC = () => {
       }
     },
     [appAlert, confirm, docCanManage, queryClient]
+  );
+
+  const handleOpenDocument = React.useCallback(
+    async (docItem: any) => {
+      setOpenDocBusyId(String(docItem.id));
+      try {
+        const gid = docItem.groupId ? String(docItem.groupId) : undefined;
+        const access = await getDocumentAccessUrl(String(docItem.id), gid || null);
+        const url = String(access?.data?.url || '').trim();
+        if (!url) throw new Error('Document URL is unavailable');
+
+        const fileName = String(docItem.fileName || 'document');
+        const lower = fileName.toLowerCase();
+        const isPdf = lower.endsWith('.pdf') || String(docItem.type || '').toUpperCase() === 'PDF';
+
+        const a = document.createElement('a');
+        a.href = url;
+        if (isPdf) {
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        } else {
+          a.download = fileName;
+        }
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e: unknown) {
+        const ax = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
+        await appAlert({
+          title: 'Could not open document',
+          description:
+            ax.response?.data?.message ||
+            ax.response?.data?.error ||
+            ax.message ||
+            'Unable to load this document right now.',
+          variant: 'danger',
+        });
+      } finally {
+        setOpenDocBusyId(null);
+      }
+    },
+    [appAlert]
   );
 
   const runPipeline = async (docId: string, action: 'ingest' | 'extract' | 'classify') => {
@@ -786,7 +830,7 @@ export const DocumentsPage: React.FC = () => {
                   <tr
                     key={docItem.id}
                     className={cn(
-                      'hover:bg-surface-highest/8 transition-all group/row cursor-pointer',
+                      'hover:bg-surface-highest/8 transition-all group/row',
                       isSelected && 'bg-primary/[0.04]'
                     )}
                   >
@@ -811,6 +855,11 @@ export const DocumentsPage: React.FC = () => {
                         type={docItem.type}
                         size={docItem.size}
                         density="table"
+                        canOpenFile={Boolean(docItem?.id)}
+                        isOpening={openDocBusyId === String(docItem?.id)}
+                        onFileNameClick={() => {
+                          void handleOpenDocument(docItem);
+                        }}
                       />
                     </td>
                     <td className="px-2 py-4">
@@ -888,6 +937,11 @@ export const DocumentsPage: React.FC = () => {
                         type={docItem.type}
                         size={docItem.size}
                         density="card"
+                        canOpenFile={Boolean(docItem?.id)}
+                        isOpening={openDocBusyId === String(docItem?.id)}
+                        onFileNameClick={() => {
+                          void handleOpenDocument(docItem);
+                        }}
                       />
                       <DocumentPipelineLifecycle
                         pipeline={docItem.pipeline}

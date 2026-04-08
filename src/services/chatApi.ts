@@ -145,6 +145,13 @@ export async function getFreshSourceUrl(
   });
 }
 
+export async function getDocumentAccessUrl(documentId: string, groupId?: string | null) {
+  const base = documentsBase(groupId);
+  return apiClient.post<{ url: string; fileKey?: string; expiresInSec?: number }>(`${base}/source-url`, {
+    documentId,
+  });
+}
+
 export async function getUserDocuments(userEmail: string, groupId?: string | null) {
   const base = documentsBase(groupId);
   return apiClient.get<{ documents: unknown[] }>(

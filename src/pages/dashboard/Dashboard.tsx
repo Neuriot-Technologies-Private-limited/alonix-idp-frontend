@@ -62,6 +62,7 @@ export const Dashboard: React.FC = () => {
   }, [docRows]);
 
   const chatSessionsLabel = 6 + accessibleGroupIds.length * 4;
+  const ingestionValue = stats?.ingestionCount ?? 0;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -140,15 +141,27 @@ export const Dashboard: React.FC = () => {
           }
           value={
             isCompanyAdmin
-              ? (stats?.ingestionCount ?? 0)
+              ? ingestionValue
               : isPureSearchUser
                 ? chatSessionsLabel
-                : (stats?.ingestionCount ?? 0) || analysisBusyCount || docRows.length
+                : ingestionValue || analysisBusyCount || docRows.length
           }
-          trend={{ value: 'Live', label: 'Processing', isPositive: true }}
+          trend={
+            isCompanyAdmin
+              ? {
+                  value: ingestionValue > 0 ? 'Live' : 'Idle',
+                  label: ingestionValue > 0 ? 'Processing' : 'No active jobs',
+                  isPositive: ingestionValue > 0,
+                }
+              : {
+                  value: 'Live',
+                  label: isPureSearchUser ? 'Ready' : 'Processing',
+                  isPositive: true,
+                }
+          }
           icon={<Zap className="w-4 h-4" />}
           isPulse={
-            isCompanyAdmin ||
+            (isCompanyAdmin && ingestionValue > 0) ||
             (!isPureSearchUser && analysisBusyCount > 0)
           }
           loading={statsLoading}
@@ -229,6 +242,7 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-4 space-y-5">
 
           {/* Recent Documents */}
+          {isCompanyAdmin ? (
           <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
             <div className="px-5 py-3 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex items-center justify-between">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
@@ -278,8 +292,10 @@ export const Dashboard: React.FC = () => {
               )}
             </div>
           </div>
+          ) : null}
 
           {/* Recent Users */}
+          {isCompanyAdmin ? (
           <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 overflow-hidden shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">
             <div className="px-5 py-3 border-b border-border/25 dark:border-border/40 bg-gradient-to-r from-primary/12 via-primary/5 to-transparent flex items-center justify-between">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
@@ -329,6 +345,7 @@ export const Dashboard: React.FC = () => {
               )}
             </div>
           </div>
+          ) : null}
 
           {/* Quick Actions */}
           <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/12 to-transparent rounded-2xl border border-border/35 dark:border-border/50 p-4 space-y-2 shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl">

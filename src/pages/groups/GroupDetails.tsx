@@ -14,10 +14,12 @@ import {
   TrendingUp,
   Trash2,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useGroupDetail, useGroupHealth } from '../../services/adminService';
 import { useUsers } from '../../services/userService';
 import apiClient from '../../services/api/client';
+import { getDocumentAccessUrl } from '../../services/chatApi';
 import { HealthBadge } from '../../components/ui/GroupCard';
 import { Loader } from '../../components/ui/Loader';
 import { useAlert } from '../../components/alert';
@@ -42,6 +44,7 @@ export const GroupDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'documents' | 'activity' | 'settings'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
   const { alert: appAlert, confirm } = useAlert();
   const authUser = useAuthStore((s) => s.user);
 
@@ -178,6 +181,44 @@ export const GroupDetails: React.FC = () => {
     });
     if (!ok) return;
     await removeMemberMutation.mutateAsync(member.email);
+  };
+
+  const handleOpenGroupDocument = async (doc: { id: string; name: string; type?: string }) => {
+    setOpenDocBusyId(String(doc.id));
+    try {
+      const access = await getDocumentAccessUrl(String(doc.id), String(group.id));
+      const url = String(access?.data?.url || '').trim();
+      if (!url) throw new Error('Document URL is unavailable');
+
+      const fileName = String(doc.name || 'document');
+      const extLooksPdf = fileName.toLowerCase().endsWith('.pdf');
+      const typeLooksPdf = String(doc.type || '').toUpperCase() === 'PDF';
+      const isPdf = extLooksPdf || typeLooksPdf;
+      const a = document.createElement('a');
+      a.href = url;
+      if (isPdf) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      } else {
+        a.download = fileName;
+      }
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      await appAlert({
+        title: 'Could not open document',
+        description:
+          ax.response?.data?.message ||
+          ax.response?.data?.error ||
+          ax.message ||
+          'Unable to load this document right now.',
+        variant: 'danger',
+      });
+    } finally {
+      setOpenDocBusyId(null);
+    }
   };
 
   const tabs = [
@@ -501,7 +542,20 @@ export const GroupDetails: React.FC = () => {
                         <FileText className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="font-bold text-xs leading-tight mb-1">{doc.name}</p>
+                        <button
+                          type="button"
+                          disabled={openDocBusyId === String(doc.id)}
+                          className="font-bold text-xs leading-tight mb-1 text-left hover:text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm disabled:opacity-70 disabled:cursor-wait inline-flex items-center gap-1.5"
+                          onClick={() => {
+                            void handleOpenGroupDocument({ id: doc.id, name: doc.name, type: doc.type });
+                          }}
+                          title="Open document"
+                        >
+                          {openDocBusyId === String(doc.id) ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                          ) : null}
+                          {doc.name}
+                        </button>
                         <div className="flex items-center gap-1.5 text-[8px] text-muted-foreground/30 font-black uppercase tracking-widest">
                           <span>{doc.size}</span>
                           <span className="w-1 h-1 rounded-full bg-border/20" />

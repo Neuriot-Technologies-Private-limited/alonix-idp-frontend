@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, MessageSquarePlus, SendHorizontal, Trash2 } from 'lucide-react';
 import { marked } from 'marked';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '../../utils/cn';
@@ -15,6 +14,12 @@ import {
   type ChatSessionDto,
 } from '../../services/chatApi';
 import { connectSocket, disconnectSocket } from '../../services/chatSocket';
+import { ChatSidebar } from './components/ChatSidebar';
+import { ChatHeader } from './components/ChatHeader';
+import { ChatErrorBanner } from './components/ChatErrorBanner';
+import { ChatComposer } from './components/ChatComposer';
+import { ChatAlertModal } from './components/ChatAlertModal';
+import { ChatToast } from './components/ChatToast';
 
 /** Referenced in DOM createElement — keep so Tailwind can scan utility strings */
 const SOURCE_PILL_CLASS =
@@ -179,7 +184,7 @@ const ChatPage: React.FC = () => {
   const [errorText, setErrorText] = useState('');
   const [text, setText] = useState('');
   const [isResponseLoading, setIsResponseLoading] = useState(false);
-  const scrollToLastItem = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLElement | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [alertModal, setAlertModal] = useState({ open: false, title: '', msg: '' });
   const [toast, setToast] = useState<{ msg: string; type: 'error' | 'ok' } | null>(null);
@@ -488,9 +493,14 @@ const ChatPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (scrollToLastItem.current) {
-      scrollToLastItem.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    const scrollEl = chatScrollRef.current;
+    if (!scrollEl) return;
+    requestAnimationFrame(() => {
+      scrollEl.scrollTo({
+        top: scrollEl.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
   }, [conversationPairs, isResponseLoading]);
 
   const toggleSidebar = useCallback(() => setSidebarHidden((p) => !p), []);
@@ -512,153 +522,24 @@ const ChatPage: React.FC = () => {
       {/* ensure Tailwind emits SOURCE_PILL utilities */}
       <span className={cn('hidden', SOURCE_PILL_CLASS)} aria-hidden />
 
-      <aside
-        className={cn(
-          'flex flex-col bg-surface-highest/20 backdrop-blur-xl transition-[width,opacity,min-width,max-width] duration-300 ease-out',
-          sidebarHidden
-            ? 'pointer-events-none w-0 min-w-0 max-w-0 shrink-0 overflow-hidden border-0 p-0 opacity-0'
-            : 'w-[min(100vw,12rem)] shrink-0 border-r border-border/40 sm:w-[13rem]'
-        )}
-      >
-        <div className="border-b border-border/10 px-2.5 py-3 sm:px-3">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px] sm:tracking-[0.22em]">
-            Chats
-          </p>
-          <button
-            type="button"
-            onClick={createNewChat}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-gradient-to-b from-primary/15 to-primary/5 px-2 py-2 text-xs font-medium text-primary shadow-glass transition hover:border-primary/40 hover:from-primary/25 hover:to-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60 sm:mt-3 sm:gap-2 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" strokeWidth={2} />
-            <span className="leading-tight">New chat</span>
-          </button>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-2 sm:px-2 sm:py-3">
-          {isSessionLoading && chatDataState.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-primary" />
-              <p className="text-xs text-muted-foreground">Loading sessions…</p>
-            </div>
-          ) : chatDataState.length === 0 ? (
-            <div className="mx-1 rounded-xl border border-dashed border-border/60 bg-surface-highest/10 px-4 py-8 text-center">
-              <p className="text-sm text-muted-foreground/70">No conversations yet</p>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground/60">
-                Use <span className="text-muted-foreground">New chat</span> to begin
-              </p>
-            </div>
-          ) : (
-            <ul className="space-y-1">
-              {chatDataState.map((session) => (
-                <li key={session.session_id} className="group flex items-stretch gap-0.5">
-                  <button
-                    type="button"
-                    className={cn(
-                      'min-w-0 flex-1 rounded-lg border border-transparent px-2 py-2 text-left transition sm:rounded-xl sm:px-3 sm:py-2.5',
-                      currentSession === session.session_id
-                        ? 'border-primary/30 bg-primary/10'
-                        : 'hover:border-border/60 hover:bg-surface-highest/10'
-                    )}
-                    title={session.title}
-                    onClick={() => void selectChatSession(session.session_id)}
-                  >
-                    <span className="line-clamp-2 text-xs font-medium leading-snug text-foreground sm:text-sm">
-                      {session.title}
-                    </span>
-                    <span className="mt-1 block text-[11px] text-muted-foreground">
-                      {formatSessionMeta(session.last_updated)}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                    'flex shrink-0 items-center self-center rounded-lg p-2 text-muted-foreground/60 opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100',
-                      currentSession === session.session_id && 'opacity-100'
-                    )}
-                    title="Delete session"
-                    aria-label="Delete session"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleDeleteChatSession(session.session_id);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </aside>
+      <ChatSidebar
+        hidden={sidebarHidden}
+        sessions={chatDataState}
+        isSessionLoading={isSessionLoading}
+        currentSession={currentSession}
+        onNewChat={createNewChat}
+        onSelectSession={(id) => void selectChatSession(id)}
+        onDeleteSession={(id) => void handleDeleteChatSession(id)}
+        formatSessionMeta={formatSessionMeta}
+      />
 
       <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-gradient-to-b from-background to-background">
-        <header
-          className={cn(
-            'flex shrink-0 items-center border-b border-border/40 bg-surface-highest/10 py-2.5 backdrop-blur-md',
-            sidebarHidden ? 'gap-2 px-2 sm:px-3' : 'gap-3 px-3 sm:px-4'
-          )}
-        >
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-surface-highest/20 text-muted-foreground/80 transition hover:border-border/90 hover:bg-surface-highest/30 hover:text-foreground"
-            aria-label={
-              sidebarHidden ? `Show chat list — ${chatHeaderSubtitle}` : 'Hide chat list'
-            }
-          >
-            {sidebarHidden ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
-          </button>
-          {!sidebarHidden && (
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">Assistant</h1>
-              <p className="truncate text-[11px] text-muted-foreground">{chatHeaderSubtitle}</p>
-            </div>
-          )}
-        </header>
+        <ChatHeader sidebarHidden={sidebarHidden} subtitle={chatHeaderSubtitle} onToggleSidebar={toggleSidebar} />
 
-        {alertModal.open && (
-          <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-scrim"
-            onClick={() => setAlertModal({ open: false, title: '', msg: '' })}
-            onKeyDown={(e) => e.key === 'Escape' && setAlertModal({ open: false, title: '', msg: '' })}
-            role="presentation"
-          >
-            <div
-              className="w-[92%] max-w-lg rounded-xl border border-border/20 bg-surface-lowest shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-              role="alertdialog"
-              aria-modal="true"
-            >
-              <div className="flex items-center justify-between border-b border-border/10 px-5 py-4">
-                <h2 className="text-base font-bold text-foreground">{alertModal.title}</h2>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={() => setAlertModal({ open: false, title: '', msg: '' })}
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="whitespace-pre-wrap break-words px-5 py-4 text-sm leading-snug text-muted-foreground/70">
-                {alertModal.msg}
-              </div>
-              <div className="flex justify-end border-t border-border/10 px-5 py-3">
-                <button
-                  type="button"
-                  className="rounded-lg border border-violet/30 bg-violet/20 px-3 py-2 text-sm font-semibold text-violet hover:bg-violet/30 hover:text-foreground"
-                  onClick={() => setAlertModal({ open: false, title: '', msg: '' })}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ChatAlertModal
+          state={alertModal}
+          onClose={() => setAlertModal({ open: false, title: '', msg: '' })}
+        />
 
         {isSessionLoading && chatDataState.length > 0 && (
           <div className="flex items-center justify-center gap-2 border-b border-border/40 bg-surface-highest/10 py-2">
@@ -667,15 +548,12 @@ const ChatPage: React.FC = () => {
           </div>
         )}
 
-        <div className="w-full shrink-0 px-4 pb-2 pt-2">
-          {errorText && (
-            <p className="mx-auto rounded-lg border border-destructive/25 bg-destructive/20 px-3 py-2 text-center text-sm text-destructive">
-              {errorText}
-            </p>
-          )}
-        </div>
+        <ChatErrorBanner message={errorText} />
 
-        <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col overflow-y-auto px-4 pb-2 sm:px-6 lg:px-8">
+        <main
+          ref={chatScrollRef}
+          className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col overflow-y-auto overscroll-contain scroll-pb-28 px-4 pb-6 sm:px-6 lg:px-8"
+        >
           {conversationPairs.map((pair, idx) => {
             const { user: uq, ai } = pair;
             const html =
@@ -685,7 +563,7 @@ const ChatPage: React.FC = () => {
             return (
               <div
                 key={idx}
-                className="mb-6 overflow-hidden rounded-2xl border border-border/10 bg-surface-highest/10 shadow-xl shadow-glass backdrop-blur-sm"
+                className="mb-7 h-auto rounded-2xl border border-border/10 bg-surface-highest/10 shadow-xl shadow-glass backdrop-blur-sm sm:mb-8"
               >
                 <div className="border-b border-border/10 bg-gradient-to-r from-surface-highest/20 to-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
                   <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
@@ -699,7 +577,7 @@ const ChatPage: React.FC = () => {
                       Answer
                     </div>
                     <div
-                      className="mt-1 space-y-1 break-words text-[15px] leading-[1.65] text-muted-foreground/80 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary/40 [&_a]:underline-offset-2 [&_code]:rounded-md [&_code]:bg-surface-highest/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border/40 [&_pre]:bg-surface-highest/5 [&_pre]:p-4 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_th]:border [&_th]:border-border/60 [&_th]:bg-surface-highest/10 [&_th]:px-3 [&_th]:py-2 [&_tr:nth-child(even)]:bg-surface-highest/5"
+                      className="mt-1 space-y-1 overflow-visible break-words whitespace-pre-wrap pb-1 text-[15px] leading-[1.65] text-muted-foreground/80 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary/40 [&_a]:underline-offset-2 [&_code]:rounded-md [&_code]:bg-surface-highest/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border/40 [&_pre]:bg-surface-highest/5 [&_pre]:p-4 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_th]:border [&_th]:border-border/60 [&_th]:bg-surface-highest/10 [&_th]:px-3 [&_th]:py-2 [&_tr:nth-child(even)]:bg-surface-highest/5"
                       // eslint-disable-next-line react/no-danger
                       dangerouslySetInnerHTML={{ __html: html }}
                       onClick={async (e) => {
@@ -756,50 +634,16 @@ const ChatPage: React.FC = () => {
             </div>
           )}
 
-          <div ref={scrollToLastItem} />
         </main>
 
-        <div className="shrink-0 space-y-1.5 border-t border-border/40 bg-surface-highest/20 px-4 pt-3 backdrop-blur-md sm:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
-          <form
-            className="mx-auto flex w-full max-w-7xl items-center gap-3 rounded-2xl border border-border/80 bg-surface-highest/20 px-4 py-1.5 shadow-inner shadow-glass transition focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 sm:px-5"
-            onSubmit={submitHandler}
-          >
-            <input
-              type="text"
-              spellCheck={false}
-              placeholder="Ask something…"
-              className="h-12 min-w-0 flex-1 border-none bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground/60"
-              value={isResponseLoading ? 'Waiting for reply…' : text}
-              onChange={(e) => setText(e.target.value)}
-              readOnly={isResponseLoading}
-            />
-            {!isResponseLoading && (
-              <button
-                type="submit"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
-                aria-label="Send"
-              >
-                <SendHorizontal className="h-5 w-5" strokeWidth={2} />
-              </button>
-            )}
-          </form>
-          <p className="mx-auto max-w-7xl text-center text-[11px] leading-relaxed text-muted-foreground/60">
-            Findout Intelligence can make mistakes. Verify critical information.
-          </p>
-        </div>
+        <ChatComposer
+          value={text}
+          isResponseLoading={isResponseLoading}
+          onChange={setText}
+          onSubmit={submitHandler}
+        />
 
-        {toast && (
-          <div
-            className={cn(
-              'fixed bottom-6 right-6 z-[10000] max-w-sm rounded-lg px-4 py-3 text-sm shadow-xl',
-              toast.type === 'error'
-                ? 'bg-destructive text-destructive-foreground'
-                : 'bg-success text-success-foreground'
-            )}
-          >
-            {toast.msg}
-          </div>
-        )}
+        <ChatToast toast={toast} />
       </section>
     </div>
   );

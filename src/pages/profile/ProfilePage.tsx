@@ -66,7 +66,7 @@ const ProfilePage: React.FC = () => {
   const updateUser = useAuthStore((s) => s.updateUser);
   const logout = useAuthStore((s) => s.logout);
   const { theme, setTheme, toggleTheme } = useThemeStore();
-  const { orgRole, groups } = useRbac();
+  const { orgRole, activeGroupRole, groups } = useRbac();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as SectionId | null;
@@ -255,6 +255,14 @@ const ProfilePage: React.FC = () => {
       .replace(/[^A-Z]/g, '') || 'ME';
   const activeWorkspace =
     groups.find((g) => g.groupId === context.activeGroupId)?.groupName || 'Workspace';
+  const roleLabel =
+    orgRole === 'COMPANY_ADMIN'
+      ? 'Company admin'
+      : activeGroupRole === 'GROUP_ADMIN'
+        ? 'Group admin'
+        : activeGroupRole === 'SEARCH_USER'
+          ? 'Search user'
+          : 'Member';
 
   return (
     <div className="w-full max-w-6xl mx-auto pb-16 animate-in fade-in duration-500">
@@ -314,7 +322,7 @@ const ProfilePage: React.FC = () => {
               <p className="mt-1 text-sm font-medium text-muted-foreground">{email}</p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 <span className="rounded-full border border-border/20 bg-surface-highest/10 dark:border-border/10 dark:bg-surface-highest/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
-                  {orgRole === 'COMPANY_ADMIN' ? 'Company admin' : 'Member'}
+                  {roleLabel}
                 </span>
                 <span className="rounded-full border border-border/20 bg-surface-highest/5 dark:border-border/10 dark:bg-surface-highest/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   {activeWorkspace}
