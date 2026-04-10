@@ -43,12 +43,14 @@ const Sidebar: React.FC = () => {
     return () => observer.disconnect();
   }, []);
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
+  const isSearchUserOnly = !isCompanyAdmin && !hasAnyGroupAdmin;
   /** JWT may omit dashboard caps on older tokens; org + workspace admins always use the dashboard. */
   const canSeeDashboard =
-    hasCapability('ADMIN_DASHBOARD_VIEW') ||
-    hasCapability('USER_DASHBOARD_VIEW');
+    !isSearchUserOnly &&
+    (hasCapability('ADMIN_DASHBOARD_VIEW') ||
+      hasCapability('USER_DASHBOARD_VIEW'));
   /** Matches `RoleProtectedRoute requiredWorkspaceMember`: company admin or at least one workspace. */
-  const canSeeGroups = isCompanyAdmin || accessibleGroupIds.length > 0;
+  const canSeeGroups = !isSearchUserOnly && (isCompanyAdmin || accessibleGroupIds.length > 0);
 
   const adminItems: NavItem[] = [
     {

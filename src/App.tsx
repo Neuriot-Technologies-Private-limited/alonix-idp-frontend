@@ -38,19 +38,44 @@ const PrivateRoute = () => {
   return token ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+const isSearchUserOnly = (context: ReturnType<typeof useAuthStore.getState>['context']) =>
+  context?.orgRole === 'MEMBER' && !(context.groups || []).some((g) => g.role === 'GROUP_ADMIN');
+
+const getDefaultAuthedPath = (
+  context: ReturnType<typeof useAuthStore.getState>['context']
+) => (isSearchUserOnly(context) ? '/documents' : '/dashboard');
+
 const LoginRoute = () => {
   const token = useAuthStore((state) => state.token);
-  return token ? <Navigate to="/dashboard" replace /> : <LoginPage />;
+  const context = useAuthStore((state) => state.context);
+  return token ? <Navigate to={getDefaultAuthedPath(context)} replace /> : <LoginPage />;
 };
 
 const SignupRoute = () => {
   const token = useAuthStore((state) => state.token);
-  return token ? <Navigate to="/dashboard" replace /> : <SignupPage />;
+  const context = useAuthStore((state) => state.context);
+  return token ? <Navigate to={getDefaultAuthedPath(context)} replace /> : <SignupPage />;
 };
 
 const SetupPasswordRoute = () => {
   const token = useAuthStore((state) => state.token);
-  return token ? <Navigate to="/dashboard" replace /> : <SetupPasswordPage />;
+  const context = useAuthStore((state) => state.context);
+  return token ? <Navigate to={getDefaultAuthedPath(context)} replace /> : <SetupPasswordPage />;
+};
+
+const DashboardRoute = () => {
+  const context = useAuthStore((state) => state.context);
+  return isSearchUserOnly(context) ? <Navigate to="/documents" replace /> : <Dashboard />;
+};
+
+const GroupsRoute = () => {
+  const context = useAuthStore((state) => state.context);
+  return isSearchUserOnly(context) ? <Navigate to="/documents" replace /> : <GroupManagement />;
+};
+
+const GroupDetailsRoute = () => {
+  const context = useAuthStore((state) => state.context);
+  return isSearchUserOnly(context) ? <Navigate to="/documents" replace /> : <GroupDetails />;
 };
 
 function App() {
@@ -70,7 +95,7 @@ function App() {
 
             <Route element={<PrivateRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<DashboardRoute />} />
                 <Route path="/documents" element={<DocumentsPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
@@ -83,15 +108,15 @@ function App() {
                 </Route>
 
                 <Route element={<RoleProtectedRoute requiredWorkspaceMember />}>
-                  <Route path="/groups" element={<GroupManagement />} />
-                  <Route path="/groups/:id" element={<GroupDetails />} />
+                  <Route path="/groups" element={<GroupsRoute />} />
+                  <Route path="/groups/:id" element={<GroupDetailsRoute />} />
                 </Route>
 
                 <Route element={<RoleProtectedRoute requiredCapability="ADMIN_DASHBOARD_VIEW" />}>
                   <Route path="/activity" element={<ActivityLogs />} />
                 </Route>
 
-                <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/admin/*" element={<Navigate to="/documents" replace />} />
               </Route>
             </Route>
 

@@ -99,6 +99,44 @@ function normalizeSource(src: unknown): NormSource {
   };
 }
 
+function normalizeSourcesPayload(rawSources: unknown): {
+  sources: NormSource[];
+  sourcesMap: Record<string, NormSource>;
+} {
+  const sources: NormSource[] = [];
+  const sourcesMap: Record<string, NormSource> = {};
+  if (!rawSources) return { sources, sourcesMap };
+
+  if (Array.isArray(rawSources)) {
+    // Keep backend order/index 1:1 with answer citations like [Source 1].
+    rawSources.forEach((src, idx) => {
+      const s = normalizeSource(src);
+      const n = idx + 1;
+      sources.push(s);
+      sourcesMap[`[Source ${n}]`] = s;
+      sourcesMap[`Source ${n}`] = s;
+      sourcesMap[String(n)] = s;
+    });
+    return { sources, sourcesMap };
+  }
+
+  if (typeof rawSources === 'object') {
+    Object.keys(rawSources as object).forEach((key) => {
+      const n = normalizeSource((rawSources as Record<string, unknown>)[key]);
+      sources.push(n);
+      sourcesMap[key] = n;
+      const numMatch = key.match(/Source\s+(\d+)/i);
+      if (numMatch?.[1]) {
+        sourcesMap[`[Source ${numMatch[1]}]`] = n;
+        sourcesMap[`Source ${numMatch[1]}`] = n;
+        sourcesMap[numMatch[1]] = n;
+      }
+    });
+  }
+
+  return { sources, sourcesMap };
+}
+
 function parseHtmlWithSources(html: string, sourcesMap: Record<string, NormSource>): string {
   const sourceGroupPattern = /\[(?:Source\s+\d+\s*(?:,\s*)?)+\]/gi;
   const tempDiv = document.createElement('div');
@@ -343,29 +381,7 @@ const ChatPage: React.FC = () => {
         setCurrentSession(apiResponse.session_id);
       }
 
-      let sourcesArray: NormSource[] = [];
-      let sourcesMap: Record<string, NormSource> = {};
-      const rawSrc = apiResponse.sources;
-      if (rawSrc) {
-        if (Array.isArray(rawSrc)) {
-          sourcesArray = Array.from(
-            new Map(
-              rawSrc.map((src) => {
-                const n = normalizeSource(src);
-                return [`${n.title}|${n.page}`, n];
-              })
-            ).values()
-          );
-        } else if (typeof rawSrc === 'object') {
-          Object.keys(rawSrc).forEach((key) => {
-            const n = normalizeSource((rawSrc as Record<string, unknown>)[key]);
-            sourcesMap[key] = n;
-            const numMatch = key.match(/Source\s+(\d+)/i);
-            if (numMatch?.[1]) sourcesMap[`Source ${numMatch[1]}`] = n;
-            sourcesArray.push(n);
-          });
-        }
-      }
+      const { sources: sourcesArray, sourcesMap } = normalizeSourcesPayload(apiResponse.sources);
 
       setConversationPairs((prev) => [
         ...prev,
@@ -401,27 +417,7 @@ const ChatPage: React.FC = () => {
       const messages = Array.isArray(response.data) ? response.data : [];
 
       const pairs: ConversationPair[] = (messages as Record<string, unknown>[]).map((msg) => {
-        let sources: NormSource[] = [];
-        let sourcesMap: Record<string, NormSource> = {};
-        const rawSources = msg.sources;
-        if (rawSources) {
-          if (Array.isArray(rawSources)) {
-            sources = Array.from(
-              new Map(
-                rawSources.map((src) => {
-                  const n = normalizeSource(src);
-                  return [`${n.title}|${n.page}`, n];
-                })
-              ).values()
-            );
-          } else if (typeof rawSources === 'object') {
-            Object.keys(rawSources as object).forEach((key) => {
-              const n = normalizeSource((rawSources as Record<string, unknown>)[key]);
-              sourcesMap[key] = n;
-              sources.push(n);
-            });
-          }
-        }
+        const { sources, sourcesMap } = normalizeSourcesPayload(msg.sources);
         const res = msg.response as Record<string, string> | undefined;
         const raw =
           (msg.answer as string) ||
