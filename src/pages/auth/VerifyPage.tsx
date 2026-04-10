@@ -169,7 +169,7 @@ const VerifyPage: React.FC = () => {
                   value={digit}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-full aspect-square bg-surface-highest/10 border border-border/10 rounded-2xl text-center text-2xl font-black outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-foreground"
+                  className="w-full aspect-square bg-surface-highest/10 border-2 border-border/50 dark:border-muted-foreground/40 rounded-2xl text-center text-2xl font-black outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 focus:bg-surface-highest/20 transition-all text-foreground shadow-sm"
                   required
                 />
               ))}
