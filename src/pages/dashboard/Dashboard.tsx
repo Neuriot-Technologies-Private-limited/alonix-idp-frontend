@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Users,
   Database,
@@ -17,6 +18,7 @@ import { ActivityFeed } from '../../components/admin/ActivityFeed';
 import { GroupCard } from '../../components/ui/GroupCard';
 import { Loader } from '../../components/ui/Loader';
 import { StatCard } from '../../components/ui/StatCard';
+import { getChatSessions, type ChatSessionDto } from '../../services/chatApi';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -42,6 +44,7 @@ export const Dashboard: React.FC = () => {
     isGroupAdminFor,
   } = useRbac();
   const { user } = useAuthStore();
+  const activeGroupId = useAuthStore((s) => s.context?.activeGroupId);
 
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
   const memberContext = useAuthStore((s) => s.context?.groups ?? []);
@@ -61,7 +64,21 @@ export const Dashboard: React.FC = () => {
     }).length;
   }, [docRows]);
 
-  const chatSessionsLabel = 6 + accessibleGroupIds.length * 4;
+  const { data: myChatSessionsCount = 0, isLoading: chatSessionsLoading } = useQuery({
+    queryKey: ['my-chat-sessions-count', user?.email, activeGroupId, [...accessibleGroupIds].sort().join(',')],
+    enabled: Boolean(user?.email) && isPureSearchUser,
+    queryFn: async () => {
+      const gids = accessibleGroupIds.length ? [...new Set(accessibleGroupIds)] : [];
+      const buckets = gids.length
+        ? await Promise.all(gids.map((gid) => getChatSessions(gid).then((r) => r.data?.sessions || [])))
+        : [((await getChatSessions(activeGroupId || undefined)).data?.sessions || []) as ChatSessionDto[]];
+      const all = buckets.flat();
+      const unique = new Set(all.map((s) => String(s.session_id || '')));
+      unique.delete('');
+      return unique.size;
+    },
+    staleTime: 60_000,
+  });
   const ingestionValue = stats?.ingestionCount ?? 0;
 
   const greeting = () => {
@@ -118,14 +135,14 @@ export const Dashboard: React.FC = () => {
           loading={statsLoading}
         />
         <StatCard
-          label={isCompanyAdmin ? "Total Users" : "Collaborators"}
+          label={isCompanyAdmin ? "Total Users" : "Users"}
           value={stats?.totalUsers ?? 0}
           trend={{ value: '8.4%', label: 'Growth', isPositive: true }}
           icon={<Users className="w-4 h-4" />}
           loading={statsLoading}
         />
         <StatCard
-          label={isCompanyAdmin ? "Total Documents" : "Vault Assets"}
+          label={isCompanyAdmin ? "Total Documents" : "Documents"}
           value={stats?.totalDocuments ?? 0}
           trend={{ value: '1.2k', label: 'Velocity', isPositive: true }}
           icon={<FileText className="w-4 h-4" />}
@@ -143,7 +160,7 @@ export const Dashboard: React.FC = () => {
             isCompanyAdmin
               ? ingestionValue
               : isPureSearchUser
-                ? chatSessionsLabel
+                ? myChatSessionsCount
                 : ingestionValue || analysisBusyCount || docRows.length
           }
           trend={
@@ -164,7 +181,7 @@ export const Dashboard: React.FC = () => {
             (isCompanyAdmin && ingestionValue > 0) ||
             (!isPureSearchUser && analysisBusyCount > 0)
           }
-          loading={statsLoading}
+          loading={statsLoading || (isPureSearchUser && chatSessionsLoading)}
         />
       </section>
 

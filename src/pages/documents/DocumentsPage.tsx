@@ -120,10 +120,10 @@ export const DocumentsPage: React.FC = () => {
       if (!docCanManage(docItem)) return;
       const name = docItem.fileName || 'this document';
       const ok = await confirm({
-        title: 'Remove from vault?',
+        title: 'Remove document?',
         description: (
           <>
-            Remove <span className="font-semibold text-foreground/95">“{name}”</span> from the vault? This cannot be
+            Remove <span className="font-semibold text-foreground/95">“{name}”</span>? This cannot be
             undone.
           </>
         ),
@@ -691,7 +691,7 @@ export const DocumentsPage: React.FC = () => {
             aria-busy="true"
             aria-label="Loading documents"
           >
-            <Loader variant="section" label="Syncing vault assets..." />
+            <Loader variant="section" label="Syncing assets..." />
           </div>
         ) : null}
         <div className={cn(isLoading && 'pointer-events-none select-none opacity-[0.38]')}>

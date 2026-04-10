@@ -209,7 +209,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
       <button
         type="button"
         aria-label="Delete document"
-        title="Delete — remove this document from the vault"
+        title="Delete — remove this document"
         disabled={
           Boolean(deleteBusyId) ||
           bulkBusyActive ||

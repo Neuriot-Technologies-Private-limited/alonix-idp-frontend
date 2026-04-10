@@ -123,7 +123,7 @@ const LoginPage: React.FC = () => {
 
         <div className="p-8 md:p-12 flex flex-col justify-center bg-surface-lowest/40 backdrop-blur-sm">
           <div className="mb-6">
-            <h2 className="text-2xl font-extrabold font-display mb-2 tracking-tight">Authorize Access</h2>
+            <h2 className="text-2xl font-extrabold font-display mb-2 tracking-tight">Login</h2>
             <p className="text-muted-foreground text-sm mb-6 leading-relaxed font-medium">Please enter your credentials to continue.</p>
           </div>
 
@@ -180,7 +180,7 @@ const LoginPage: React.FC = () => {
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>
-                  <span className="text-sm font-black font-display uppercase tracking-[0.2em]">Authorize Node</span>
+                  <span className="text-sm font-black font-display uppercase tracking-[0.2em]">Login</span>
                   <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1.5 transition-transform" />
                 </>
               )}
