@@ -128,39 +128,6 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
               <Sparkles className="w-4 h-4" />
               AI Classification
             </div>
-            {groups.length > 0 ? (
-              <div className="space-y-1.5">
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/45">Document Groups</p>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {groups.map((g: any, i: number) => (
-                    <div
-                      key={`${g?.category || 'group'}-${i}`}
-                      className="rounded-xl border border-violet/20 bg-gradient-to-r from-violet/10 via-surface-highest/30 to-transparent px-3 py-2"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                          <p className="truncate whitespace-nowrap text-[10px] sm:text-[11px] text-foreground/90">
-                            <span className="font-black text-foreground">{g?.category || 'Unknown'}</span>
-                            <span className="mx-1.5 text-muted-foreground/40">/</span>
-                            <span className="font-semibold text-muted-foreground/75">
-                              Pages {Array.isArray(g?.pages) ? g.pages.join(', ') : '—'}
-                            </span>
-                            <span className="mx-1.5 text-muted-foreground/40">/</span>
-                            <span className="text-muted-foreground/65">
-                              Start {renderPrimitive(g?.start_page)}
-                            </span>
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-[10px] font-bold text-violet bg-violet/10 border border-violet/25 rounded-md px-1.5 py-0.5">
-                          {typeof g?.confidence === 'number' ? `${Math.round(g.confidence * 100)}%` : '—'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
             {pageClassifications.length > 0 ? (
               <div className="space-y-1.5">
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/45">Page Classification</p>
@@ -170,22 +137,13 @@ export const DocumentResultModal: React.FC<DocumentResultModalProps> = ({
                       key={`${row?.page_num || 'page'}-${i}`}
                       className="rounded-xl border border-border/30 bg-surface-highest/20 px-3 py-2"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                          <p className="truncate whitespace-nowrap text-[10px] sm:text-[11px] text-foreground/90">
-                            <span className="font-black text-foreground">Page {renderPrimitive(row?.page_num)}</span>
-                            <span className="mx-1.5 text-muted-foreground/40">/</span>
-                            <span className="font-semibold text-muted-foreground/75">
-                              {renderPrimitive(row?.category?.name)}
-                            </span>
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-[10px] font-bold text-violet bg-violet/10 border border-violet/25 rounded-md px-1.5 py-0.5">
-                          {typeof row?.category?.confidence === 'number'
-                            ? `${Math.round(row.category.confidence * 100)}%`
-                            : '—'}
+                      <p className="truncate whitespace-nowrap text-[10px] sm:text-[11px] text-foreground/90">
+                        <span className="font-black text-foreground">Page {renderPrimitive(row?.page_num)}</span>
+                        <span className="mx-1.5 text-muted-foreground/40">/</span>
+                        <span className="font-semibold text-muted-foreground/75">
+                          {renderPrimitive(row?.category?.name)}
                         </span>
-                      </div>
+                      </p>
                     </div>
                   ))}
                 </div>
