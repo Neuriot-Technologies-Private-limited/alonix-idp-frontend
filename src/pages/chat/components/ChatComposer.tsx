@@ -40,7 +40,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         )}
       </form>
       <p className="mx-auto max-w-7xl text-center text-[11px] leading-relaxed text-muted-foreground/60">
-        Findout Intelligence can make mistakes. Verify critical information.
+        1-glance can make mistakes. Verify critical information.
       </p>
     </div>
   );

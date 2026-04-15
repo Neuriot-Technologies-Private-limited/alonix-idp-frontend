@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, LayoutDashboard, Sparkles } from 'lucide-react';
 import { authApi } from '../../services/authApi';
-import logoFull from '../../assets/findoutai_logo-w.png';
+import logoFull from '../../assets/1-glance.png';
 import { useAlert } from '../../components/alert';
 
 const LoginPage: React.FC = () => {
@@ -84,8 +84,8 @@ const LoginPage: React.FC = () => {
               <motion.img
                 whileHover={{ scale: 1.05 }}
                 src={logoFull}
-                alt="FindoutAI"
-                className="h-9 mb-12 object-contain"
+                alt="1-glance"
+                className="h-12 md:h-14 mb-12 origin-left object-contain"
               />
             </Link>
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
@@ -194,13 +194,13 @@ const LoginPage: React.FC = () => {
           </form>
 
           <p className="mt-12 text-center text-sm font-bold text-muted-foreground/60">
-            New to FindoutAI? <Link to="/signup" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">Establish Workspace</Link>
+            New to 1-glance? <Link to="/signup" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">Establish Workspace</Link>
           </p>
         </div>
       </motion.div>
 
       <footer className="mt-16 text-[90px] md:text-[180px] font-black text-foreground/[0.01] absolute bottom-[-40px] left-1/2 -translate-x-1/2 select-none pointer-events-none whitespace-nowrap tracking-tighter">
-        FINDOUTAI
+        1-GLANCE
       </footer>
     </div>
   );

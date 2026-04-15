@@ -16,7 +16,7 @@ import {
   Crown,
   Cpu
 } from 'lucide-react';
-import logoFull from '../../assets/findoutai_logo-w.png';
+import logoFull from '../../assets/1-glance.png';
 
 const LandingPage: React.FC = () => {
   const [billingCycle, setBillingCycle] = React.useState<'monthly' | 'yearly'>('monthly');
@@ -40,7 +40,7 @@ const LandingPage: React.FC = () => {
       <nav className="fixed top-0 w-full z-50 border-b border-border/10 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logoFull} alt="FindoutAI" className="h-8 object-contain" />
+            <img src={logoFull} alt="1-glance" className="h-10 md:h-12 origin-left object-contain" />
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground font-display">
@@ -346,7 +346,7 @@ const LandingPage: React.FC = () => {
                       >
                         {h === 95 && (
                           <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap shadow-xl">
-                            FindoutAI Performance
+                            1-glance Performance
                           </div>
                         )}
                       </motion.div>
@@ -498,7 +498,7 @@ const LandingPage: React.FC = () => {
           >
             <h2 className="font-display text-4xl md:text-6xl font-extrabold mb-8 tracking-tighter">Ready to experience clarity?</h2>
             <p className="text-xl text-muted-foreground mb-12">
-              Join forward-thinking enterprise teams who use FindoutAI to turn static documents into dynamic intelligence engines.
+              Join forward-thinking enterprise teams who use 1-glance to turn static documents into dynamic intelligence engines.
             </p>
             <div className="flex flex-col md:flex-row gap-4 justify-center">
               <Link to="/signup" className="btn-primary text-xl px-12 py-5 rounded-md shadow-2xl shadow-primary/30">
@@ -527,7 +527,7 @@ const LandingPage: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="text-xl text-muted-foreground leading-relaxed"
             >
-              FindoutAI was born from a simple realization: information isn't power—retrieval is. Our mission is to eliminate the friction between data and decision-making, providing a sophisticated layer of intelligence that organizes the world's most complex document ecosystems.
+              1-glance was born from a simple realization: information isn't power—retrieval is. Our mission is to eliminate the friction between data and decision-making, providing a sophisticated layer of intelligence that organizes the world's most complex document ecosystems.
             </motion.p>
           </div>
         </section>
@@ -538,7 +538,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20">
             <div className="space-y-6 max-w-xs">
-              <img src={logoFull} alt="FindoutAI" className="h-7 object-contain opacity-80" />
+              <img src={logoFull} alt="1-glance" className="h-8 md:h-10 origin-left object-contain opacity-80" />
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Empowering the digital curator through sophisticated document intelligence and role-based excellence.
               </p>

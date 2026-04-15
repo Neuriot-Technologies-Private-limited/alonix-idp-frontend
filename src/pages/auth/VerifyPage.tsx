@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
-import logoFull from '../../assets/findoutai_logo-w.png';
+import logoFull from '../../assets/1-glance.png';
 import { authApi } from '../../services/authApi';
 
 const VerifyPage: React.FC = () => {
@@ -109,7 +109,7 @@ const VerifyPage: React.FC = () => {
           
           <div className="relative z-10">
             <Link to="/">
-              <img src={logoFull} alt="FindoutAI" className="h-9 mb-12 object-contain" />
+              <img src={logoFull} alt="1-glance" className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
             </Link>
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
               Verify <br />

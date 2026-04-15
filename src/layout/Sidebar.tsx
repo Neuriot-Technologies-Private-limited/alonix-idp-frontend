@@ -15,9 +15,9 @@ import { useRbac } from '../hooks/useRbac';
 import { cn } from '../utils/cn';
 
 // Branding assets
-import logoFull from '../assets/findoutai_logo-w.png';
-import logoFullLight from '../assets/findoutai_logo.png';
-import logoIcon from '../assets/favicon.jpg';
+import logoFull from '../assets/1-glance.png';
+import logoFullLight from '../assets/1-glance.png';
+import logoIcon from '../assets/1-glance-icon.png';
 
 interface NavItem {
   icon: any;
@@ -166,76 +166,76 @@ const Sidebar: React.FC = () => {
       />
       <aside
         className={cn(
-          'group/sidebar flex h-screen flex-col border-r border-border/10 bg-surface-lowest transition-all duration-300 ease-out',
+          'group/sidebar flex h-screen flex-col border-r border-border/10 bg-background/20 backdrop-blur-xl transition-all duration-300 ease-out',
           'fixed md:relative inset-y-0 left-0 z-[50] w-[min(19rem,90vw)] -translate-x-full md:translate-x-0',
           mobileNavOpen && 'translate-x-0',
           isMinimized ? 'md:w-24' : 'md:w-45'
         )}
       >
-      {/* Toggle Button — desktop only */}
-      <button
-        onClick={toggleSidebar}
-        className="hidden md:flex absolute -right-3 top-24 w-6 h-6 bg-surface-high border border-border/20 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all z-30 opacity-0 group-hover/sidebar:opacity-100 shadow-lg"
-      >
-        {isMinimized ? <ChevronRightIcon className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-      </button>
-
-      {/* Main Branding */}
-      <div className={isMinimized ? 'p-6 flex justify-center' : 'p-8 pb-4'}>
-        <div className={`flex items-center ${isMinimized ? 'justify-center' : 'gap-3'} mb-2`}>
-          {isMinimized ? (
-            <img src={logoIcon} alt="Logo" className="w-10 h-10 rounded-xl object-cover ring-2 ring-primary/20" />
-          ) : (
-            <img src={isDarkTheme ? logoFull : logoFullLight} alt="FindoutAI" className="h-8 w-auto object-contain" />
-          )}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex-1 px-4 overflow-y-auto overflow-x-hidden pt-2">
-        {adminItems.length > 0 &&
-          renderNavItems(adminItems, isCompanyAdmin || hasAnyGroupAdmin ? 'Administration' : 'Workspace')}
-      </div>
-
-      {/* Sidebar Footer: exactly 2 lines — label + brand row (brand stays one line) */}
-      <div className={`mt-auto px-3 pb-4 pt-2 sm:px-4 sm:pb-6 ${isMinimized ? 'flex justify-center' : ''}`}>
-        <a
-          href="https://findout.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            'group transition-all duration-300',
-            isMinimized
-              ? 'flex h-10 w-10 items-center justify-center rounded-full border border-border/20 bg-muted/20 p-0 hover:border-primary/30 hover:bg-primary/20'
-              : 'flex w-full flex-col gap-0.5 rounded-xl border border-border/10 bg-muted/10 px-2.5 py-2 text-left shadow-md hover:border-border/25 hover:bg-muted/20 sm:rounded-2xl sm:px-3 sm:py-2.5'
-          )}
+        {/* Toggle Button — desktop only */}
+        <button
+          onClick={toggleSidebar}
+          className="hidden md:flex absolute -right-3 top-24 w-6 h-6 bg-surface-high border border-border/20 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all z-30 opacity-0 group-hover/sidebar:opacity-100 shadow-lg"
         >
-          {isMinimized ? (
-            <Search className="h-4 w-4 text-primary" />
-          ) : (
-            <>
-              <span className="whitespace-nowrap text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-muted-foreground/60 sm:text-[10px] sm:tracking-[0.16em]">
-                Powered by
-              </span>
-              <div className="flex min-h-[1.375rem] items-center justify-between gap-1.5">
-                <span className="min-w-0 whitespace-nowrap text-[10px] font-black uppercase leading-none tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-[11px]">
-                  FINDOUT&nbsp;AI
-                  <sup className="ml-0.5 align-super text-[0.58em] font-bold normal-case tracking-normal text-muted-foreground/90 group-hover:text-primary">
-                    ™
-                  </sup>
+          {isMinimized ? <ChevronRightIcon className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        </button>
+
+        {/* Main Branding */}
+        <div className={isMinimized ? 'p-6 flex justify-center' : 'p-8 pb-4'}>
+          <div className={`flex items-center ${isMinimized ? 'justify-center' : 'gap-3'} mb-2`}>
+            {isMinimized ? (
+              <img src={logoIcon} alt="Logo" className="w-10 h-10 rounded-xl object-cover ring-2 ring-primary/20" />
+            ) : (
+              <img src={isDarkTheme ? logoFull : logoFullLight} alt="1-glance" className="h-10 md:h-12 w-auto object-contain origin-left scale-110" />
+            )}
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex-1 px-4 overflow-y-auto overflow-x-hidden pt-2">
+          {adminItems.length > 0 &&
+            renderNavItems(adminItems, isCompanyAdmin || hasAnyGroupAdmin ? 'Administration' : 'Workspace')}
+        </div>
+
+        {/* Sidebar Footer: exactly 2 lines — label + brand row (brand stays one line) */}
+        <div className={`mt-auto px-3 pb-4 pt-2 sm:px-4 sm:pb-6 ${isMinimized ? 'flex justify-center' : ''}`}>
+          <a
+            href="https://findout.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'group transition-all duration-300',
+              isMinimized
+                ? 'flex h-10 w-10 items-center justify-center rounded-full border border-border/20 bg-muted/20 p-0 hover:border-primary/30 hover:bg-primary/20'
+                : 'flex w-full flex-col gap-0.5 rounded-xl border border-border/10 bg-muted/10 px-2.5 py-2 text-left shadow-md hover:border-border/25 hover:bg-muted/20 sm:rounded-2xl sm:px-3 sm:py-2.5'
+            )}
+          >
+            {isMinimized ? (
+              <Search className="h-4 w-4 text-primary" />
+            ) : (
+              <>
+                <span className="whitespace-nowrap text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-muted-foreground/60 sm:text-[10px] sm:tracking-[0.16em]">
+                  Powered by
                 </span>
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted/30 ring-1 ring-border/15 transition-all group-hover:bg-primary/15 group-hover:ring-primary/25">
-                  <ChevronLeft
-                    className="h-2 w-2 text-muted-foreground transition-colors group-hover:text-primary group-hover:translate-x-px rotate-180"
-                    aria-hidden
-                  />
-                </span>
-              </div>
-            </>
-          )}
-        </a>
-      </div>
-    </aside>
+                <div className="flex min-h-[1.375rem] items-center justify-between gap-1.5">
+                  <span className="min-w-0 whitespace-nowrap text-[10px] font-black uppercase leading-none tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-[11px]">
+                    FINDOUT&nbsp;AI
+                    <sup className="ml-0.5 align-super text-[0.58em] font-bold normal-case tracking-normal text-muted-foreground/90 group-hover:text-primary">
+                      ™
+                    </sup>
+                  </span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted/30 ring-1 ring-border/15 transition-all group-hover:bg-primary/15 group-hover:ring-primary/25">
+                    <ChevronLeft
+                      className="h-2 w-2 text-muted-foreground transition-colors group-hover:text-primary group-hover:translate-x-px rotate-180"
+                      aria-hidden
+                    />
+                  </span>
+                </div>
+              </>
+            )}
+          </a>
+        </div>
+      </aside>
     </>
   );
 };

@@ -383,7 +383,7 @@ const ProfilePage: React.FC = () => {
               >
                 <h2 className="font-display text-lg font-black text-foreground">Personal information</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Update how you appear across Findout AI. Your email is managed by your organization.
+                  Update how you appear across 1-glance. Your email is managed by your organization.
                 </p>
 
                 <div className="mt-8 grid gap-6 sm:grid-cols-2">
@@ -503,7 +503,7 @@ const ProfilePage: React.FC = () => {
               >
                 <div className="rounded-3xl border border-border/10 bg-surface-highest/5 p-6 sm:p-8">
                   <h2 className="font-display text-lg font-black text-foreground">Appearance</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Choose how Findout AI looks on this device.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Choose how 1-glance looks on this device.</p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     {(['light', 'dark'] as const).map((t) => (
                       <button
