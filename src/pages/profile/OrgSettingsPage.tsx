@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Building2, Database, ShieldCheck, Users } from 'lucide-react';
 import { useRbac } from '../../hooks/useRbac';
 import { cn } from '../../utils/cn';
+import { ConnectorsPanel } from '../../components/admin/ConnectorsPanel';
 import OrgAiSettingsPanel from '../../components/admin/OrgAiSettingsPanel';
 import { useAuthStore } from '../../stores/authStore';
 import { useDashboardState } from '../../services/adminService';
+import { StatCard } from '../../components/ui/StatCard';
 
 const OrgSettingsPage: React.FC = () => {
   const { orgRole, groups } = useRbac();
@@ -59,66 +61,32 @@ const OrgSettingsPage: React.FC = () => {
       </div>
 
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-border/20 bg-surface-lowest dark:bg-surface-highest/5 dark:border-border/10 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="rounded-lg bg-primary/15 p-2 text-primary">
-              <Building2 className="h-4 w-4" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-              Organization
-            </p>
-          </div>
-          <p className="text-sm font-semibold text-foreground">{orgName || '—'}</p>
-          <p className="mt-1 text-[11px] font-medium text-muted-foreground">Slug</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{orgSlug || '—'}</p>
-          <div className="mt-3 h-px bg-border/10" />
-          <p className="mt-3 text-[11px] font-medium text-muted-foreground">Tenant ID</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{orgId}</p>
-        </article>
-
-        <article className="rounded-2xl border border-border/20 bg-surface-lowest dark:bg-surface-highest/5 dark:border-border/10 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="rounded-lg bg-success/10 p-2 text-success">
-              <Users className="h-4 w-4" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-              Members
-            </p>
-          </div>
-          <p className="text-2xl font-black text-foreground">{dashboard?.stats.totalUsers ?? '—'}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Active users in this organization</p>
-        </article>
-
-        <article className="rounded-2xl border border-border/20 bg-surface-lowest dark:bg-surface-highest/5 dark:border-border/10 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="rounded-lg bg-info/10 p-2 text-info">
-              <Database className="h-4 w-4" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-              Workspaces
-            </p>
-          </div>
-          <p className="text-2xl font-black text-foreground">{dashboard?.stats.totalGroups ?? groups.length}</p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">Current: {activeWorkspace}</p>
-        </article>
-
-        <article className="rounded-2xl border border-border/20 bg-surface-lowest dark:bg-surface-highest/5 dark:border-border/10 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="rounded-lg bg-violet/10 p-2 text-violet">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-              Governance
-            </p>
-          </div>
-          <p className="text-sm font-semibold text-foreground">Role model</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Org role: {orgRole || 'MEMBER'} · Access scoped by active workspace capabilities.
-          </p>
-        </article>
+        <StatCard
+          label="Organization"
+          value={orgName || '—'}
+          trend={{ value: String(orgSlug || 'Org'), label: String(orgId || '').substring(0, 8), isPositive: true }}
+          icon={<Building2 className="w-4 h-4" />}
+        />
+        <StatCard
+          label="Members"
+          value={dashboard?.stats.totalUsers ?? '—'}
+          icon={<Users className="w-4 h-4" />}
+        />
+        <StatCard
+          label="Workspaces"
+          value={dashboard?.stats.totalGroups ?? groups.length}
+          trend={{ value: String(activeWorkspace || ''), label: 'Current', isPositive: true }}
+          icon={<Database className="w-4 h-4" />}
+        />
+        <StatCard
+          label="Governance Role"
+          value={String(orgRole || 'MEMBER').replace(/_/g, ' ')}
+          icon={<ShieldCheck className="w-4 h-4" />}
+        />
       </section>
 
       {/* For COMPANY_ADMIN only (route-level gating). */}
+      <ConnectorsPanel />
       <OrgAiSettingsPanel />
     </div>
   );

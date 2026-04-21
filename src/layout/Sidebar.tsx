@@ -17,7 +17,6 @@ import { cn } from '../utils/cn';
 // Branding assets
 import logoFull from '../assets/1-glance.png';
 import logoFullLight from '../assets/1-glance.png';
-import logoIcon from '../assets/1-glance-icon.png';
 
 interface NavItem {
   icon: any;
@@ -166,12 +165,14 @@ const Sidebar: React.FC = () => {
       />
       <aside
         className={cn(
-          'group/sidebar flex h-screen flex-col border-r border-border/10 bg-background/20 backdrop-blur-xl transition-all duration-300 ease-out',
+          'group/sidebar flex h-screen flex-col bg-background/20 backdrop-blur-xl transition-all duration-300 ease-out',
           'fixed md:relative inset-y-0 left-0 z-[50] w-[min(19rem,90vw)] -translate-x-full md:translate-x-0',
           mobileNavOpen && 'translate-x-0',
           isMinimized ? 'md:w-24' : 'md:w-45'
         )}
       >
+        {/* Colorful right border */}
+        <div className="absolute top-0 right-0 w-[1px] sm:w-[2px] h-full bg-gradient-to-b from-info/70 via-violet/80 to-primary/70 dark:opacity-80" />
         {/* Toggle Button — desktop only */}
         <button
           onClick={toggleSidebar}
@@ -184,9 +185,13 @@ const Sidebar: React.FC = () => {
         <div className={isMinimized ? 'p-6 flex justify-center' : 'p-8 pb-4'}>
           <div className={`flex items-center ${isMinimized ? 'justify-center' : 'gap-3'} mb-2`}>
             {isMinimized ? (
-              <img src={logoIcon} alt="Logo" className="w-10 h-10 rounded-xl object-cover ring-2 ring-primary/20" />
+              <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-background/50 border border-border/20 shadow-lg transition-all duration-300">
+                <span className="text-[26px] font-black tracking-tighter bg-gradient-to-br from-cyan-300 to-blue-600 text-transparent bg-clip-text drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] filter brightness-110">
+                  1
+                </span>
+              </div>
             ) : (
-              <img src={isDarkTheme ? logoFull : logoFullLight} alt="1-glance" className="h-10 md:h-12 w-auto object-contain origin-left scale-110" />
+              <img src={isDarkTheme ? logoFull : logoFullLight} alt="1-glance" className="h-10 md:h-14 w-auto object-contain origin-left scale-[1.3] dark:brightness-[1.3] dark:contrast-125 dark:drop-shadow-md transition-all duration-300" />
             )}
           </div>
         </div>

@@ -70,8 +70,8 @@ const PROVIDER_HINTS: Record<AiProvider, { modelPlaceholder: string; help: strin
     help: 'Great multimodal tasks and broad context windows.',
   },
   OPEN_SOURCE: {
-    modelPlaceholder: '',
-    help: 'No additional configuration required in this panel.',
+    modelPlaceholder: 'e.g. llama3, mistral, custom-model',
+    help: 'Optional: specify the model name your open-source endpoint uses.',
   },
 };
 
@@ -87,7 +87,6 @@ export const OrgAiSettingsPanel: React.FC = () => {
   });
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
-  const [switchingProvider, setSwitchingProvider] = useState(false);
   const [status, setStatus] = useState<string>('');
   // `keyStatus` is evaluated per-provider where needed.
   const effectiveModel = providerModels[provider]?.trim() || 'Not set';
@@ -119,24 +118,11 @@ export const OrgAiSettingsPanel: React.FC = () => {
     setApiKey('');
   }, [provider]);
 
-  const selectProvider = async (next: AiProvider) => {
+  const selectProvider = (next: AiProvider) => {
     if (next === provider) return;
     setProvider(next);
     setStatus('');
-
-    // OPEN_SOURCE should behave as a simple on/off toggle with no Save button.
-    if (next !== 'OPEN_SOURCE') return;
-    setSwitchingProvider(true);
-    try {
-      await adminService.updateOrgAiSettings({ provider: 'OPEN_SOURCE' });
-      setStatus('Open Source is now active.');
-      await queryClient.invalidateQueries({ queryKey: ['org-ai-settings'] });
-    } catch (err) {
-      const e2 = err as { response?: { data?: { message?: string } } };
-      setStatus(e2.response?.data?.message || 'Failed to switch provider.');
-    } finally {
-      setSwitchingProvider(false);
-    }
+    // All providers (including OPEN_SOURCE) now use the explicit Save button.
   };
 
   const saveCurrentProvider = async () => {
@@ -145,12 +131,9 @@ export const OrgAiSettingsPanel: React.FC = () => {
     try {
       const payload: Record<string, string> = {
         provider,
+        model: providerModels[provider] || '',
       };
-      if (provider !== 'OPEN_SOURCE') {
-        payload.model = providerModels[provider] || '';
-      }
 
-      // OPEN_SOURCE is configured without API keys/base URLs in this UI.
       if (provider !== 'OPEN_SOURCE' && apiKey.trim()) {
         if (provider === 'OPENAI') payload.openaiApiKey = apiKey.trim();
         if (provider === 'ANTHROPIC') payload.anthropicApiKey = apiKey.trim();
@@ -169,7 +152,8 @@ export const OrgAiSettingsPanel: React.FC = () => {
   };
 
   return (
-    <section className="rounded-2xl border border-border/20 bg-surface-lowest p-5 dark:bg-surface-highest/5">
+    <section className="rounded-3xl border border-border/20 bg-surface-lowest p-6 sm:p-8 dark:bg-surface-highest/5 shadow-xl overflow-hidden relative">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-info via-violet to-primary"></div>
       <div className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
@@ -208,16 +192,21 @@ export const OrgAiSettingsPanel: React.FC = () => {
       </div>
 
       <div className="mb-5 space-y-3">
-        <div className="rounded-xl border border-border/20 bg-surface-low p-4 dark:bg-surface-highest/5">
+        <div
+          className={[
+            'rounded-xl border bg-surface-low p-4 dark:bg-surface-highest/10 transition-all',
+            provider === 'OPEN_SOURCE' ? 'border-primary/45 bg-primary/[0.06]' : 'border-border/20',
+          ].join(' ')}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground">Open Source</p>
               <p className="mt-0.5 text-xs text-muted-foreground/70">
-                Default mode. No key/model fields in this panel.
+                Default mode. Optionally specify a model name.
               </p>
               <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                <span>No additional configuration</span>
+                <span>No API key required</span>
               </div>
             </div>
             <ToggleSwitch
@@ -228,11 +217,34 @@ export const OrgAiSettingsPanel: React.FC = () => {
               }}
             />
           </div>
-          {provider === 'OPEN_SOURCE' && switchingProvider ? (
-            <p className="mt-2 text-[11px] text-muted-foreground">Switching…</p>
-          ) : null}
-          {provider === 'OPEN_SOURCE' && status ? (
-            <p className="mt-2 text-[11px] text-muted-foreground">{status}</p>
+          {provider === 'OPEN_SOURCE' && !isLoading ? (
+            <div className="mt-3 space-y-3">
+              <label className="flex flex-col gap-1.5 rounded-xl border border-border/20 bg-surface-high/10 px-4 py-3 dark:bg-surface-high/5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  Model (optional)
+                </span>
+                <input
+                  value={providerModels['OPEN_SOURCE']}
+                  onChange={(e) =>
+                    setProviderModels((prev) => ({ ...prev, OPEN_SOURCE: e.target.value }))
+                  }
+                  placeholder={PROVIDER_HINTS['OPEN_SOURCE'].modelPlaceholder}
+                  className="rounded-xl border border-border/20 bg-surface-high/10 px-3 py-2 text-sm"
+                />
+                <span className="text-[11px] text-muted-foreground">{PROVIDER_HINTS['OPEN_SOURCE'].help}</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void saveCurrentProvider()}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save AI Settings'}
+                </button>
+                {status ? <span className="text-sm text-muted-foreground">{status}</span> : null}
+              </div>
+            </div>
           ) : null}
         </div>
 
