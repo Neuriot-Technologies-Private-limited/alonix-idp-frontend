@@ -80,6 +80,9 @@ export async function uploadDocument(file: File, options: UploadDocumentOptions)
     fd,
     {
       headers: { 'Content-Type': 'multipart/form-data' },
+      // Large files can take several minutes — give a generous timeout.
+      // If exceeded, the background upload loop will catch it and mark the job as 'error'.
+      timeout: 5 * 60 * 1000,
     }
   );
 }

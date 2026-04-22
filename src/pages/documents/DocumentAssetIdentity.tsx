@@ -2,6 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { FileIcon } from './DocumentPrimitives';
+import { truncateFileName } from '../../utils/truncateFileName';
 
 export interface DocumentAssetIdentityProps {
   fileName: string;
@@ -40,25 +41,26 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
             type="button"
             onClick={onFileNameClick}
             className={cn(
-              'text-[13px] font-bold text-foreground truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm inline-flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-wait',
+              'text-[13px] font-bold text-foreground truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm inline-flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-wait max-w-[210px]',
               !isCard && 'group-hover/row:text-primary transition-colors cursor-pointer',
-              isCard && 'leading-snug break-words cursor-pointer'
+              isCard && 'leading-snug break-words cursor-pointer max-w-full'
             )}
-            title="Open document"
+            title={fileName}
             disabled={isOpening}
           >
-            {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> : null}
-            {fileName}
+            {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" /> : null}
+            <span className="truncate">{truncateFileName(fileName, 36)}</span>
           </button>
         ) : (
           <p
             className={cn(
-              'text-[13px] font-bold text-foreground truncate',
+              'text-[13px] font-bold text-foreground truncate max-w-[210px]',
               !isCard && 'group-hover/row:text-primary transition-colors',
-              isCard && 'leading-snug break-words'
+              isCard && 'leading-snug break-words max-w-full'
             )}
+            title={fileName}
           >
-            {fileName}
+            {truncateFileName(fileName, 36)}
           </p>
         )}
         <p

@@ -39,6 +39,7 @@ import { DocumentPipelineActions } from './DocumentPipelineActions';
 import { DocumentResultModal } from './DocumentResultModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { useAlert } from '../../components/alert';
+import { useUploadStore } from '../../stores/uploadStore';
 
 export const DocumentsPage: React.FC = () => {
   const { confirm, alert: appAlert } = useAlert();
@@ -69,7 +70,6 @@ export const DocumentsPage: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [targetGroupId, setTargetGroupId] = useState<string>('');
-  const [isUploading, setIsUploading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -78,6 +78,8 @@ export const DocumentsPage: React.FC = () => {
   const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
   const headerCheckboxRef = React.useRef<HTMLInputElement>(null);
   const itemsPerPage = 8;
+
+  const { addJob, updateJob } = useUploadStore();
 
   const context = useAuthStore((s) => s.context);
   const user = useAuthStore((s) => s.user);
@@ -1010,18 +1012,17 @@ export const DocumentsPage: React.FC = () => {
 
       <DocumentUploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => !isUploading && setIsUploadModalOpen(false)}
+        onClose={() => setIsUploadModalOpen(false)}
         orgWideUpload={isCompanyAdmin}
         groups={uploadGroupChoices}
         targetGroupId={targetGroupId}
         setTargetGroupId={setTargetGroupId}
         selectedFiles={selectedFiles}
         setSelectedFiles={setSelectedFiles}
-        isUploading={isUploading}
-        onUpload={async () => {
+        onUpload={() => {
           const gid = isCompanyAdmin ? targetGroupId : targetGroupId || '';
           if (!gid) {
-            await appAlert({
+            void appAlert({
               title: 'Choose a workspace',
               description: isCompanyAdmin
                 ? 'Select a target group before uploading.'
@@ -1032,7 +1033,7 @@ export const DocumentsPage: React.FC = () => {
           }
           const userId = String(user?._id || user?.id || '').trim();
           if (!userId) {
-            await appAlert({
+            void appAlert({
               title: 'Session issue',
               description: 'Missing user id. Please sign in again.',
               variant: 'danger',
@@ -1040,27 +1041,46 @@ export const DocumentsPage: React.FC = () => {
             return;
           }
           const orgId = context?.orgId ?? user?.orgId ?? null;
-          setIsUploading(true);
-          try {
-            for (const file of selectedFiles) {
-              await uploadDocument(file, { userId, groupId: gid || null, orgId });
+          // ── Close modal immediately — upload runs in background ──
+          setIsUploadModalOpen(false);
+          setActiveTab('All');
+          setCurrentPage(1);
+          const filesToUpload = [...selectedFiles];
+          setSelectedFiles([]);
+          if (isCompanyAdmin) setTargetGroupId('');
+
+          // Fire-and-forget background upload
+          void (async () => {
+            const jobIds: string[] = [];
+            // Register all jobs upfront so the toast panel shows them immediately
+            for (const file of filesToUpload) {
+              const jobId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              jobIds.push(jobId);
+              addJob({
+                id: jobId,
+                fileName: file.name,
+                fileSize: file.size,
+                status: 'uploading',
+                startedAt: Date.now(),
+              });
             }
+            // Upload each file and update job status
+            for (let i = 0; i < filesToUpload.length; i++) {
+              const file = filesToUpload[i];
+              const jobId = jobIds[i];
+              try {
+                await uploadDocument(file, { userId, groupId: gid || null, orgId });
+                updateJob(jobId, { status: 'done', finishedAt: Date.now() });
+              } catch (err: unknown) {
+                const ax = err as { response?: { data?: { error?: string } }; message?: string };
+                const errMsg = ax.response?.data?.error || ax.message || 'Upload failed';
+                updateJob(jobId, { status: 'error', error: errMsg, finishedAt: Date.now() });
+              }
+            }
+            // Refresh document list after all uploads complete
             await queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
             await queryClient.invalidateQueries({ queryKey: ['documents'] });
-            setActiveTab('All');
-            setCurrentPage(1);
-            setIsUploadModalOpen(false);
-            setSelectedFiles([]);
-            if (isCompanyAdmin) setTargetGroupId('');
-            requestAnimationFrame(() => {
-              document.getElementById('documents-vault-table')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              });
-            });
-          } finally {
-            setIsUploading(false);
-          }
+          })();
         }}
       />
     </div>

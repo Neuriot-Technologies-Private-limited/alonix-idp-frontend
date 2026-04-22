@@ -1,5 +1,5 @@
 import React from 'react';
-import { UploadCloud, Upload, Folder, File, X, Loader2 } from 'lucide-react';
+import { UploadCloud, Upload, Folder, File, X } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { cn } from '../../utils/cn';
 
@@ -12,8 +12,7 @@ export interface DocumentUploadModalProps {
   setTargetGroupId: (id: string) => void;
   selectedFiles: File[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  isUploading: boolean;
-  onUpload: () => Promise<void>;
+  onUpload: () => void;
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
@@ -25,7 +24,6 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   setTargetGroupId,
   selectedFiles,
   setSelectedFiles,
-  isUploading,
   onUpload,
 }) => {
   return (
@@ -40,14 +38,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            disabled={isUploading}
             className="flex-1 min-h-[48px] min-w-0 px-4 rounded-2xl border border-border/10 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-surface-highest/10 transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center shrink-0 touch-manipulation"
           >
             Cancel
           </button>
           <button
             type="button"
-            disabled={selectedFiles.length === 0 || (orgWideUpload && !targetGroupId) || isUploading}
+            disabled={selectedFiles.length === 0 || (orgWideUpload && !targetGroupId)}
             onClick={onUpload}
             className={cn(
               'flex-1 min-h-[48px] min-w-0 px-4 rounded-2xl bg-primary text-primary-foreground text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20',
@@ -56,17 +53,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100'
             )}
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 shrink-0 animate-spin text-primary-foreground" aria-hidden />
-                <span>Uploading...</span>
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 shrink-0" aria-hidden />
-                <span>Upload</span>
-              </>
-            )}
+            <Upload className="w-4 h-4 shrink-0" aria-hidden />
+            <span>Upload</span>
           </button>
         </div>
       }
