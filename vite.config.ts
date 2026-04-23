@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
       react(),
     ],
     server: {
+      allowedHosts: true,
       proxy: {
         // Use same-origin /api in browser, proxy to backend target from env.
         '/api': {
