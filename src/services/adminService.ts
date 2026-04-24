@@ -104,6 +104,7 @@ export interface AuditLog {
   target: string;
   timestamp: string;
   type: 'invite' | 'ingestion' | 'creation' | 'warning' | 'info';
+  metadata?: Record<string, any>;
 }
 
 export interface User {

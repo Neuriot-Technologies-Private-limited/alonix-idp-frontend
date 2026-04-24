@@ -84,8 +84,48 @@ export const ActivityFeed: React.FC<{
                <div className="bg-surface-lowest hover:bg-surface-low p-4 rounded-2xl border border-border/15 shadow-sm transition-all hover:-translate-y-0.5 dark:bg-surface-highest/10 dark:hover:bg-surface-highest/20 dark:border-border/10">
                   <p className="text-[13px] leading-relaxed text-muted-foreground dark:text-foreground/80">
                     <span className="font-bold text-foreground">{log.user}</span>{' '}
-                    <span className="text-muted-foreground">{log.action}</span>{' '}
-                    <span className="font-semibold text-foreground">{log.target}</span>
+                    <span className="text-muted-foreground">{
+                      // Format the action text (e.g. CHAT_QUESTION_ASKED -> asked a question in)
+                      (() => {
+                        const actionMap: Record<string, string> = {
+                          'CHAT_QUESTION_ASKED': 'asked a question in',
+                          'GROUP_MEMBER_ROLE_UPDATED': 'updated the role of',
+                          'GROUP_MEMBER_UPSERT': 'added or updated a member in',
+                          'ORG_USER_UPDATED': 'updated profile of',
+                        };
+                        return actionMap[log.action] || log.action.toLowerCase().replace(/_/g, ' ');
+                      })()
+                    }</span>{' '}
+                    <span className="font-semibold text-foreground">{
+                      // Format the target text (e.g. CHAT_SESSION:uuid -> chat session (uuid))
+                      (() => {
+                        if (!log.target) return '';
+                        
+                        // Use metadata for cleaner labels
+                        if (log.metadata) {
+                          if (log.action === 'CHAT_QUESTION_ASKED' && log.metadata.query) {
+                            const title = log.metadata.query.length > 40 ? log.metadata.query.slice(0, 40) + '...' : log.metadata.query;
+                            return `chat session "${title}"`;
+                          }
+                          if (log.action === 'GROUP_CREATED' && log.metadata.groupName) {
+                            return log.metadata.groupName;
+                          }
+                          if (log.action.includes('MEMBER') && log.metadata.userEmail) {
+                            return log.metadata.userEmail;
+                          }
+                          if ((log.action === 'ORG_USER_UPDATED' || log.action === 'ORG_USER_REMOVED') && log.metadata.email) {
+                            return log.metadata.email;
+                          }
+                        }
+
+                        if (log.target.includes(':')) {
+                          const [type, id] = log.target.split(':');
+                          const readableType = type.toLowerCase().replace(/_/g, ' ');
+                          return `${readableType} (${id.slice(0, 8)}...)`;
+                        }
+                        return log.target;
+                      })()
+                    }</span>
                   </p>
                   <div className="mt-2.5 flex items-center gap-2">
                     <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 dark:text-muted-foreground/40 font-display">
