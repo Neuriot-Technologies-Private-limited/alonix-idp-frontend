@@ -368,7 +368,7 @@ export const adminService = {
 
   updateOrgAiSettings: async (input: UpdateOrgAiSettingsInput): Promise<OrgAiSettings> => {
     const orgId = requireOrgId();
-    const { data } = await apiClient.patch<{ settings: OrgAiSettings }>(
+    const { data } = await apiClient.put<{ settings: OrgAiSettings }>(
       `/admin/orgs/${encodeURIComponent(orgId)}/ai-settings`,
       input
     );

@@ -79,7 +79,7 @@ export const GroupDetails: React.FC = () => {
   const updateMemberRoleMutation = useMutation({
     mutationFn: async (payload: { userEmail: string; role: 'GROUP_ADMIN' | 'SEARCH_USER' }) => {
       if (!id) return;
-      await apiClient.patch(
+      await apiClient.put(
         `/admin/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(payload.userEmail)}`,
         { role: payload.role }
       );

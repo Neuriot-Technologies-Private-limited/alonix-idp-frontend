@@ -155,7 +155,7 @@ export const userService = {
     if (!orgId) throw new Error('Not signed in');
     const payload: Record<string, unknown> = { orgId, ...body };
     if (opts?.groupId) payload.groupId = opts.groupId;
-    await apiClient.patch(`/users/update/${encodeURIComponent(userId)}`, payload);
+    await apiClient.put(`/users/update/${encodeURIComponent(userId)}`, payload);
   },
 
   deleteOrgUser: async (userId: string): Promise<void> => {
