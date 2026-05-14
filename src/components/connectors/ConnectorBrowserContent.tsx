@@ -170,34 +170,48 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
       )}
     >
       {isModal ? (
-        <div className="shrink-0 flex items-start justify-between gap-4 px-1 pb-4 border-b border-border/15">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
-              <Network className="w-5 h-5 text-amber-400" />
+        <header className="relative shrink-0 flex items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 -mx-4 -mt-4 mb-4 border-b border-border/25 dark:border-border/30 sm:-mx-5 sm:-mt-5 md:-mx-6 md:-mt-6 rounded-t-[32px] overflow-hidden bg-gradient-to-b from-surface-high/95 via-surface-high/85 to-surface-high/70 dark:from-surface-high dark:via-surface-high/95 dark:to-surface-low">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.07] to-transparent dark:from-primary/[0.1]"
+            aria-hidden
+          />
+          <div className="relative flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/45 bg-surface-lowest/60 text-primary shadow-inner dark:bg-surface-lowest/40">
+              <Network className="h-5 w-5" aria-hidden />
             </div>
             <div className="min-w-0">
               <h2
                 id="connector-browser-title"
-                className="font-display text-lg sm:text-xl font-black tracking-tight text-foreground truncate"
+                className="truncate font-display text-lg font-bold tracking-tight text-foreground"
               >
                 Ingest from connectors
               </h2>
-              <p id="connector-browser-description" className="text-[11px] sm:text-sm text-muted-foreground mt-0.5">
-                Browse connected sources and queue files into the pipeline
-              </p>
+              <div className="mt-0.5 flex items-center gap-2">
+                <span
+                  id="connector-browser-description"
+                  className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70"
+                >
+                  Browse connected sources · queue to pipeline
+                </span>
+              </div>
             </div>
           </div>
-          {onClose && (
+          {onClose ? (
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 p-2.5 rounded-xl border border-border/20 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
               aria-label="Close"
+              className={cn(
+                'relative shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-95',
+                'border border-border/50 bg-surface-lowest/70 text-muted-foreground shadow-sm',
+                'hover:border-border hover:bg-surface-lowest hover:text-foreground',
+                'dark:border-border/55 dark:bg-surface-lowest/50 dark:hover:bg-surface-highest/40'
+              )}
             >
-              <X className="w-5 h-5" aria-hidden />
+              <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
             </button>
-          )}
-        </div>
+          ) : null}
+        </header>
       ) : (
         <div className="mb-6 relative overflow-hidden rounded-3xl border border-border/20 dark:border-border/10 p-6 sm:p-8 shadow-2xl shadow-black/20 bg-gradient-to-br from-amber-500/10 via-surface-highest/20 to-background">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-amber-500/15 blur-3xl" />
@@ -216,14 +230,26 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
 
       <div
         className={cn(
-          'grid grid-cols-1 gap-4 min-h-0',
+          'min-h-0',
           isModal
-            ? 'flex-1 lg:grid-cols-[minmax(0,240px)_1fr_minmax(0,260px)] min-h-[420px] overflow-hidden'
-            : 'lg:grid-cols-[280px_1fr_300px] min-h-[600px]'
+            ? 'flex flex-1 min-h-[420px] min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-border/50 bg-surface-lowest shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] dark:border-border/55 dark:bg-surface-low dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] lg:flex-row divide-y divide-border/65 dark:divide-border/75 lg:divide-y-0 lg:divide-x-2 lg:divide-primary/35 dark:lg:divide-primary/28'
+            : 'grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr_300px] min-h-[600px]'
         )}
       >
-        <aside className="rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5 overflow-hidden flex flex-col min-h-0">
-          <div className="px-4 py-3 border-b border-border/10 shrink-0">
+        <aside
+          className={cn(
+            'overflow-hidden flex flex-col min-h-0',
+            isModal
+              ? 'shrink-0 border-0 bg-surface-lowest/90 dark:bg-surface-lowest/80 lg:w-[min(260px,32vw)]'
+              : 'rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5'
+          )}
+        >
+          <div
+            className={cn(
+              'px-4 py-3 shrink-0 border-b',
+              isModal ? 'border-border/35 bg-surface-high/25 dark:border-border/45 dark:bg-surface-high/15' : 'border-border/10'
+            )}
+          >
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Active Connectors</p>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
@@ -263,8 +289,20 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
           </div>
         </aside>
 
-        <div className="rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5 overflow-hidden flex flex-col min-h-0 min-w-0">
-          <div className="px-4 py-3 border-b border-border/10 flex items-center gap-2 shrink-0 flex-wrap">
+        <div
+          className={cn(
+            'overflow-hidden flex flex-col min-h-0 min-w-0',
+            isModal
+              ? 'flex-1 border-0 bg-surface-high/40 dark:bg-surface-highest/[0.18]'
+              : 'rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5'
+          )}
+        >
+          <div
+            className={cn(
+              'px-4 py-3 flex items-center gap-2 shrink-0 flex-wrap border-b',
+              isModal ? 'border-border/35 bg-surface-high/35 dark:border-border/45 dark:bg-surface-high/20' : 'border-border/10'
+            )}
+          >
             <button
               type="button"
               onClick={navigateHome}
@@ -390,7 +428,12 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
           </div>
 
           {browseData && (
-            <div className="px-4 py-2 border-t border-border/10 flex items-center justify-between shrink-0">
+            <div
+              className={cn(
+                'px-4 py-2 flex items-center justify-between shrink-0 border-t',
+                isModal ? 'border-border/35 dark:border-border/45' : 'border-border/10'
+              )}
+            >
               <p className="text-[10px] text-muted-foreground">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</p>
               {selectedConnector?.config?.autoIngest !== false && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">
@@ -401,8 +444,20 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
           )}
         </div>
 
-        <aside className="rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5 overflow-hidden flex flex-col min-h-0 min-w-0">
-          <div className="px-4 py-3 border-b border-border/10 shrink-0">
+        <aside
+          className={cn(
+            'overflow-hidden flex flex-col min-h-0 min-w-0',
+            isModal
+              ? 'shrink-0 border-0 bg-surface-lowest/90 dark:bg-surface-lowest/80 lg:w-[min(280px,34vw)]'
+              : 'rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5'
+          )}
+        >
+          <div
+            className={cn(
+              'px-4 py-3 shrink-0 border-b',
+              isModal ? 'border-border/35 bg-surface-high/25 dark:border-border/45 dark:bg-surface-high/15' : 'border-border/10'
+            )}
+          >
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">File Details</p>
           </div>
 

@@ -160,7 +160,8 @@
   select:not(:disabled),
   [role="tab"]:not([aria-disabled="true"]),
   [role="menuitem"]:not([aria-disabled="true"]),
-  label[for] {
+  label[for],
+  [role="combobox"]:not(:disabled) {
     cursor: pointer;
   }
 

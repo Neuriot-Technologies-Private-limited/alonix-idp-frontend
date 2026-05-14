@@ -43,6 +43,12 @@ import { DocumentUploadModal } from './DocumentUploadModal';
 import { useAlert } from '../../components/alert';
 import { useUploadStore } from '../../stores/uploadStore';
 import ConnectorBrowserContent from '../../components/connectors/ConnectorBrowserContent';
+import {
+  DOCUMENT_SENSITIVITY_HINTS,
+  DOCUMENT_SENSITIVITY_LABELS,
+  uploadAssignableLevels,
+  type DocumentSensitivityLevel,
+} from '../../constants/documentSensitivity';
 
 function getConnectorDialogFocusables(root: HTMLElement): HTMLElement[] {
   const sel =
@@ -157,6 +163,7 @@ export const DocumentsPage: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [targetGroupId, setTargetGroupId] = useState<string>('');
+  const [uploadSensitivityLevel, setUploadSensitivityLevel] = useState<string>('INTERNAL_USE');
   const [currentPage, setCurrentPage] = useState(1);
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -192,6 +199,37 @@ export const DocumentsPage: React.FC = () => {
     }
     return groups.filter((g) => g.role === 'GROUP_ADMIN');
   }, [isCompanyAdmin, groupHealthList, groups]);
+
+  const uploadMaxKey = React.useMemo(() => {
+    if (context?.orgRole === 'COMPANY_ADMIN') return 'RESTRICTED';
+    const gid = isCompanyAdmin
+      ? String(targetGroupId || '').trim()
+      : String(targetGroupId || adminGroupIds?.[0] || '').trim();
+    const g = groups.find((x) => String(x.groupId) === gid);
+    if (!g) return 'INTERNAL_USE';
+    if (g.role === 'GROUP_ADMIN') return 'RESTRICTED';
+    return String(g.maxDocumentSensitivity || 'INTERNAL_USE')
+      .toUpperCase()
+      .replace(/-/g, '_');
+  }, [context?.orgRole, isCompanyAdmin, targetGroupId, adminGroupIds, groups]);
+
+  const uploadSensitivityOptions = React.useMemo(() => {
+    const allowed = uploadAssignableLevels(uploadMaxKey);
+    return allowed.map((value) => ({
+      value,
+      label: DOCUMENT_SENSITIVITY_LABELS[value],
+      hint: DOCUMENT_SENSITIVITY_HINTS[value],
+    }));
+  }, [uploadMaxKey]);
+
+  React.useEffect(() => {
+    const allowed = uploadAssignableLevels(uploadMaxKey);
+    setUploadSensitivityLevel((prev) =>
+      allowed.includes(prev as DocumentSensitivityLevel)
+        ? prev
+        : allowed[allowed.length - 1] || 'INTERNAL_USE'
+    );
+  }, [uploadMaxKey]);
 
   const groupIdSet = React.useMemo(
     () => new Set(groups.map((g) => g.groupId.toLowerCase())),
@@ -957,6 +995,7 @@ export const DocumentsPage: React.FC = () => {
                         type={docItem.type}
                         size={docItem.size}
                         density="table"
+                        sensitivityLevel={docItem.sensitivityLevel}
                         canOpenFile={Boolean(docItem?.id)}
                         isOpening={openDocBusyId === String(docItem?.id)}
                         onFileNameClick={() => {
@@ -1039,6 +1078,7 @@ export const DocumentsPage: React.FC = () => {
                         type={docItem.type}
                         size={docItem.size}
                         density="card"
+                        sensitivityLevel={docItem.sensitivityLevel}
                         canOpenFile={Boolean(docItem?.id)}
                         isOpening={openDocBusyId === String(docItem?.id)}
                         onFileNameClick={() => {
@@ -1095,11 +1135,11 @@ export const DocumentsPage: React.FC = () => {
       </section>
 
       {connectorBrowserOpen ? (
-        <div className="fixed inset-0 z-[100] isolate flex items-center justify-center overscroll-contain p-3 sm:p-5">
+        <div className="fixed inset-0 z-[200] isolate flex min-h-[100dvh] items-center justify-center overflow-y-auto overflow-x-hidden overscroll-contain p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] animate-in fade-in duration-300">
           <button
             type="button"
             tabIndex={-1}
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim backdrop-blur-md"
             onClick={closeConnectorBrowserModal}
             aria-label="Close connector browser"
           />
@@ -1110,7 +1150,7 @@ export const DocumentsPage: React.FC = () => {
             aria-labelledby="connector-browser-title"
             aria-describedby="connector-browser-description"
             tabIndex={-1}
-            className="relative z-[101] flex w-[min(96rem,calc(100vw-1.25rem))] max-h-[min(92vh,900px)] min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl border border-border/20 bg-background p-4 shadow-2xl shadow-black/40 outline-none sm:p-5 md:p-6"
+            className="relative z-10 my-auto flex w-[min(96rem,calc(100vw-1.25rem))] max-h-[min(92vh,900px)] min-h-0 min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/25 bg-surface-lowest p-4 shadow-2xl shadow-black/[0.08] ring-1 ring-black/[0.04] outline-none animate-in zoom-in-95 duration-300 dark:border-border/35 dark:shadow-black/40 dark:ring-white/[0.06] sm:p-5 md:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <ConnectorBrowserContent
@@ -1147,6 +1187,9 @@ export const DocumentsPage: React.FC = () => {
         setTargetGroupId={setTargetGroupId}
         selectedFiles={selectedFiles}
         setSelectedFiles={setSelectedFiles}
+        uploadSensitivityLevel={uploadSensitivityLevel}
+        onUploadSensitivityChange={setUploadSensitivityLevel}
+        uploadSensitivityOptions={uploadSensitivityOptions}
         onUpload={() => {
           const gid = isCompanyAdmin ? targetGroupId : targetGroupId || '';
           if (!gid) {
@@ -1197,7 +1240,12 @@ export const DocumentsPage: React.FC = () => {
               const file = filesToUpload[i];
               const jobId = jobIds[i];
               try {
-                await uploadDocument(file, { userId, groupId: gid || null, orgId });
+                await uploadDocument(file, {
+                  userId,
+                  groupId: gid || null,
+                  orgId,
+                  sensitivityLevel: uploadSensitivityLevel,
+                });
                 updateJob(jobId, { status: 'done', finishedAt: Date.now() });
               } catch (err: unknown) {
                 const ax = err as { response?: { data?: { error?: string } }; message?: string };

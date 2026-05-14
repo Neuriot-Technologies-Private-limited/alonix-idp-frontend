@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { FileIcon } from './DocumentPrimitives';
 import { truncateFileName } from '../../utils/truncateFileName';
+import { DocumentSensitivityBadge } from './DocumentSensitivityBadge';
 
 export interface DocumentAssetIdentityProps {
   fileName: string;
@@ -10,6 +11,8 @@ export interface DocumentAssetIdentityProps {
   size: string;
   /** Slightly larger icon area for mobile cards. */
   density?: 'table' | 'card';
+  /** Data classification for the asset (from pipeline). */
+  sensitivityLevel?: string | null;
   onFileNameClick?: () => void;
   canOpenFile?: boolean;
   isOpening?: boolean;
@@ -20,11 +23,13 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
   type,
   size,
   density = 'table',
+  sensitivityLevel,
   onFileNameClick,
   canOpenFile = false,
   isOpening = false,
 }) => {
   const isCard = density === 'card';
+  const badgeDensity = isCard ? 'comfortable' : 'compact';
   return (
     <div className="flex items-center gap-3">
       <div
@@ -36,33 +41,36 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
         <FileIcon type={type} />
       </div>
       <div className="min-w-0">
-        {canOpenFile && onFileNameClick ? (
-          <button
-            type="button"
-            onClick={onFileNameClick}
-            className={cn(
-              'text-[13px] font-bold text-foreground truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm inline-flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-wait max-w-[210px]',
-              !isCard && 'group-hover/row:text-primary transition-colors cursor-pointer',
-              isCard && 'leading-snug break-words cursor-pointer max-w-full'
-            )}
-            title={fileName}
-            disabled={isOpening}
-          >
-            {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" /> : null}
-            <span className="truncate">{truncateFileName(fileName, 36)}</span>
-          </button>
-        ) : (
-          <p
-            className={cn(
-              'text-[13px] font-bold text-foreground truncate max-w-[210px]',
-              !isCard && 'group-hover/row:text-primary transition-colors',
-              isCard && 'leading-snug break-words max-w-full'
-            )}
-            title={fileName}
-          >
-            {truncateFileName(fileName, 36)}
-          </p>
-        )}
+        <div className={cn('flex flex-wrap items-center gap-1.5 min-w-0', isCard && 'gap-2')}>
+          {canOpenFile && onFileNameClick ? (
+            <button
+              type="button"
+              onClick={onFileNameClick}
+              className={cn(
+                'text-[13px] font-bold text-foreground truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm inline-flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-wait max-w-[210px]',
+                !isCard && 'group-hover/row:text-primary transition-colors cursor-pointer',
+                isCard && 'leading-snug break-words cursor-pointer max-w-full'
+              )}
+              title={fileName}
+              disabled={isOpening}
+            >
+              {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" /> : null}
+              <span className="truncate">{truncateFileName(fileName, 36)}</span>
+            </button>
+          ) : (
+            <p
+              className={cn(
+                'text-[13px] font-bold text-foreground truncate max-w-[210px]',
+                !isCard && 'group-hover/row:text-primary transition-colors',
+                isCard && 'leading-snug break-words max-w-full'
+              )}
+              title={fileName}
+            >
+              {truncateFileName(fileName, 36)}
+            </p>
+          )}
+          <DocumentSensitivityBadge level={sensitivityLevel} density={badgeDensity} />
+        </div>
         <p
           className={cn(
             'text-[10px] font-bold uppercase tracking-[0.1em] mt-0.5',

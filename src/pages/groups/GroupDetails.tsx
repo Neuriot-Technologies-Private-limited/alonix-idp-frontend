@@ -26,6 +26,12 @@ import { useAlert } from '../../components/alert';
 import { InviteUsersToGroupModal } from './modals/InviteUsersToGroupModal';
 import { useRbac } from '../../hooks/useRbac';
 import { useAuthStore } from '../../stores/authStore';
+import {
+  DOCUMENT_SENSITIVITY_LEVELS,
+  DOCUMENT_SENSITIVITY_LABELS,
+  sensitivityLevelIndex,
+} from '../../constants/documentSensitivity';
+import { DocumentSensitivityBadge } from '../documents/DocumentSensitivityBadge';
 
 function getNameInitials(name?: string) {
   const clean = String(name ?? '').trim();
@@ -45,6 +51,7 @@ export const GroupDetails: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
+  const [policyDraft, setPolicyDraft] = useState<string[]>([]);
   const { alert: appAlert, confirm } = useAlert();
   const authUser = useAuthStore((s) => s.user);
 
@@ -77,11 +84,19 @@ export const GroupDetails: React.FC = () => {
   });
 
   const updateMemberRoleMutation = useMutation({
-    mutationFn: async (payload: { userEmail: string; role: 'GROUP_ADMIN' | 'SEARCH_USER' }) => {
+    mutationFn: async (payload: {
+      userEmail: string;
+      role: 'GROUP_ADMIN' | 'SEARCH_USER';
+      maxDocumentSensitivity?: string;
+    }) => {
       if (!id) return;
+      const body: { role: string; maxDocumentSensitivity?: string } = { role: payload.role };
+      if (payload.role === 'SEARCH_USER' && payload.maxDocumentSensitivity) {
+        body.maxDocumentSensitivity = payload.maxDocumentSensitivity;
+      }
       await apiClient.put(
         `/admin/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(payload.userEmail)}`,
-        { role: payload.role }
+        body
       );
     },
     onSuccess: (_, payload) => {
@@ -130,6 +145,38 @@ export const GroupDetails: React.FC = () => {
     },
   });
 
+  const updateSensitivityPolicyMutation = useMutation({
+    mutationFn: async (levels: string[]) => {
+      if (!id) return;
+      await apiClient.put(`/admin/groups/${encodeURIComponent(id)}/document-sensitivity-policy`, {
+        enabledDocumentSensitivityLevels: levels,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
+      void appAlert({
+        title: 'Sensitivity policy updated',
+        description: 'Workspace document tiers have been saved.',
+        variant: 'success',
+      });
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      void appAlert({
+        title: 'Update failed',
+        description: ax.response?.data?.message || ax.message || 'Could not save policy',
+        variant: 'danger',
+      });
+    },
+  });
+
+  React.useEffect(() => {
+    if (!group || activeTab !== 'settings') return;
+    const raw = group.enabledDocumentSensitivityLevels;
+    if (raw?.length) setPolicyDraft([...raw]);
+    else setPolicyDraft([...DOCUMENT_SENSITIVITY_LEVELS]);
+  }, [group, activeTab]);
+
   /** Must run every render — do not place after conditional returns (Rules of Hooks). */
   useEffect(() => {
     if (!group) return;
@@ -162,7 +209,37 @@ export const GroupDetails: React.FC = () => {
     await updateMemberRoleMutation.mutateAsync({
       userEmail: member.email,
       role: 'SEARCH_USER',
+      maxDocumentSensitivity: 'INTERNAL_USE',
     });
+  };
+
+  const handleDocSensitivityChange = async (
+    member: { email: string; maxDocumentSensitivity?: string },
+    level: string
+  ) => {
+    if (!member.email || level === (member.maxDocumentSensitivity || 'INTERNAL_USE')) return;
+    await updateMemberRoleMutation.mutateAsync({
+      userEmail: member.email,
+      role: 'SEARCH_USER',
+      maxDocumentSensitivity: level,
+    });
+  };
+
+  const togglePolicyLevel = (k: string) => {
+    setPolicyDraft((prev) => {
+      if (prev.includes(k)) {
+        const next = prev.filter((x) => x !== k);
+        return next.length ? next : prev;
+      }
+      return [...prev, k].sort((a, b) => sensitivityLevelIndex(a) - sensitivityLevelIndex(b));
+    });
+  };
+
+  const saveSensitivityPolicy = async () => {
+    const isAll =
+      policyDraft.length === DOCUMENT_SENSITIVITY_LEVELS.length &&
+      DOCUMENT_SENSITIVITY_LEVELS.every((k) => policyDraft.includes(k));
+    await updateSensitivityPolicyMutation.mutateAsync(isAll ? [] : policyDraft);
   };
 
   const handleRemoveMember = async (member: { email: string; name: string }) => {
@@ -396,6 +473,7 @@ export const GroupDetails: React.FC = () => {
                     <tr className="border-b border-border/25 dark:border-border/40 bg-muted/7 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/35">
                       <th className="px-6 py-3.5 font-black">Identity</th>
                       <th className="px-6 py-3.5 font-black">Role</th>
+                      <th className="px-6 py-3.5 font-black min-w-[140px]">Doc access</th>
                       <th className="px-6 py-3.5 font-black">Email</th>
                       <th className="px-6 py-3.5 font-black">Status</th>
                       <th className="px-6 py-3.5 font-black text-right">Settings</th>
@@ -432,6 +510,34 @@ export const GroupDetails: React.FC = () => {
                               <Shield className={`w-2.5 h-2.5 ${member.role === 'Group Admin' ? 'text-primary' : 'text-muted-foreground/20'}`} />
                               <span className="text-[9px] font-black uppercase tracking-widest">{member.role}</span>
                             </div>
+                          </td>
+                          <td className="px-6 py-3.5 align-top">
+                            {member.membershipState !== 'joined' ? (
+                              <span className="text-[9px] font-bold text-muted-foreground/25">—</span>
+                            ) : member.role === 'Group Admin' ? (
+                              <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">Full</span>
+                            ) : !canManage || member.email === authUser?.email ? (
+                              <span className="text-[9px] font-medium text-muted-foreground/60">
+                                {DOCUMENT_SENSITIVITY_LABELS[
+                                  (member.maxDocumentSensitivity || 'INTERNAL_USE') as keyof typeof DOCUMENT_SENSITIVITY_LABELS
+                                ] || (member.maxDocumentSensitivity || 'INTERNAL_USE')}
+                              </span>
+                            ) : (
+                              <select
+                                className="max-w-[180px] w-full text-[10px] font-semibold rounded-lg border border-border/30 bg-background/60 py-1.5 px-2"
+                                value={member.maxDocumentSensitivity || 'INTERNAL_USE'}
+                                onChange={(e) => {
+                                  void handleDocSensitivityChange(member, e.target.value);
+                                }}
+                                disabled={updateMemberRoleMutation.isPending}
+                              >
+                                {DOCUMENT_SENSITIVITY_LEVELS.map((k) => (
+                                  <option key={k} value={k}>
+                                    {DOCUMENT_SENSITIVITY_LABELS[k]}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </td>
                           <td className="px-6 py-3.5">
                             <span className="text-[10px] font-medium text-muted-foreground/50">{member.email}</span>
@@ -541,21 +647,24 @@ export const GroupDetails: React.FC = () => {
                       <div className="p-2.5 rounded-lg border border-border/20 dark:border-border/35 bg-background/50 text-muted-foreground/40 group-hover:text-primary group-hover:bg-primary/10 transition-all">
                         <FileText className="w-5 h-5" />
                       </div>
-                      <div>
-                        <button
-                          type="button"
-                          disabled={openDocBusyId === String(doc.id)}
-                          className="font-bold text-xs leading-tight mb-1 text-left hover:text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm disabled:opacity-70 disabled:cursor-wait inline-flex items-center gap-1.5"
-                          onClick={() => {
-                            void handleOpenGroupDocument({ id: doc.id, name: doc.name, type: doc.type });
-                          }}
-                          title="Open document"
-                        >
-                          {openDocBusyId === String(doc.id) ? (
-                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                          ) : null}
-                          {doc.name}
-                        </button>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <button
+                            type="button"
+                            disabled={openDocBusyId === String(doc.id)}
+                            className="font-bold text-xs leading-tight text-left hover:text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm disabled:opacity-70 disabled:cursor-wait inline-flex items-center gap-1.5"
+                            onClick={() => {
+                              void handleOpenGroupDocument({ id: doc.id, name: doc.name, type: doc.type });
+                            }}
+                            title="Open document"
+                          >
+                            {openDocBusyId === String(doc.id) ? (
+                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                            ) : null}
+                            <span className="truncate max-w-[200px]">{doc.name}</span>
+                          </button>
+                          <DocumentSensitivityBadge level={doc.sensitivityLevel} density="compact" />
+                        </div>
                         <div className="flex items-center gap-1.5 text-[8px] text-muted-foreground/30 font-black uppercase tracking-widest">
                           <span>{doc.size}</span>
                           <span className="w-1 h-1 rounded-full bg-border/20" />
@@ -605,6 +714,40 @@ export const GroupDetails: React.FC = () => {
                         className="w-full bg-background/50 border border-border/30 dark:border-border/40 rounded-xl p-3 text-xs font-medium focus:border-primary/40 outline-none transition-all resize-none"
                       />
                     </div>
+                    {canManage ? (
+                      <div className="space-y-2 pt-2 border-t border-border/15 border-dashed">
+                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
+                          Document sensitivity tiers
+                        </label>
+                        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+                          Uncheck tiers you want to block for new uploads. When every tier is enabled, the workspace uses the default (all tiers).
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {DOCUMENT_SENSITIVITY_LEVELS.map((k) => (
+                            <label
+                              key={k}
+                              className="flex items-center gap-2 rounded-lg border border-border/25 bg-background/40 px-2.5 py-1.5 text-[10px] font-semibold cursor-pointer hover:border-primary/30"
+                            >
+                              <input
+                                type="checkbox"
+                                className="rounded border-border/40"
+                                checked={policyDraft.includes(k)}
+                                onChange={() => togglePolicyLevel(k)}
+                              />
+                              {DOCUMENT_SENSITIVITY_LABELS[k]}
+                            </label>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void saveSensitivityPolicy()}
+                          disabled={updateSensitivityPolicyMutation.isPending}
+                          className="mt-1 px-4 py-2 rounded-lg bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:bg-primary disabled:opacity-50"
+                        >
+                          Save sensitivity policy
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="pt-6 border-t border-border/20 dark:border-border/35 flex justify-end gap-2">
                     <button type="button" className="px-4 py-2 rounded-lg hover:bg-muted text-[10px] font-bold transition-all">Reset</button>

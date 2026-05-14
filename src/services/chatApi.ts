@@ -65,15 +65,18 @@ export type UploadDocumentOptions = {
   groupId?: string | null;
   /** Org scope from auth context — validated server-side against session. */
   orgId?: string | null;
+  /** Document sensitivity tier (validated against membership and group policy). */
+  sensitivityLevel?: string | null;
 };
 
 export async function uploadDocument(file: File, options: UploadDocumentOptions) {
-  const { userId, groupId, orgId } = options;
+  const { userId, groupId, orgId, sensitivityLevel } = options;
   const fd = new FormData();
   fd.append('file', file);
   fd.append('userId', userId);
   if (groupId) fd.append('groupId', groupId);
   if (orgId) fd.append('orgId', orgId);
+  fd.append('sensitivityLevel', (sensitivityLevel && String(sensitivityLevel).trim()) || 'INTERNAL_USE');
   const base = documentsBase(groupId);
   return apiClient.post<{ id?: string; status?: string; jobId?: string; message?: string }>(
     `${base}/upload`,

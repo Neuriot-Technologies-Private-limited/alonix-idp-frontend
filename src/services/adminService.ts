@@ -65,6 +65,10 @@ export interface GroupMember {
   name: string;
   email: string;
   role: 'Group Admin' | 'Search User';
+  /** API key for membership updates */
+  roleCode?: 'GROUP_ADMIN' | 'SEARCH_USER';
+  /** Max document sensitivity this search user may access */
+  maxDocumentSensitivity?: string;
   avatar?: string;
   membershipState?: 'joined' | 'invited' | 'expired';
   inviteId?: string;
@@ -85,6 +89,7 @@ export interface GroupDocument {
   status: 'Healthy' | 'Pending';
   date: string;
   type: string;
+  sensitivityLevel?: string | null;
 }
 
 export interface GroupDetail extends GroupHealth {
@@ -95,6 +100,8 @@ export interface GroupDetail extends GroupHealth {
   members: GroupMember[];
   documents: GroupDocument[];
   recentActivity: GroupActivity[];
+  /** When set, only these sensitivity tiers may be used for documents in this workspace; null/undefined means all tiers allowed. */
+  enabledDocumentSensitivityLevels?: string[] | null;
 }
 
 export interface AuditLog {
@@ -279,6 +286,8 @@ export const adminService = {
       name: m.userEmail,
       email: m.userEmail,
       role: m.role === 'GROUP_ADMIN' ? 'Group Admin' : 'Search User',
+      roleCode: m.role === 'GROUP_ADMIN' ? 'GROUP_ADMIN' : 'SEARCH_USER',
+      maxDocumentSensitivity: m.maxDocumentSensitivity || 'INTERNAL_USE',
       membershipState: 'joined',
     }));
 
@@ -303,6 +312,7 @@ export const adminService = {
       status: d.pipeline?.ingestion?.status === 'done' ? 'Healthy' : 'Pending',
       date: d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—',
       type: d.type || 'FILE',
+      sensitivityLevel: d.sensitivityLevel ?? null,
     }));
 
     return {
@@ -317,6 +327,9 @@ export const adminService = {
       createdOn: g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
       storageUsed: '—',
       confidenceScore: '—',
+      enabledDocumentSensitivityLevels: Array.isArray(g.enabledDocumentSensitivityLevels)
+        ? g.enabledDocumentSensitivityLevels
+        : null,
       members: mergedMembers,
       documents,
       recentActivity: [

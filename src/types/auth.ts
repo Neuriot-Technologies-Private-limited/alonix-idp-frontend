@@ -40,6 +40,8 @@ export interface GroupContext {
   groupId: string;
   groupName: string;
   role: "GROUP_ADMIN" | "SEARCH_USER";
+  /** Max document sensitivity this member may view (search users); admins treated as full access server-side. */
+  maxDocumentSensitivity?: string;
 }
 
 export interface AuthContextPayload {
