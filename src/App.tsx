@@ -25,6 +25,9 @@ import { DocumentsPage } from './pages/documents/DocumentsPage';
 import ChatPage from './pages/chat/ChatPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import OrgSettingsPage from './pages/profile/OrgSettingsPage';
+import BillingPage from './pages/billing/BillingPage';
+import PricingPage from './pages/billing/PricingPage';
+import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
 
 import './index.css';
 
@@ -95,15 +98,18 @@ function App() {
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
 
             <Route element={<PrivateRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<DashboardRoute />} />
                 <Route path="/documents" element={<DocumentsPage />} />
+                <Route path="/connectors" element={<ConnectorBrowserPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route element={<RoleProtectedRoute requiredOrgRole="COMPANY_ADMIN" />}>
                   <Route path="/org-settings" element={<OrgSettingsPage />} />
+                  <Route path="/settings/billing" element={<BillingPage />} />
                 </Route>
 
                 <Route element={<RoleProtectedRoute requiredAnyGroupAdmin />}>

@@ -8,7 +8,9 @@ import {
   ScanSearch,
   Tags,
   AlertTriangle,
+  Network,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '../../utils/cn';
 import { formatDiscoveryUploadedAt } from '../../utils/formatDateTime';
 import { usePipelineDocuments } from '../../hooks/useDocuments';
@@ -40,8 +42,93 @@ import { DocumentResultModal } from './DocumentResultModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { useAlert } from '../../components/alert';
 import { useUploadStore } from '../../stores/uploadStore';
+import ConnectorBrowserContent from '../../components/connectors/ConnectorBrowserContent';
+
+function getConnectorDialogFocusables(root: HTMLElement): HTMLElement[] {
+  const sel =
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  return Array.from(root.querySelectorAll<HTMLElement>(sel)).filter((el) => {
+    if (el.closest('[inert]')) return false;
+    if (el.getAttribute('aria-hidden') === 'true') return false;
+    return true;
+  });
+}
 
 export const DocumentsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const connectorBrowserOpen = searchParams.get('connectors') === '1';
+  const connectorBrowserLinkId = searchParams.get('connectorId');
+  const connectorDialogRef = React.useRef<HTMLDivElement>(null);
+  const connectorFocusReturnRef = React.useRef<HTMLElement | null>(null);
+
+  const closeConnectorBrowserModal = React.useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('connectors');
+    next.delete('connectorId');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const openConnectorBrowserModal = React.useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('connectors', '1');
+    setSearchParams(next, { replace: false });
+  }, [searchParams, setSearchParams]);
+
+  React.useEffect(() => {
+    if (!connectorBrowserOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeConnectorBrowserModal();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [connectorBrowserOpen, closeConnectorBrowserModal]);
+
+  React.useEffect(() => {
+    if (!connectorBrowserOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [connectorBrowserOpen]);
+
+  React.useLayoutEffect(() => {
+    if (!connectorBrowserOpen) return;
+    connectorFocusReturnRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    let raf = 0;
+    raf = requestAnimationFrame(() => {
+      const root = connectorDialogRef.current;
+      if (!root) return;
+      const nodes = getConnectorDialogFocusables(root);
+      (nodes[0] ?? root).focus();
+    });
+
+    const onDocKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !connectorDialogRef.current) return;
+      const root = connectorDialogRef.current;
+      const nodes = getConnectorDialogFocusables(root);
+      if (nodes.length < 2) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement;
+      if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    };
+    document.addEventListener('keydown', onDocKeyDown, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', onDocKeyDown, true);
+      connectorFocusReturnRef.current?.focus?.();
+    };
+  }, [connectorBrowserOpen]);
+
   const { confirm, alert: appAlert } = useAlert();
   const queryClient = useQueryClient();
   const { data: documents, isLoading } = usePipelineDocuments();
@@ -606,9 +693,9 @@ export const DocumentsPage: React.FC = () => {
       ];
 
   return (
-    <div className="w-full space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-[max(5rem,env(safe-area-inset-bottom))]">
-      <section className="flex flex-col sm:flex-row justify-between items-stretch sm:items-start gap-4">
-        <div className="space-y-1 min-w-0">
+    <div className="w-full min-w-0 space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-[max(5rem,env(safe-area-inset-bottom))]">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="w-full min-w-0 flex-1 basis-0 space-y-2 sm:pr-4">
           <h1 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent flex flex-wrap items-center gap-2.5">
             Documents
             {isPureViewOnly ? (
@@ -617,20 +704,33 @@ export const DocumentsPage: React.FC = () => {
               </span>
             ) : null}
           </h1>
-          <p className="text-muted-foreground font-medium text-[11px] sm:text-[12px] tracking-wide max-w-lg">
+          <p className="text-muted-foreground font-medium text-[11px] sm:text-[13px] tracking-wide leading-relaxed text-pretty max-w-none sm:max-w-[min(42rem,100%)]">
             {headerSubtitle}
           </p>
         </div>
-        {canUploadDocs ? (
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end sm:gap-3">
+          {canUploadDocs ? (
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="bg-primary hover:opacity-90 transition-all text-primary-foreground font-bold text-[11px] uppercase tracking-widest px-5 py-3 rounded-xl flex items-center justify-center gap-2 border border-border/10 active:scale-95 shrink-0 group shadow-lg shadow-primary/10 w-full sm:w-auto sm:min-w-[11rem] sm:order-2"
+            >
+              <Upload className="w-4 h-4 shrink-0 group-hover:-translate-y-0.5 transition-transform" />
+              <span className="whitespace-nowrap">Upload Assets</span>
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={() => setIsUploadModalOpen(true)}
-            className="bg-primary hover:opacity-90 transition-all text-primary-foreground font-bold text-[11px] uppercase tracking-widest px-5 py-3 rounded-xl flex items-center justify-center gap-2 border border-border/10 active:scale-95 shrink-0 group shadow-lg shadow-primary/10 w-full sm:w-auto"
+            onClick={openConnectorBrowserModal}
+            className="border border-border/25 bg-surface-highest/15 hover:bg-primary/10 hover:border-primary/35 text-foreground font-bold text-[11px] uppercase tracking-widest px-4 py-3 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full sm:w-auto sm:max-w-[16rem] sm:px-5 group sm:order-1"
           >
-            <Upload className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-            Upload Assets
+            <Network className="w-4 h-4 shrink-0 text-primary/90 group-hover:scale-105 transition-transform" />
+            <span className="text-center leading-snug sm:text-left">
+              <span className="hidden sm:inline">Ingest from connectors</span>
+              <span className="sm:hidden">Upload or ingest from connectors</span>
+            </span>
           </button>
-        ) : null}
+        </div>
       </section>
 
       <MetricStateGrid>
@@ -993,6 +1093,34 @@ export const DocumentsPage: React.FC = () => {
         />
         </div>
       </section>
+
+      {connectorBrowserOpen ? (
+        <div className="fixed inset-0 z-[100] isolate flex items-center justify-center overscroll-contain p-3 sm:p-5">
+          <button
+            type="button"
+            tabIndex={-1}
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={closeConnectorBrowserModal}
+            aria-label="Close connector browser"
+          />
+          <div
+            ref={connectorDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="connector-browser-title"
+            aria-describedby="connector-browser-description"
+            tabIndex={-1}
+            className="relative z-[101] flex w-[min(96rem,calc(100vw-1.25rem))] max-h-[min(92vh,900px)] min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl border border-border/20 bg-background p-4 shadow-2xl shadow-black/40 outline-none sm:p-5 md:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConnectorBrowserContent
+              variant="modal"
+              onClose={closeConnectorBrowserModal}
+              initialConnectorId={connectorBrowserLinkId}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <DocumentResultModal
         documentItem={resultModal}

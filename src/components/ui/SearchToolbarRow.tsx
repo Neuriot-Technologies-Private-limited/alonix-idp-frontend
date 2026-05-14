@@ -14,10 +14,12 @@ export interface SearchToolbarRowProps {
  * Standard layout: full-width search on small screens, search + trailing controls on large screens.
  */
 export const SearchToolbarRow: React.FC<SearchToolbarRowProps> = ({ search, end, className }) => (
-  <section className={cn('flex flex-col lg:flex-row gap-3 lg:items-center', className)}>
-    <SearchInput {...search} />
+  <section className={cn('flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center', className)}>
+    <div className="min-w-0 w-full flex-1">
+      <SearchInput {...search} />
+    </div>
     {end ? (
-      <div className="w-full lg:w-auto overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:thin] shrink-0">
+      <div className="w-full shrink-0 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:thin] lg:w-auto">
         {end}
       </div>
     ) : null}

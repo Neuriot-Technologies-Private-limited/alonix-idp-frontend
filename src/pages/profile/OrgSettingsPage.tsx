@@ -5,6 +5,7 @@ import { useRbac } from '../../hooks/useRbac';
 import { cn } from '../../utils/cn';
 import { ConnectorsPanel } from '../../components/admin/ConnectorsPanel';
 import OrgAiSettingsPanel from '../../components/admin/OrgAiSettingsPanel';
+import SubscriptionPanel from '../../components/admin/SubscriptionPanel';
 import { useAuthStore } from '../../stores/authStore';
 import { useDashboardState } from '../../services/adminService';
 import { StatCard } from '../../components/ui/StatCard';
@@ -88,6 +89,7 @@ const OrgSettingsPage: React.FC = () => {
       {/* For COMPANY_ADMIN only (route-level gating). */}
       <ConnectorsPanel />
       <OrgAiSettingsPanel />
+      <SubscriptionPanel />
     </div>
   );
 };

@@ -80,16 +80,8 @@ const Sidebar: React.FC = () => {
       icon: Bot,
       label: 'AI Chat',
       path: '/chat',
-      // No capability gate — all authenticated users use the same Intelligence Chat page
       show: true,
     },
-    // {
-    //   icon: Shield,
-    //   label: 'Security Logs',
-    //   path: '/activity',
-    //   capability: 'ADMIN_DASHBOARD_VIEW',
-    //   show: isCompanyAdmin || isGroupAdmin
-    // },
   ]
     .filter(
       (item) =>
