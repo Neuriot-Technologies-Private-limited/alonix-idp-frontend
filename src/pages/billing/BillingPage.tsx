@@ -9,6 +9,7 @@ import {
 import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
+import type { BillingCycle } from '../../utils/billingUtils';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface PlanLimits {
@@ -148,8 +149,12 @@ export const BillingPage: React.FC = () => {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async (planName: string) => {
-      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', { planName });
+    mutationFn: async (vars: { planName: string; billingCycle?: BillingCycle }) => {
+      const { planName, billingCycle = 'monthly' } = vars;
+      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', {
+        planName,
+        billingCycle,
+      });
       return data;
     },
     onSuccess: ({ url }) => {
@@ -338,7 +343,7 @@ export const BillingPage: React.FC = () => {
             </div>
             <button
               id={`upgrade-to-${plan.name === 'FREE' ? 'starter' : 'pro'}-btn`}
-              onClick={() => checkoutMutation.mutate(plan.name === 'FREE' ? 'STARTER' : 'PRO')}
+              onClick={() => checkoutMutation.mutate({ planName: plan.name === 'FREE' ? 'STARTER' : 'PRO', billingCycle: 'monthly' })}
               disabled={checkoutMutation.isPending}
               className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet text-white font-black text-sm hover:bg-violet/90 transition-all hover:scale-[1.02] shadow-lg shadow-violet/20 disabled:opacity-50"
             >

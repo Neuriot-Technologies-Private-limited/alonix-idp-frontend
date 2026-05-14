@@ -9,6 +9,15 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
+import {
+  monthlyPrice,
+  annualTotal,
+  annualSavings,
+  stripePriceIdForCycle,
+  annualDiscountPercent,
+  type BillingCycle,
+} from '../../utils/billingUtils';
+import { BillingCycleToggle } from '../../components/admin/BillingCycleToggle';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Plan {
@@ -24,6 +33,14 @@ interface Plan {
     maxStorageBytes: number;
   };
   stripePriceId: string | null;
+  stripePriceIdMonthly?: string | null;
+  stripePriceIdYearly?: string | null;
+  annualDiscountFraction?: number;
+}
+
+const PLAN_ORDER: Record<string, number> = { FREE: 0, STARTER: 1, PRO: 2, ENTERPRISE: 3 };
+function sortPlans(plans: Plan[]) {
+  return [...plans].sort((a, b) => (PLAN_ORDER[a.name] ?? 99) - (PLAN_ORDER[b.name] ?? 99));
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -93,17 +110,21 @@ function getPlanFeatures(plan: Plan): string[] {
 // ── Plan Card ─────────────────────────────────────────────────────────────
 interface PlanCardProps {
   plan: Plan;
+  cycle: BillingCycle;
   currentPlanName?: string;
-  onUpgrade: (planName: string) => void;
+  onUpgrade: (planName: string, billingCycle: BillingCycle) => void;
   upgrading: string | null;
 }
 
-const PlanCard: React.FC<PlanCardProps> = ({ plan, currentPlanName, onUpgrade, upgrading }) => {
+const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpgrade, upgrading }) => {
   const style = planStyles[plan.name] || planStyles.FREE;
   const isCurrent = plan.name === currentPlanName;
   const features = getPlanFeatures(plan);
   const isEnterprise = plan.name === 'ENTERPRISE';
   const isLoading = upgrading === plan.name;
+  const mo = monthlyPrice(plan, cycle);
+  const yearly = annualTotal(plan);
+  const checkoutPriceId = stripePriceIdForCycle(plan, cycle);
 
   return (
     <div className={cn(
@@ -145,10 +166,29 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, currentPlanName, onUpgrade, u
           ) : isEnterprise ? (
             <div className="text-3xl font-black text-foreground">Custom</div>
           ) : (
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-black text-foreground">${plan.priceMonthlyUsd}</span>
-              <span className="text-sm text-muted-foreground font-medium">/month</span>
-            </div>
+            <>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-foreground tabular-nums">${mo}</span>
+                <span className="text-sm text-muted-foreground font-medium">/month</span>
+                {cycle === 'annually' && (
+                  <span className="ml-1 text-xs font-bold text-muted-foreground/50 line-through tabular-nums">
+                    ${plan.priceMonthlyUsd}
+                  </span>
+                )}
+              </div>
+              {cycle === 'annually' ? (
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  <span className="text-xs font-bold text-emerald-500 tabular-nums">
+                    ${yearly} billed annually
+                  </span>
+                  <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
+                    save ${annualSavings(plan)}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted-foreground/60 mt-0.5">billed monthly</div>
+              )}
+            </>
           )}
         </div>
 
@@ -180,8 +220,10 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, currentPlanName, onUpgrade, u
         ) : (
           <button
             id={`upgrade-to-${plan.name.toLowerCase()}-btn`}
-            onClick={() => onUpgrade(plan.name)}
-            disabled={!!upgrading || !plan.stripePriceId}
+            type="button"
+            title={!checkoutPriceId && !isEnterprise ? 'This billing interval is not configured in Stripe yet.' : undefined}
+            onClick={() => onUpgrade(plan.name, cycle)}
+            disabled={!!upgrading || !checkoutPriceId}
             className={cn(
               'flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-black transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100',
               style.featured
@@ -206,6 +248,7 @@ export const PricingPage: React.FC = () => {
   const token = useAuthStore((s) => s.token);
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
 
   // Check for Stripe redirect result
   const [upgradeResult, setUpgradeResult] = useState<'success' | 'canceled' | null>(null);
@@ -236,21 +279,21 @@ export const PricingPage: React.FC = () => {
   const [upgrading, setUpgrading] = useState<string | null>(null);
 
   const checkoutMutation = useMutation({
-    mutationFn: async (planName: string) => {
-      setUpgrading(planName);
-      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', { planName });
+    mutationFn: async (vars: { planName: string; billingCycle: BillingCycle }) => {
+      setUpgrading(vars.planName);
+      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', vars);
       return data;
     },
     onSuccess: ({ url }) => { window.location.href = url; },
     onSettled: () => setUpgrading(null),
   });
 
-  const handleUpgrade = (planName: string) => {
+  const handleUpgrade = (planName: string, cycle: BillingCycle) => {
     if (!token) {
       navigate('/signup');
       return;
     }
-    checkoutMutation.mutate(planName);
+    checkoutMutation.mutate({ planName, billingCycle: cycle });
   };
 
   const currentPlanName = billingData?.plan?.name;
@@ -276,6 +319,13 @@ export const PricingPage: React.FC = () => {
           <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
             From free exploration to enterprise-grade automation — choose the plan that fits your team.
           </p>
+          <div className="mt-8 flex justify-center">
+            <BillingCycleToggle
+              cycle={billingCycle}
+              onChange={setBillingCycle}
+              discountPercent={annualDiscountPercent(sortPlans(plans)[0])}
+            />
+          </div>
         </div>
       </div>
 
@@ -299,10 +349,11 @@ export const PricingPage: React.FC = () => {
       {/* Plan grid */}
       <div className="max-w-6xl mx-auto px-4 pb-24">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 items-start">
-          {plans.map((plan) => (
+          {sortPlans(plans).map((plan) => (
             <PlanCard
               key={plan._id}
               plan={plan}
+              cycle={billingCycle}
               currentPlanName={currentPlanName}
               onUpgrade={handleUpgrade}
               upgrading={upgrading}

@@ -10,7 +10,7 @@ import {
 import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
-import { fmtBytes } from '../../utils/billingUtils';
+import { fmtBytes, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
 import PricingModal from './PricingModal';
 import { useAlert } from '../alert';
 
@@ -30,6 +30,9 @@ interface Plan {
   priceMonthlyUsd: number;
   limits: PlanLimits;
   stripePriceId: string | null;
+  stripePriceIdMonthly?: string | null;
+  stripePriceIdYearly?: string | null;
+  annualDiscountFraction?: number;
 }
 
 interface BillingData {
@@ -165,9 +168,13 @@ const SubscriptionPanel: React.FC = () => {
   });
 
   const checkoutMut = useMutation({
-    mutationFn: async (planName: string) => {
+    mutationFn: async (vars: { planName: string; billingCycle?: BillingCycle }) => {
+      const { planName, billingCycle = 'monthly' } = vars;
       setUpgrading(planName);
-      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', { planName });
+      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', {
+        planName,
+        billingCycle,
+      });
       return data;
     },
     onSuccess: ({ url }) => {
@@ -364,9 +371,9 @@ const SubscriptionPanel: React.FC = () => {
               <button
                 id={`quick-upgrade-to-${nextPlan.name.toLowerCase()}-btn`}
                 type="button"
-                title={!nextPlan.stripePriceId ? 'Stripe price is not configured for this plan.' : undefined}
-                onClick={() => { checkoutMut.mutate(nextPlan.name); }}
-                disabled={checkoutMut.isPending || !nextPlan.stripePriceId}
+                title={!stripePriceIdForCycle(nextPlan, 'monthly') ? 'Monthly Stripe price is not configured for this plan.' : undefined}
+                onClick={() => { checkoutMut.mutate({ planName: nextPlan.name, billingCycle: 'monthly' }); }}
+                disabled={checkoutMut.isPending || !stripePriceIdForCycle(nextPlan, 'monthly')}
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-violet text-white font-black text-xs hover:bg-violet/90 transition-all hover:scale-[1.02] shadow-lg shadow-violet/20 disabled:opacity-50"
               >
                 {upgrading === nextPlan.name
@@ -421,9 +428,9 @@ const SubscriptionPanel: React.FC = () => {
       onClose={() => setShowPlans(false)}
       plans={allPlans}
       currentPlanName={plan.name}
-      onUpgrade={(name) => {
+      onUpgrade={(name, billingCycle) => {
         setShowPlans(false);
-        checkoutMut.mutate(name);
+        checkoutMut.mutate({ planName: name, billingCycle });
       }}
       upgrading={upgrading}
     />

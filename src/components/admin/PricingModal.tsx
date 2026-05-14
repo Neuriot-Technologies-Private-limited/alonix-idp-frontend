@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import {
-  monthlyPrice, annualTotal, annualSavings, fmtBytes, limitLabel,
+  monthlyPrice, annualTotal, annualSavings, fmtBytes, limitLabel, stripePriceIdForCycle,
+  annualDiscountPercent,
 } from '../../utils/billingUtils';
+import { BillingCycleToggle, type BillingCycle } from './BillingCycleToggle';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface PlanLimits {
@@ -25,6 +27,10 @@ export interface PricingPlan {
   priceMonthlyUsd: number;
   limits: PlanLimits;
   stripePriceId: string | null;
+  stripePriceIdMonthly?: string | null;
+  stripePriceIdYearly?: string | null;
+  /** From GET /billing/plans — drives annual display discount (see BILLING_ANNUAL_DISCOUNT_FRACTION). */
+  annualDiscountFraction?: number;
 }
 
 interface PricingModalProps {
@@ -32,7 +38,7 @@ interface PricingModalProps {
   onClose: () => void;
   plans: PricingPlan[];
   currentPlanName: string;
-  onUpgrade: (planName: string) => void;
+  onUpgrade: (planName: string, billingCycle: BillingCycle) => void;
   upgrading: string | null;
 }
 
@@ -96,53 +102,12 @@ function features(plan: PricingPlan): string[] {
   return [`${docs} docs/mo`, connLabel, `${users} users`, `${stor} storage`, ...(extra[plan.name] ?? [])];
 }
 
-// ── Billing toggle ────────────────────────────────────────────────────────────
-const BillingToggle: React.FC<{
-  cycle: 'monthly' | 'annually';
-  onChange: (c: 'monthly' | 'annually') => void;
-}> = ({ cycle, onChange }) => (
-  <div className="flex items-center justify-center gap-3 py-1">
-    <button
-      onClick={() => onChange('monthly')}
-      className={cn('text-[11px] font-black uppercase tracking-widest transition-colors cursor-pointer',
-        cycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground/50')}
-    >
-      Monthly
-    </button>
-
-    <button
-      onClick={() => onChange(cycle === 'monthly' ? 'annually' : 'monthly')}
-      aria-label="Toggle billing cycle"
-      className="relative w-12 h-6 rounded-full bg-surface-highest/20 border border-border/15 p-[3px] cursor-pointer"
-    >
-      <motion.div
-        animate={{ x: cycle === 'monthly' ? 0 : 22 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-        className="w-[18px] h-[18px] rounded-full bg-primary shadow-lg shadow-primary/40"
-      />
-    </button>
-
-    <div className="flex items-center gap-1.5">
-      <button
-        onClick={() => onChange('annually')}
-        className={cn('text-[11px] font-black uppercase tracking-widest transition-colors cursor-pointer',
-          cycle === 'annually' ? 'text-foreground' : 'text-muted-foreground/50')}
-      >
-        Annually
-      </button>
-      <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 text-[9px] font-black px-1.5 py-0.5 rounded-full">
-        −20%
-      </span>
-    </div>
-  </div>
-);
-
 // ── Plan card (compact) ───────────────────────────────────────────────────────
 const PlanCard: React.FC<{
   plan: PricingPlan;
-  cycle: 'monthly' | 'annually';
+  cycle: BillingCycle;
   isCurrent: boolean;
-  onUpgrade: (n: string) => void;
+  onUpgrade: (planName: string, billingCycle: BillingCycle) => void;
   upgrading: string | null;
   index: number;
 }> = ({ plan, cycle, isCurrent, onUpgrade, upgrading, index }) => {
@@ -153,6 +118,7 @@ const PlanCard: React.FC<{
   const mo = monthlyPrice(plan, cycle);
   const yearly = annualTotal(plan);
   const feats = features(plan);
+  const checkoutPriceId = stripePriceIdForCycle(plan, cycle);
 
   return (
     <motion.div
@@ -263,8 +229,10 @@ const PlanCard: React.FC<{
         ) : (
           <button
             id={`pricing-modal-upgrade-${plan.name.toLowerCase()}-btn`}
-            onClick={() => onUpgrade(plan.name)}
-            disabled={!!upgrading || !plan.stripePriceId}
+            type="button"
+            onClick={() => onUpgrade(plan.name, cycle)}
+            disabled={!!upgrading || !checkoutPriceId}
+            title={!checkoutPriceId ? 'This billing interval is not configured in Stripe yet.' : undefined}
             className={cn(
               'flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl font-bold text-xs transition-all shadow-md',
               'disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99] cursor-pointer',
@@ -293,7 +261,7 @@ const PlanCard: React.FC<{
 const PricingModal: React.FC<PricingModalProps> = ({
   open, onClose, plans, currentPlanName, onUpgrade, upgrading,
 }) => {
-  const [cycle, setCycle] = useState<'monthly' | 'annually'>('monthly');
+  const [cycle, setCycle] = useState<BillingCycle>('monthly');
 
   // Escape to close
   useEffect(() => {
@@ -356,7 +324,11 @@ const PricingModal: React.FC<PricingModalProps> = ({
 
                 {/* Monthly / Annual toggle — centred */}
                 <div className="absolute left-1/2 -translate-x-1/2">
-                  <BillingToggle cycle={cycle} onChange={setCycle} />
+                  <BillingCycleToggle
+                    cycle={cycle}
+                    onChange={setCycle}
+                    discountPercent={annualDiscountPercent(plans[0])}
+                  />
                 </div>
 
                 <button
@@ -370,7 +342,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
               </div>
 
               <p className="px-7 pb-1 text-center text-[10px] text-muted-foreground/55">
-                Checkout uses each plan&apos;s monthly Stripe price. The annual toggle is for comparison only until annual prices are configured in Stripe.
+                Checkout opens Stripe with the price for the billing interval you selected (monthly or annual).
               </p>
 
               {/* ── Plan grid ───────────────────────────────────────────── */}
