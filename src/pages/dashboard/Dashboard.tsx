@@ -7,7 +7,6 @@ import {
   FileText,
   Zap,
   ArrowUpRight,
-  Clock,
   Activity,
 } from 'lucide-react';
 import { useDashboardState, type GroupHealth } from '../../services/adminService';
@@ -130,21 +129,21 @@ export const Dashboard: React.FC = () => {
         <StatCard
           label={isCompanyAdmin ? "Total Groups" : "Assigned Groups"}
           value={stats?.totalGroups ?? 0}
-          trend={{ value: '+2', label: 'This month', isPositive: true }}
+          trend={stats?.groupsTendency ?? { value: '—', label: 'trend', isPositive: true }}
           icon={<Database className="w-4 h-4" />}
           loading={statsLoading}
         />
         <StatCard
           label={isCompanyAdmin ? "Total Users" : "Users"}
           value={stats?.totalUsers ?? 0}
-          trend={{ value: '8.4%', label: 'Growth', isPositive: true }}
+          trend={stats?.usersTendency ?? { value: '—', label: 'trend', isPositive: true }}
           icon={<Users className="w-4 h-4" />}
           loading={statsLoading}
         />
         <StatCard
           label={isCompanyAdmin ? "Total Documents" : "Documents"}
           value={stats?.totalDocuments ?? 0}
-          trend={{ value: '1.2k', label: 'Velocity', isPositive: true }}
+          trend={stats?.docsTendency ?? { value: '—', label: 'trend', isPositive: true }}
           icon={<FileText className="w-4 h-4" />}
           loading={statsLoading}
         />
@@ -165,11 +164,11 @@ export const Dashboard: React.FC = () => {
           }
           trend={
             isCompanyAdmin
-              ? {
+              ? (stats?.ingestionTendency ?? {
                   value: ingestionValue > 0 ? 'Live' : 'Idle',
                   label: ingestionValue > 0 ? 'Processing' : 'No active jobs',
                   isPositive: ingestionValue > 0,
-                }
+                })
               : {
                   value: 'Live',
                   label: isPureSearchUser ? 'Ready' : 'Processing',
@@ -234,7 +233,9 @@ export const Dashboard: React.FC = () => {
                 Activity Feed
               </h2>
               <button
-                onClick={() => navigate('/activity')}
+                onClick={() =>
+                  navigate('/activity', { state: { from: '/dashboard', fromLabel: 'Dashboard' } })
+                }
                 className="text-primary font-bold text-[10px] flex items-center gap-1 hover:opacity-80 transition-all"
               >
                 View All <ArrowUpRight className="w-3 h-3" />
@@ -371,7 +372,6 @@ export const Dashboard: React.FC = () => {
               ...(hasAnyGroupAdmin ? [{ label: 'Invite User', path: '/users', icon: Users }] : []),
               { label: 'View Groups', path: '/groups', icon: Database },
               { label: 'Browse Documents', path: '/documents', icon: FileText },
-              ...(isCompanyAdmin ? [{ label: 'Activity Logs', path: '/activity', icon: Clock }] : []),
             ].map(({ label, path, icon: Icon }) => (
               <button
                 key={label}

@@ -109,6 +109,7 @@ function App() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route element={<RoleProtectedRoute requiredOrgRole="COMPANY_ADMIN" />}>
                   <Route path="/org-settings" element={<OrgSettingsPage />} />
+                  <Route path="/activity" element={<ActivityLogs />} />
                   <Route path="/settings/billing" element={<BillingPage />} />
                 </Route>
 
@@ -119,10 +120,6 @@ function App() {
                 <Route element={<RoleProtectedRoute requiredWorkspaceMember />}>
                   <Route path="/groups" element={<GroupsRoute />} />
                   <Route path="/groups/:id" element={<GroupDetailsRoute />} />
-                </Route>
-
-                <Route element={<RoleProtectedRoute requiredCapability="ADMIN_DASHBOARD_VIEW" />}>
-                  <Route path="/activity" element={<ActivityLogs />} />
                 </Route>
 
                 <Route path="/admin/*" element={<Navigate to="/documents" replace />} />

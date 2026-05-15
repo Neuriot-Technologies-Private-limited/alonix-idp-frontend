@@ -17,7 +17,8 @@ export const ActivityFeed: React.FC<{
   logs?: AuditLog[];
 }> = ({ role, limit, logs: logsProp }) => {
   const useFetch = logsProp === undefined;
-  const { data: fetched, isLoading } = useAuditLogs({ enabled: useFetch });
+  const { data: fetchedResult, isLoading } = useAuditLogs({}, { enabled: useFetch });
+  const fetched = fetchedResult?.logs;
   const logs = logsProp !== undefined ? logsProp : fetched;
 
   // Basic filtering for demonstration
@@ -103,18 +104,23 @@ export const ActivityFeed: React.FC<{
                         
                         // Use metadata for cleaner labels
                         if (log.metadata) {
-                          if (log.action === 'CHAT_QUESTION_ASKED' && log.metadata.query) {
-                            const title = log.metadata.query.length > 40 ? log.metadata.query.slice(0, 40) + '...' : log.metadata.query;
+                          const meta = log.metadata;
+                          const query = typeof meta.query === 'string' ? meta.query : '';
+                          if (log.action === 'CHAT_QUESTION_ASKED' && query) {
+                            const title = query.length > 40 ? `${query.slice(0, 40)}...` : query;
                             return `chat session "${title}"`;
                           }
-                          if (log.action === 'GROUP_CREATED' && log.metadata.groupName) {
-                            return log.metadata.groupName;
+                          if (log.action === 'GROUP_CREATED' && typeof meta.groupName === 'string') {
+                            return meta.groupName;
                           }
-                          if (log.action.includes('MEMBER') && log.metadata.userEmail) {
-                            return log.metadata.userEmail;
+                          if (log.action.includes('MEMBER') && typeof meta.userEmail === 'string') {
+                            return meta.userEmail;
                           }
-                          if ((log.action === 'ORG_USER_UPDATED' || log.action === 'ORG_USER_REMOVED') && log.metadata.email) {
-                            return log.metadata.email;
+                          if (
+                            (log.action === 'ORG_USER_UPDATED' || log.action === 'ORG_USER_REMOVED') &&
+                            typeof meta.email === 'string'
+                          ) {
+                            return meta.email;
                           }
                         }
 

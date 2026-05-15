@@ -17,6 +17,18 @@ export interface TrendingInfo {
   isPositive: boolean;
 }
 
+export interface PipelineMetrics {
+  totalDocuments: number;
+  ingestCompleted: number;
+  ingestFailed: number;
+  extractCompleted: number;
+  classifyCompleted: number;
+  failedDocuments: number;
+  successRatePercent: number;
+  jobsProcessing: number;
+  pipelineBusy: number;
+}
+
 export interface AdminStats {
   totalGroups: number;
   totalUsers: number;
@@ -27,6 +39,37 @@ export interface AdminStats {
   docsTendency: TrendingInfo;
   ingestionTendency: TrendingInfo;
   confidenceScore: string;
+  pipeline?: PipelineMetrics;
+}
+
+export interface AuditLogsQuery {
+  from?: string;
+  to?: string;
+  actorEmail?: string;
+  groupId?: string;
+  action?: string;
+  limit?: number;
+  skip?: number;
+}
+
+export interface AuditLogsResult {
+  logs: AuditLog[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface ActivitySeriesPoint {
+  period: string;
+  auditEvents: number;
+  documentUploads: number;
+}
+
+export interface ActivitySeriesResult {
+  from: string;
+  to: string;
+  granularity: 'day' | 'month';
+  series: ActivitySeriesPoint[];
 }
 
 /** Single response from `GET /admin/orgs/:orgId/dashboard-state` */
@@ -107,11 +150,16 @@ export interface GroupDetail extends GroupHealth {
 export interface AuditLog {
   id: string;
   user: string;
+  actorEmail?: string;
   action: string;
   target: string;
+  targetType?: string;
+  targetId?: string;
+  groupId?: string | null;
   timestamp: string;
+  timestampDisplay?: string;
   type: 'invite' | 'ingestion' | 'creation' | 'warning' | 'info';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface User {
@@ -240,16 +288,93 @@ export const adminService = {
     }));
   },
 
-  getAuditLogs: async (): Promise<AuditLog[]> => {
+  getAuditLogs: async (query: AuditLogsQuery = {}): Promise<AuditLogsResult> => {
     const orgId = requireOrgId();
-    const { data } = await apiClient.get<{ logs: AuditLog[] }>(
+    const { data } = await apiClient.get<AuditLogsResult>(
       `/admin/orgs/${encodeURIComponent(orgId)}/audit-logs`,
-      { params: { limit: 80 } }
+      { params: { limit: 80, ...query } }
     );
-    return (data.logs || []).map((l) => ({
-      ...l,
-      type: (l.type as AuditLog['type']) || 'info',
-    }));
+    return {
+      logs: (data.logs || []).map((l) => ({
+        ...l,
+        type: (l.type as AuditLog['type']) || 'info',
+        timestamp: l.timestampDisplay || l.timestamp,
+      })),
+      total: data.total ?? data.logs?.length ?? 0,
+      skip: data.skip ?? 0,
+      limit: data.limit ?? 80,
+    };
+  },
+
+  getGroupAuditLogs: async (groupId: string, query: AuditLogsQuery = {}): Promise<AuditLogsResult> => {
+    const { data } = await apiClient.get<AuditLogsResult>(
+      `/admin/groups/${encodeURIComponent(groupId)}/audit-logs`,
+      { params: { limit: 40, ...query } }
+    );
+    return {
+      logs: (data.logs || []).map((l) => ({
+        ...l,
+        type: (l.type as AuditLog['type']) || 'info',
+        timestamp: l.timestampDisplay || l.timestamp,
+      })),
+      total: data.total ?? data.logs?.length ?? 0,
+      skip: data.skip ?? 0,
+      limit: data.limit ?? 40,
+    };
+  },
+
+  getActivitySeries: async (query: {
+    from?: string;
+    to?: string;
+    granularity?: 'day' | 'month';
+    groupId?: string;
+  }): Promise<ActivitySeriesResult> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<ActivitySeriesResult>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/metrics/activity-series`,
+      { params: query }
+    );
+    return data;
+  },
+
+  getMetricsByUser: async (query?: { from?: string; to?: string; limit?: number }) => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<{
+      from: string;
+      to: string;
+      users: { actorEmail: string; eventCount: number }[];
+    }>(`/admin/orgs/${encodeURIComponent(orgId)}/metrics/by-user`, { params: query });
+    return data;
+  },
+
+  exportActivityCsv: async (query: AuditLogsQuery = {}): Promise<Blob> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<Blob>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/reports/activity`,
+      { params: query, responseType: 'blob' }
+    );
+    return data;
+  },
+
+  getUsageSummaryReport: async (query?: { from?: string; to?: string }) => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<{
+      from: string;
+      to: string;
+      documentUploads: number;
+      storageBytesAdded: number;
+      auditEvents: number;
+      activeUsers: number;
+    }>(`/admin/orgs/${encodeURIComponent(orgId)}/reports/usage-summary`, { params: query });
+    return data;
+  },
+
+  getPipelineMetrics: async (): Promise<PipelineMetrics> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<PipelineMetrics>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/metrics/pipeline`
+    );
+    return data;
   },
 
   getUsers: async (): Promise<User[]> => {
@@ -277,11 +402,26 @@ export const adminService = {
 
   getGroupDetail: async (id: string): Promise<GroupDetail> => {
     requireOrgId();
-    const [{ data: g }, { data: mem }, { data: pipe }, { data: inv }] = await Promise.all([
+    const auditFetch = apiClient
+      .get<AuditLogsResult>(`/admin/groups/${encodeURIComponent(id)}/audit-logs`, {
+        params: { limit: 25 },
+      })
+      .then(({ data }) => data)
+      .catch(
+        (): AuditLogsResult => ({
+          logs: [],
+          total: 0,
+          skip: 0,
+          limit: 25,
+        })
+      );
+
+    const [{ data: g }, { data: mem }, { data: pipe }, { data: inv }, auditResult] = await Promise.all([
       apiClient.get<any>(`/groups/${encodeURIComponent(id)}`),
       apiClient.get<{ members: any[] }>(`/admin/groups/${encodeURIComponent(id)}/members`),
       getOrgPipelineDocuments(),
       apiClient.get<{ invites: any[] }>(`/admin/groups/${encodeURIComponent(id)}/invites`),
+      auditFetch,
     ]);
 
     const groupName = g.groupName || g.name || 'Workspace';
@@ -338,15 +478,16 @@ export const adminService = {
         : null,
       members: mergedMembers,
       documents,
-      recentActivity: [
-        {
-          id: '1',
-          user: members[0]?.name || 'Team',
-          action: `Activity in ${groupName}`,
-          timestamp: 'Recently',
-          type: 'success' as const,
-        },
-      ],
+      recentActivity: (auditResult.logs || []).map((log) => ({
+        id: log.id,
+        user: log.user,
+        action: log.action.replace(/_/g, ' ').toLowerCase(),
+        timestamp: log.timestampDisplay || log.timestamp,
+        type: (log.type === 'warning' ? 'warning' : log.type === 'ingestion' ? 'success' : 'info') as
+          | 'info'
+          | 'warning'
+          | 'success',
+      })),
     };
   },
 
@@ -423,12 +564,15 @@ export const useGroupHealth = () => {
   });
 };
 
-export const useAuditLogs = (opts?: { enabled?: boolean }) => {
+export const useAuditLogs = (
+  query: AuditLogsQuery = {},
+  opts?: { enabled?: boolean }
+) => {
   const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
   const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
   return useQuery({
-    queryKey: ['audit-logs', orgId],
-    queryFn: adminService.getAuditLogs,
+    queryKey: ['audit-logs', orgId, query],
+    queryFn: () => adminService.getAuditLogs(query),
     enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
   });
 };
