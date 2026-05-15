@@ -10,6 +10,8 @@ import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { updateConnector } from '../../services/connectorBrowserApi';
+import { quotaErrorMessage } from '../../utils/billingQuota';
+import { useAlert } from '../alert';
 
 interface Connector {
   _id: string;
@@ -30,6 +32,7 @@ export const ConnectorsPanel: React.FC = () => {
   const orgId = context?.orgId;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { alert: appAlert } = useAlert();
 
   // ── Modal state ──────────────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,6 +67,13 @@ export const ConnectorsPanel: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connectors', orgId] });
       setIsModalOpen(false);
+    },
+    onError: (err: unknown) => {
+      appAlert({
+        variant: 'danger',
+        title: 'Could not create connector',
+        description: quotaErrorMessage(err, 'Connector creation failed.'),
+      });
     },
   });
 

@@ -37,6 +37,7 @@ interface BillingSubscription {
     docsThisMonth: number;
     connectors: number;
     users: number;
+    storageBytes: number;
   };
   limits: PlanLimits;
 }
@@ -305,7 +306,7 @@ export const BillingPage: React.FC = () => {
             <UsageBar
               label="Storage"
               icon={<HardDrive className="h-4 w-4" />}
-              used={0}
+              used={usage.storageBytes ?? 0}
               limit={limits.maxStorageBytes}
               formatValue={formatBytes}
             />

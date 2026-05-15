@@ -43,7 +43,7 @@ interface BillingData {
     trialEndsAt: string | null;
     cancelAtPeriodEnd: boolean;
   };
-  usage: { docsThisMonth: number; connectors: number; users: number };
+  usage: { docsThisMonth: number; connectors: number; users: number; storageBytes: number };
   limits: PlanLimits;
 }
 
@@ -341,7 +341,7 @@ const SubscriptionPanel: React.FC = () => {
           <UsageBar label="Documents Ingested" icon={<FileText className="h-3.5 w-3.5" />} used={usage.docsThisMonth} limit={limits.maxDocumentsMonth} />
           <UsageBar label="Active Connectors"  icon={<Zap className="h-3.5 w-3.5" />}      used={usage.connectors}     limit={limits.maxConnectors} />
           <UsageBar label="Team Members"       icon={<Users className="h-3.5 w-3.5" />}     used={usage.users}          limit={limits.maxUsers} />
-          <UsageBar label="Storage"            icon={<HardDrive className="h-3.5 w-3.5" />} used={0}                    limit={limits.maxStorageBytes} displayUsed={fmtBytes(0)} displayLimit={fmtBytes(limits.maxStorageBytes)} />
+          <UsageBar label="Storage"            icon={<HardDrive className="h-3.5 w-3.5" />} used={usage.storageBytes ?? 0} limit={limits.maxStorageBytes} displayUsed={fmtBytes(usage.storageBytes ?? 0)} displayLimit={fmtBytes(limits.maxStorageBytes)} />
         </div>
 
         {/* ── Quick upgrade CTA (only when not on highest paid plan) ───── */}

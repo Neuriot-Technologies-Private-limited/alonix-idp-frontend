@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
+import { quotaErrorMessage } from '../utils/billingQuota';
 
 export type UserWorkspace = { groupId: string; groupName?: string; role?: string | null };
 
@@ -113,8 +114,7 @@ export const userService = {
         });
         return { ok: true, addedExisting: 0, invitedNew: true };
       } catch (e: unknown) {
-        const ax = e as { response?: { data?: { message?: string } } };
-        return { ok: false, error: ax.response?.data?.message || 'Invite email failed' };
+        return { ok: false, error: quotaErrorMessage(e, 'Invite email failed') };
       }
     }
 
@@ -137,8 +137,10 @@ export const userService = {
             : {}),
         });
         addedExisting++;
-      } catch {
-        /* skip duplicate / errors per user */
+      } catch (e: unknown) {
+        const msg = quotaErrorMessage(e, '');
+        if (msg) return { ok: false, error: msg };
+        /* skip duplicate / other per-user errors */
       }
     }
 

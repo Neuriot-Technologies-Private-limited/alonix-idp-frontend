@@ -46,7 +46,7 @@ const LandingPage: React.FC = () => {
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground font-display">
             <a href="#features" className="hover:text-primary transition-colors">Solutions</a>
             <a href="#intelligence" className="hover:text-primary transition-colors">Intelligence</a>
-            <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
+            <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
             <a href="#about" className="hover:text-primary transition-colors">About</a>
           </div>
 

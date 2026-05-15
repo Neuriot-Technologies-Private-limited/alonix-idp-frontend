@@ -14,6 +14,7 @@ import {
   uploadAssignableLevelsForGroup,
   type DocumentSensitivityLevel,
 } from '../../../constants/documentSensitivity';
+import { quotaErrorMessage } from '../../../utils/billingQuota';
 
 export interface InviteUsersToGroupModalProps {
   isOpen: boolean;
@@ -152,8 +153,8 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
       await queryClient.invalidateQueries({ queryKey: ['group-detail'] });
       await queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       onClose();
-    } catch {
-      setError('Something went wrong. Try again.');
+    } catch (err: unknown) {
+      setError(quotaErrorMessage(err, 'Something went wrong. Try again.'));
     }
   };
 

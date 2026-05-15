@@ -50,6 +50,7 @@ import {
   uploadAssignableLevelsForGroup,
   type DocumentSensitivityLevel,
 } from '../../constants/documentSensitivity';
+import { quotaErrorMessage } from '../../utils/billingQuota';
 
 function getConnectorDialogFocusables(root: HTMLElement): HTMLElement[] {
   const sel =
@@ -1265,8 +1266,7 @@ export const DocumentsPage: React.FC = () => {
                 });
                 updateJob(jobId, { status: 'done', finishedAt: Date.now() });
               } catch (err: unknown) {
-                const ax = err as { response?: { data?: { error?: string } }; message?: string };
-                const errMsg = ax.response?.data?.error || ax.message || 'Upload failed';
+                const errMsg = quotaErrorMessage(err, 'Upload failed');
                 updateJob(jobId, { status: 'error', error: errMsg, finishedAt: Date.now() });
               }
             }
