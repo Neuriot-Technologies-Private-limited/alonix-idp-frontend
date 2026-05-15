@@ -25,8 +25,21 @@ export const DOCUMENT_SENSITIVITY_HINTS: Record<DocumentSensitivityLevel, string
   RESTRICTED: 'Highest controls and audit expectations',
 };
 
+export function normalizeDocumentSensitivityLevel(
+  raw: string | null | undefined
+): DocumentSensitivityLevel {
+  const k = String(raw || '')
+    .trim()
+    .toUpperCase()
+    .replace(/-/g, '_');
+  if ((DOCUMENT_SENSITIVITY_LEVELS as readonly string[]).includes(k)) {
+    return k as DocumentSensitivityLevel;
+  }
+  return 'INTERNAL_USE';
+}
+
 export function sensitivityLevelIndex(key: string): number {
-  const k = String(key || '').toUpperCase().replace(/-/g, '_') as DocumentSensitivityLevel;
+  const k = normalizeDocumentSensitivityLevel(key);
   const i = DOCUMENT_SENSITIVITY_LEVELS.indexOf(k);
   return i < 0 ? 1 : i;
 }
@@ -35,4 +48,21 @@ export function sensitivityLevelIndex(key: string): number {
 export function uploadAssignableLevels(viewerMaxKey: string): DocumentSensitivityLevel[] {
   const vmax = sensitivityLevelIndex(viewerMaxKey);
   return DOCUMENT_SENSITIVITY_LEVELS.filter((k) => sensitivityLevelIndex(k) <= vmax);
+}
+
+/** Intersect user clearance with workspace-enabled sensitivity tiers. */
+export function uploadAssignableLevelsForGroup(
+  viewerMaxKey: string,
+  enabledLevels?: string[] | null
+): DocumentSensitivityLevel[] {
+  const vmax = normalizeDocumentSensitivityLevel(viewerMaxKey);
+  let levels = uploadAssignableLevels(vmax);
+  if (Array.isArray(enabledLevels) && enabledLevels.length > 0) {
+    const enabled = new Set(enabledLevels.map((k) => normalizeDocumentSensitivityLevel(k)));
+    levels = levels.filter((k) => enabled.has(k));
+  }
+  if (!levels.length) {
+    return uploadAssignableLevels(vmax);
+  }
+  return levels;
 }

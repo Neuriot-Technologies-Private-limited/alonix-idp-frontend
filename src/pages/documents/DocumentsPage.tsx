@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import apiClient from '../../services/api/client';
 import {
   Upload,
   Loader2,
@@ -46,7 +47,7 @@ import ConnectorBrowserContent from '../../components/connectors/ConnectorBrowse
 import {
   DOCUMENT_SENSITIVITY_HINTS,
   DOCUMENT_SENSITIVITY_LABELS,
-  uploadAssignableLevels,
+  uploadAssignableLevelsForGroup,
   type DocumentSensitivityLevel,
 } from '../../constants/documentSensitivity';
 
@@ -200,36 +201,52 @@ export const DocumentsPage: React.FC = () => {
     return groups.filter((g) => g.role === 'GROUP_ADMIN');
   }, [isCompanyAdmin, groupHealthList, groups]);
 
+  const uploadTargetGroupId = React.useMemo(() => {
+    if (isCompanyAdmin) return String(targetGroupId || '').trim();
+    return String(targetGroupId || adminGroupIds?.[0] || '').trim();
+  }, [isCompanyAdmin, targetGroupId, adminGroupIds]);
+
+  const { data: uploadGroupEnabledLevels = null } = useQuery({
+    queryKey: ['group-sensitivity-policy', uploadTargetGroupId],
+    enabled: Boolean(uploadTargetGroupId),
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ enabledDocumentSensitivityLevels?: string[] | null }>(
+        `/groups/${encodeURIComponent(uploadTargetGroupId)}`
+      );
+      return Array.isArray(data.enabledDocumentSensitivityLevels)
+        ? data.enabledDocumentSensitivityLevels
+        : null;
+    },
+    staleTime: 60_000,
+  });
+
   const uploadMaxKey = React.useMemo(() => {
     if (context?.orgRole === 'COMPANY_ADMIN') return 'RESTRICTED';
-    const gid = isCompanyAdmin
-      ? String(targetGroupId || '').trim()
-      : String(targetGroupId || adminGroupIds?.[0] || '').trim();
-    const g = groups.find((x) => String(x.groupId) === gid);
+    const g = groups.find((x) => String(x.groupId) === uploadTargetGroupId);
     if (!g) return 'INTERNAL_USE';
     if (g.role === 'GROUP_ADMIN') return 'RESTRICTED';
     return String(g.maxDocumentSensitivity || 'INTERNAL_USE')
       .toUpperCase()
       .replace(/-/g, '_');
-  }, [context?.orgRole, isCompanyAdmin, targetGroupId, adminGroupIds, groups]);
+  }, [context?.orgRole, uploadTargetGroupId, groups]);
 
   const uploadSensitivityOptions = React.useMemo(() => {
-    const allowed = uploadAssignableLevels(uploadMaxKey);
+    const allowed = uploadAssignableLevelsForGroup(uploadMaxKey, uploadGroupEnabledLevels);
     return allowed.map((value) => ({
       value,
       label: DOCUMENT_SENSITIVITY_LABELS[value],
       hint: DOCUMENT_SENSITIVITY_HINTS[value],
     }));
-  }, [uploadMaxKey]);
+  }, [uploadMaxKey, uploadGroupEnabledLevels]);
 
   React.useEffect(() => {
-    const allowed = uploadAssignableLevels(uploadMaxKey);
+    const allowed = uploadAssignableLevelsForGroup(uploadMaxKey, uploadGroupEnabledLevels);
     setUploadSensitivityLevel((prev) =>
       allowed.includes(prev as DocumentSensitivityLevel)
         ? prev
         : allowed[allowed.length - 1] || 'INTERNAL_USE'
     );
-  }, [uploadMaxKey]);
+  }, [uploadMaxKey, uploadGroupEnabledLevels]);
 
   const groupIdSet = React.useMemo(
     () => new Set(groups.map((g) => g.groupId.toLowerCase())),

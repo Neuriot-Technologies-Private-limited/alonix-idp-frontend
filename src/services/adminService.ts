@@ -194,10 +194,16 @@ export function normalizePipelineDocument(d: Record<string, unknown>): Record<st
   const uploader =
     uploaderRaw != null && String(uploaderRaw).trim() !== '' ? String(uploaderRaw) : 'Unknown';
   const uploadedAt = coalesceUploadIso(d);
+  const rawLevel = d.sensitivityLevel;
+  const sensitivityLevel =
+    rawLevel != null && String(rawLevel).trim() !== ''
+      ? String(rawLevel).trim().toUpperCase().replace(/-/g, '_')
+      : 'INTERNAL_USE';
   return {
     ...d,
     pipeline: mergePipeline(d.pipeline),
     uploader,
+    sensitivityLevel,
     ...(uploadedAt != null ? { uploadedAt } : {}),
   };
 }
@@ -312,7 +318,7 @@ export const adminService = {
       status: d.pipeline?.ingestion?.status === 'done' ? 'Healthy' : 'Pending',
       date: d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—',
       type: d.type || 'FILE',
-      sensitivityLevel: d.sensitivityLevel ?? null,
+      sensitivityLevel: d.sensitivityLevel || 'INTERNAL_USE',
     }));
 
     return {

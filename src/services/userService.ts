@@ -22,6 +22,8 @@ export type InviteUsersToGroupPayload = {
   groupId: string;
   newUser?: { name: string; email: string } | null;
   existingUserIds: string[];
+  /** Max document sensitivity for newly added SEARCH_USER members (default INTERNAL_USE). */
+  maxDocumentSensitivity?: string;
 };
 
 export type InviteUsersToGroupResult =
@@ -107,6 +109,7 @@ export const userService = {
           groupId: payload.groupId,
           email: nu.email.trim().toLowerCase(),
           name: nu.name.trim(),
+          maxDocumentSensitivity: payload.maxDocumentSensitivity || 'INTERNAL_USE',
         });
         return { ok: true, addedExisting: 0, invitedNew: true };
       } catch (e: unknown) {
@@ -129,6 +132,9 @@ export const userService = {
         await apiClient.post(`/admin/groups/${encodeURIComponent(payload.groupId)}/members`, {
           userEmail: email,
           role: 'SEARCH_USER',
+          ...(payload.maxDocumentSensitivity
+            ? { maxDocumentSensitivity: payload.maxDocumentSensitivity }
+            : {}),
         });
         addedExisting++;
       } catch {

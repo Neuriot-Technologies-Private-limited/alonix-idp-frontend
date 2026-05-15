@@ -1,10 +1,19 @@
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import apiClient from '../../../services/api/client';
+import { useAuthStore } from '../../../stores/authStore';
 import { UserPlus, Loader2, Mail, Search } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
+import { ThemedSelect } from '../../../components/ui/ThemedSelect';
 import { userService, type User } from '../../../services/userService';
 import type { GroupHealth } from '../../../services/adminService';
 import { cn } from '../../../utils/cn';
+import {
+  DOCUMENT_SENSITIVITY_HINTS,
+  DOCUMENT_SENSITIVITY_LABELS,
+  uploadAssignableLevelsForGroup,
+  type DocumentSensitivityLevel,
+} from '../../../constants/documentSensitivity';
 
 export interface InviteUsersToGroupModalProps {
   isOpen: boolean;
@@ -30,11 +39,15 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
 }) => {
   const groupLocked = Boolean(fixedGroupId);
   const queryClient = useQueryClient();
+  const context = useAuthStore((s) => s.context);
+  const authGroups = useAuthStore((s) => s.context?.groups ?? []);
   const [groupId, setGroupId] = React.useState('');
   const [inviteName, setInviteName] = React.useState('');
   const [inviteEmail, setInviteEmail] = React.useState('');
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
   const [listQuery, setListQuery] = React.useState('');
+  const [memberMaxSensitivity, setMemberMaxSensitivity] =
+    React.useState<DocumentSensitivityLevel>('INTERNAL_USE');
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
@@ -44,6 +57,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
       setInviteEmail('');
       setSelectedIds(new Set());
       setListQuery('');
+      setMemberMaxSensitivity('INTERNAL_USE');
       setError('');
     }
   }, [isOpen, fixedGroupId]);
@@ -51,6 +65,46 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
   React.useEffect(() => {
     setSelectedIds(new Set());
   }, [groupId]);
+
+  const { data: groupEnabledLevels = null } = useQuery({
+    queryKey: ['invite-group-policy', groupId],
+    enabled: isOpen && Boolean(groupId),
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ enabledDocumentSensitivityLevels?: string[] | null }>(
+        `/groups/${encodeURIComponent(groupId)}`
+      );
+      return Array.isArray(data.enabledDocumentSensitivityLevels)
+        ? data.enabledDocumentSensitivityLevels
+        : null;
+    },
+    staleTime: 60_000,
+  });
+
+  const inviterMaxKey = React.useMemo(() => {
+    if (context?.orgRole === 'COMPANY_ADMIN') return 'RESTRICTED';
+    const g = authGroups.find((x) => String(x.groupId) === String(groupId));
+    if (!g) return 'INTERNAL_USE';
+    if (g.role === 'GROUP_ADMIN') return 'RESTRICTED';
+    return String(g.maxDocumentSensitivity || 'INTERNAL_USE')
+      .toUpperCase()
+      .replace(/-/g, '_');
+  }, [context?.orgRole, authGroups, groupId]);
+
+  const memberSensitivityOptions = React.useMemo(() => {
+    const allowed = uploadAssignableLevelsForGroup(inviterMaxKey, groupEnabledLevels);
+    return allowed.map((value) => ({
+      value,
+      label: DOCUMENT_SENSITIVITY_LABELS[value],
+      hint: DOCUMENT_SENSITIVITY_HINTS[value],
+    }));
+  }, [inviterMaxKey, groupEnabledLevels]);
+
+  React.useEffect(() => {
+    const allowed = uploadAssignableLevelsForGroup(inviterMaxKey, groupEnabledLevels);
+    setMemberMaxSensitivity((prev) =>
+      allowed.includes(prev) ? prev : allowed[allowed.length - 1] || 'INTERNAL_USE'
+    );
+  }, [inviterMaxKey, groupEnabledLevels]);
 
   const mutation = useMutation({
     mutationFn: userService.inviteUsersToGroup,
@@ -87,6 +141,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
         groupId,
         existingUserIds: Array.from(selectedIds),
         newUser: nu,
+        maxDocumentSensitivity: memberMaxSensitivity,
       });
       if (!res.ok) {
         setError(res.error);
@@ -191,6 +246,22 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
               </span>
             </div>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
+            Document access for new members
+          </span>
+          <ThemedSelect
+            value={memberMaxSensitivity}
+            onChange={(v) => setMemberMaxSensitivity(v as DocumentSensitivityLevel)}
+            options={memberSensitivityOptions}
+            disabled={!groupId || memberSensitivityOptions.length === 0}
+            aria-label="Maximum document sensitivity for added members"
+          />
+          <p className="text-[10px] text-muted-foreground/35 leading-relaxed">
+            Members can view and upload documents at this level and below (less sensitive tiers).
+          </p>
         </div>
 
         <div className="space-y-3 rounded-2xl border border-border/10 bg-surface-highest/5 p-4">
