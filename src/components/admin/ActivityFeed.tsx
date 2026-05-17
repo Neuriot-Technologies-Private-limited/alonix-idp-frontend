@@ -93,6 +93,14 @@ export const ActivityFeed: React.FC<{
                           'GROUP_MEMBER_ROLE_UPDATED': 'updated the role of',
                           'GROUP_MEMBER_UPSERT': 'added or updated a member in',
                           'ORG_USER_UPDATED': 'updated profile of',
+                          'CONNECTOR_CREATED': 'created connector',
+                          'CONNECTOR_DELETED': 'deleted connector',
+                          'BILLING_PLAN_UPGRADED': 'upgraded plan to',
+                          'BILLING_PLAN_DOWNGRADED': 'downgraded plan to',
+                          'BILLING_PLAN_CHANGED': 'changed plan to',
+                          'BILLING_SUBSCRIPTION_CANCELED': 'canceled subscription',
+                          'BILLING_PAYMENT_PAST_DUE': 'marked subscription past due',
+                          'BILLING_CHECKOUT_STARTED': 'started checkout for',
                         };
                         return actionMap[log.action] || log.action.toLowerCase().replace(/_/g, ' ');
                       })()
@@ -121,6 +129,26 @@ export const ActivityFeed: React.FC<{
                             typeof meta.email === 'string'
                           ) {
                             return meta.email;
+                          }
+                          if (
+                            (log.action === 'CONNECTOR_CREATED' || log.action === 'CONNECTOR_DELETED') &&
+                            typeof meta.connectorName === 'string'
+                          ) {
+                            const type =
+                              typeof meta.connectorType === 'string' ? ` (${meta.connectorType})` : '';
+                            return `${meta.connectorName}${type}`;
+                          }
+                          if (
+                            log.action.startsWith('BILLING_') &&
+                            typeof meta.newPlan === 'string'
+                          ) {
+                            return meta.newPlan;
+                          }
+                          if (
+                            log.action === 'BILLING_CHECKOUT_STARTED' &&
+                            typeof meta.planName === 'string'
+                          ) {
+                            return meta.planName;
                           }
                         }
 
