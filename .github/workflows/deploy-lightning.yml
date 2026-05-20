@@ -27,9 +27,9 @@ jobs:
 
       - name: Build Docker image
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
-          VITE_SOCKET_PATH: ${{ vars.VITE_SOCKET_PATH }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || '' }}
+          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL || '' }}
+          VITE_SOCKET_PATH: ${{ vars.VITE_SOCKET_PATH || '' }}
         run: |
           VITE_SOCKET_PATH="${VITE_SOCKET_PATH:-/socket.io}"
           docker build \
@@ -49,24 +49,30 @@ jobs:
       - name: Install Lightning CLI
         run: pip install "lightning-sdk>=2025.11"
 
-      - name: Validate Lightning config
+      - name: Resolve Lightning context
         env:
-          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE }}
+          LIGHTNING_TEAMSPACE_RAW: ${{ vars.LIGHTNING_TEAMSPACE || '' }}
         run: |
+          LIGHTNING_TEAMSPACE="${LIGHTNING_TEAMSPACE_RAW:-}"
           if [ -z "${LIGHTNING_TEAMSPACE}" ]; then
-            echo "::error::LIGHTNING_TEAMSPACE is not set. Settings → Secrets and variables → Actions → Variables (e.g. contracts/gpu-ml-readiness-project)."
-            exit 1
+            echo "::warning::LIGHTNING_TEAMSPACE is unset — push will be skipped."
+            echo "LIGHTNING_SKIP_REMOTE=1" >> "$GITHUB_ENV"
+            exit 0
           fi
           if ! echo "${LIGHTNING_TEAMSPACE}" | grep -qE '^[^/]+/[^/]+$'; then
-            echo "::error::LIGHTNING_TEAMSPACE must be OWNER/TEAMSPACE_NAME (got: ${LIGHTNING_TEAMSPACE})"
-            exit 1
+            echo "::warning::LIGHTNING_TEAMSPACE should be OWNER/TEAMSPACE — skipping push."
+            echo "LIGHTNING_SKIP_REMOTE=1" >> "$GITHUB_ENV"
+            exit 0
           fi
+          echo "LIGHTNING_SKIP_REMOTE=0" >> "$GITHUB_ENV"
+          echo "Using teamspace=${LIGHTNING_TEAMSPACE}"
 
       - name: Push image to LitCR
+        if: env.LIGHTNING_SKIP_REMOTE == '0'
         env:
-          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
-          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
-          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE }}
+          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID || '' }}
+          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY || '' }}
+          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE || '' }}
         run: |
           lightning container upload "${CONTAINER_NAME}" \
             --teamspace "${LIGHTNING_TEAMSPACE}" \
@@ -80,8 +86,9 @@ jobs:
 
       - name: Set deployment metadata
         id: meta
+        if: env.LIGHTNING_SKIP_REMOTE == '0'
         env:
-          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE }}
+          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE || '' }}
         run: |
           OWNER="${LIGHTNING_TEAMSPACE%%/*}"
           TS="${LIGHTNING_TEAMSPACE#*/}"
@@ -99,20 +106,24 @@ jobs:
           echo "IMAGE=${IMAGE}"
           echo "IMAGE_LATEST=${IMAGE_LATEST}"
           echo "SERVICE_PORT=${SERVICE_PORT}"
-          echo "DEPLOYMENTS_URL=${DEPLOYMENTS_URL}"
 
       - name: Deployment summary
+        if: always()
         run: |
           {
             echo "### Frontend — Lightning"
             echo ""
+            if [ "${{ env.LIGHTNING_SKIP_REMOTE }}" = "1" ]; then
+              echo "_Push skipped: set \`LIGHTNING_TEAMSPACE\`._"
+              echo ""
+            fi
             echo "| Field | Value |"
             echo "|-------|-------|"
-            echo "| Container image | \`${{ steps.meta.outputs.image }}\` |"
-            echo "| Latest tag | \`${{ steps.meta.outputs.image_latest }}\` |"
-            echo "| Port (set in Deployment) | \`${{ steps.meta.outputs.service_port }}\` |"
-            echo "| Containers (registry) | [open](${{ steps.meta.outputs.containers_url }}) |"
-            echo "| Deployments (live app) | [open](${{ steps.meta.outputs.deployments_url }}) |"
+            echo "| Container image | \`${{ steps.meta.outputs.image || '—' }}\` |"
+            echo "| Latest tag | \`${{ steps.meta.outputs.image_latest || '—' }}\` |"
+            echo "| Port (set in Deployment) | \`${{ steps.meta.outputs.service_port || '5173' }}\` |"
+            echo "| Containers (registry) | \`${{ steps.meta.outputs.containers_url || '—' }}\` |"
+            echo "| Deployments (live app) | \`${{ steps.meta.outputs.deployments_url || '—' }}\` |"
             echo ""
-            echo "Upload only stores the image. To **run** it: **Deployments** → create or redeploy using image \`${{ steps.meta.outputs.image_latest }}\` on port **${{ steps.meta.outputs.service_port }}**."
+            echo "Missing secrets/vars use empty string (\`|| ''\` in YAML) — workflow does **not** fail on missing secrets."
           } >> "$GITHUB_STEP_SUMMARY"
