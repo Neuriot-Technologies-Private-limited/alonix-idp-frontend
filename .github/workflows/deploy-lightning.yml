@@ -1,0 +1,63 @@
+name: Deploy frontend to Lightning
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: lightning-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONTAINER_NAME: alonix-idp-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+
+      - name: Build Docker image
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
+          VITE_SOCKET_PATH: ${{ vars.VITE_SOCKET_PATH }}
+        run: |
+          VITE_SOCKET_PATH="${VITE_SOCKET_PATH:-/socket.io}"
+          docker build \
+            --platform linux/amd64 \
+            --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL}" \
+            --build-arg VITE_SOCKET_URL="${VITE_SOCKET_URL}" \
+            --build-arg VITE_SOCKET_PATH="${VITE_SOCKET_PATH}" \
+            -t "${CONTAINER_NAME}:${IMAGE_TAG}" \
+            -t "${CONTAINER_NAME}:latest" \
+            .
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Lightning CLI
+        run: pip install "lightning-sdk>=2025.11"
+
+      - name: Push image to LitCR
+        env:
+          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
+          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+        run: |
+          lightning container upload "${CONTAINER_NAME}" \
+            --teamspace "${{ vars.LIGHTNING_TEAMSPACE }}" \
+            --tag "${IMAGE_TAG}" \
+            --platform linux/amd64
+
+          lightning container upload "${CONTAINER_NAME}" \
+            --teamspace "${{ vars.LIGHTNING_TEAMSPACE }}" \
+            --tag latest \
+            --platform linux/amd64
