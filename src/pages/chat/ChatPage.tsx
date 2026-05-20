@@ -10,6 +10,7 @@ import {
   getChatHistory,
   getChatSessions,
   getFreshSourceUrl,
+  getDocumentAccessUrl,
   getMyContext,
   type ChatSessionDto,
 } from '../../services/chatApi';
@@ -32,6 +33,9 @@ interface NormSource {
   confidence?: number;
   file_path?: string;
   fileKey?: string;
+  document?: string;
+  document_id?: string;
+  documentId?: string;
   source_file?: unknown;
   source_type?: string;
 }
@@ -69,12 +73,23 @@ function normalizeSource(src: unknown): NormSource {
     if (ext === 'png') mimeType = 'image/png';
     else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
     else if (ext === 'gif') mimeType = 'image/gif';
+    const pathKey =
+      (typeof s.file_path === 'string' && s.file_path) ||
+      (typeof s.file_key === 'string' && s.file_key) ||
+      (typeof s.document === 'string' && s.document) ||
+      undefined;
     return {
       title: fileName,
       url: '#',
       page: pageNum ? Number(pageNum) : undefined,
       confidence: s.confidence as number | undefined,
-      file_path: s.file_path as string | undefined,
+      file_path: pathKey,
+      fileKey: pathKey,
+      document: typeof s.document === 'string' ? s.document : undefined,
+      document_id:
+        (typeof s.document_id === 'string' && s.document_id) ||
+        (typeof s.documentId === 'string' && s.documentId) ||
+        undefined,
       source_file: s.array_buffer ?? s.source_file,
       source_type: (s.type as string) || mimeType,
     };
@@ -88,12 +103,23 @@ function normalizeSource(src: unknown): NormSource {
     );
   const fileName = titleRaw.replace(/^[a-f0-9]{32}_/, '');
   const pageNum = s.page ?? s.page_number;
+  const pathKey =
+    (typeof s.file_path === 'string' && s.file_path) ||
+    (typeof s.file_key === 'string' && s.file_key) ||
+    (typeof s.document === 'string' && s.document) ||
+    undefined;
   return {
     title: fileName,
     url: (s.url as string) || (s.link as string) || '#',
     page: pageNum ? Number(pageNum) : undefined,
     confidence: s.confidence as number | undefined,
-    file_path: s.file_path as string | undefined,
+    file_path: pathKey,
+    fileKey: pathKey,
+    document: typeof s.document === 'string' ? s.document : undefined,
+    document_id:
+      (typeof s.document_id === 'string' && s.document_id) ||
+      (typeof s.documentId === 'string' && s.documentId) ||
+      undefined,
     source_file: s.source_file,
     source_type: (s.type as string) || 'application/pdf',
   };
@@ -271,7 +297,22 @@ const ChatPage: React.FC = () => {
         else mimeType = 'application/octet-stream';
       }
 
-      const fileKey = source.file_path || source.fileKey || null;
+      const documentId = source.document_id || source.documentId || null;
+      if (documentId) {
+        const byId = await getDocumentAccessUrl(documentId, activeGroupId || undefined);
+        const freshUrl = byId?.data?.url;
+        if (freshUrl) {
+          let url = freshUrl;
+          if (mimeType === 'application/pdf' && source.page) {
+            url = `${url}#page=${source.page}`;
+          }
+          window.open(url, '_blank', 'noopener,noreferrer');
+          return;
+        }
+      }
+
+      const fileKey =
+        source.file_path || source.fileKey || source.document || null;
       if (fileKey) {
         const fresh = await getFreshSourceUrl(fileKey, null, activeGroupId || undefined);
         const freshUrl = fresh?.data?.url;
@@ -320,8 +361,12 @@ const ChatPage: React.FC = () => {
       let url = blobUrl;
       if (mimeType === 'application/pdf' && source.page) url = `${blobUrl}#page=${source.page}`;
       window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      const msg = 'Failed to load document.';
+    } catch (error: unknown) {
+      const ax = error as { response?: { data?: { error?: string } }; message?: string };
+      const msg =
+        ax?.response?.data?.error ||
+        (error instanceof Error ? error.message : '') ||
+        'Failed to load document.';
       setErrorText(msg);
       showToast(msg, 'error');
     }
