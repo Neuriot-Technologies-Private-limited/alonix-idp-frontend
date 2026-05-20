@@ -47,17 +47,31 @@ jobs:
       - name: Install Lightning CLI
         run: pip install "lightning-sdk>=2025.11"
 
+      - name: Validate Lightning config
+        env:
+          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE }}
+        run: |
+          if [ -z "${LIGHTNING_TEAMSPACE}" ]; then
+            echo "::error::LIGHTNING_TEAMSPACE is not set. Add it under Settings → Secrets and variables → Actions → Variables (format: OWNER/TEAMSPACE_NAME, e.g. my-user/alonix)."
+            exit 1
+          fi
+          if ! echo "${LIGHTNING_TEAMSPACE}" | grep -qE '^[^/]+/[^/]+$'; then
+            echo "::error::LIGHTNING_TEAMSPACE must be OWNER/TEAMSPACE_NAME (got: ${LIGHTNING_TEAMSPACE})"
+            exit 1
+          fi
+
       - name: Push image to LitCR
         env:
           LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
           LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          LIGHTNING_TEAMSPACE: ${{ vars.LIGHTNING_TEAMSPACE }}
         run: |
           lightning container upload "${CONTAINER_NAME}" \
-            --teamspace "${{ vars.LIGHTNING_TEAMSPACE }}" \
+            --teamspace "${LIGHTNING_TEAMSPACE}" \
             --tag "${IMAGE_TAG}" \
             --platform linux/amd64
 
           lightning container upload "${CONTAINER_NAME}" \
-            --teamspace "${{ vars.LIGHTNING_TEAMSPACE }}" \
+            --teamspace "${LIGHTNING_TEAMSPACE}" \
             --tag latest \
             --platform linux/amd64
