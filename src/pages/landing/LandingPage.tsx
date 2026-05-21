@@ -1,25 +1,37 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
   PlayCircle,
-  LayoutDashboard,
   ShieldCheck,
   Workflow,
   Sparkles,
-  FolderOpen,
-  PieChart as Insights,
-  Check,
   Brain,
-  Leaf,
-  Diamond,
-  Crown,
-  Cpu
+  Cpu,
 } from 'lucide-react';
-import logoFull from '../../assets/1-glance.png';
+import BrandHomeLink from '../../components/branding/BrandHomeLink';
+import { BillingCycleToggle } from '../../components/admin/BillingCycleToggle';
+import PublicPricingGrid, { discountPercentFromPlans } from '../../components/billing/PublicPricingGrid';
+import { ProductScreenshotFrame } from '../../components/landing/ProductScreenshotFrame';
+import { ProductShowcaseSection } from '../../components/landing/ProductShowcaseSection';
+import { NoLinePhilosophyVisual } from '../../components/landing/NoLinePhilosophyVisual';
+import {
+  PRODUCT_SCREEN_ASPECT,
+  PRODUCT_SCREEN_POSITION,
+} from '../../components/landing/productScreens';
+import dashboardShot from '../../assets/landing/product-dashboard.png';
+import { fetchBillingPlans } from '../../services/billingService';
+import type { BillingCycle } from '../../utils/billingUtils';
 
 const LandingPage: React.FC = () => {
-  const [billingCycle, setBillingCycle] = React.useState<'monthly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = React.useState<BillingCycle>('monthly');
+
+  const { data: plans = [], isLoading: plansLoading, isError: plansError } = useQuery({
+    queryKey: ['plans'],
+    queryFn: fetchBillingPlans,
+    staleTime: 5 * 60_000,
+  });
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -39,11 +51,10 @@ const LandingPage: React.FC = () => {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-border/10 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center">
-            <img src={logoFull} alt="1-glance" className="h-10 md:h-12 origin-left object-contain" />
-          </div>
+          <BrandHomeLink />
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground font-display">
+            <a href="#product" className="hover:text-primary transition-colors">Product</a>
             <a href="#features" className="hover:text-primary transition-colors">Solutions</a>
             <a href="#intelligence" className="hover:text-primary transition-colors">Intelligence</a>
             <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
@@ -122,57 +133,28 @@ const LandingPage: React.FC = () => {
               </button>
             </motion.div>
 
-            {/* Floating Glassmorphic UI Mockup */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 1 }}
               className="relative w-full max-w-6xl mx-auto group"
             >
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-primary-container/20 rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-1000" />
-              <div className="relative glass rounded-xl border border-border/5 p-2 md:p-4 shadow-2xl overflow-hidden aspect-video md:aspect-[21/9]">
-                <div className="w-full h-full bg-surface-lowest rounded-lg overflow-hidden flex border border-border/10">
-                  {/* Sidebar Mock */}
-                  <div className="w-16 md:w-20 bg-surface-lowest border-r border-border/10 h-full flex flex-col items-center py-6 gap-8">
-                    <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                      <LayoutDashboard className="w-4 h-4 text-primary" />
-                    </div>
-                    {[FolderOpen, Insights, ShieldCheck].map((Icon, i) => (
-                      <div key={i} className="w-8 h-8 rounded hover:bg-surface-high transition-colors flex items-center justify-center cursor-pointer">
-                        <Icon className="w-4 h-4 text-muted-foreground/50" />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Main Content Mock */}
-                  <div className="flex-1 p-8 text-left space-y-6">
-                    <div className="flex justify-between items-center mb-10">
-                      <div className="h-6 w-48 bg-surface-high rounded-full animate-pulse" />
-                      <div className="h-8 w-32 bg-primary/5 rounded-lg border border-primary/20 shadow-sm shadow-primary/10" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-6">
-                      {[
-                        { color: "bg-primary/20", width: "w-full" },
-                        { color: "bg-primary-container/20", width: "w-2/3" },
-                        { color: "bg-surface-highest/50", width: "w-full" }
-                      ].map((card, i) => (
-                        <div key={i} className="h-32 bg-surface-high/50 rounded-xl p-4 space-y-4 border border-border/5">
-                          <div className={`h-2 w-12 ${card.color} rounded-full`} />
-                          <div className={`h-3 ${card.width} bg-surface-highest rounded-full`} />
-                          <div className="h-3 w-1/2 bg-surface-highest rounded-full opacity-50" />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-4 pt-4">
-                      <div className="h-3 w-full bg-surface-lowest rounded-full border border-border/10" />
-                      <div className="h-3 w-full bg-surface-lowest rounded-full border border-border/10" />
-                      <div className="h-3 w-3/4 bg-surface-lowest rounded-full border border-border/10" />
-                    </div>
-                  </div>
-                </div>
+              <div className="absolute -inset-2 bg-gradient-to-r from-primary/25 via-violet/15 to-primary-container/20 rounded-3xl blur-2xl opacity-40 group-hover:opacity-55 transition duration-700" />
+              <div className="relative rounded-2xl border border-border/10 shadow-2xl overflow-hidden">
+                <ProductScreenshotFrame
+                  src={dashboardShot}
+                  alt="Alonix IDP dashboard — document trends, workspaces, and activity"
+                  pathLabel="app.alonix.ai/users"
+                  priority
+                  imageAspect={PRODUCT_SCREEN_ASPECT}
+                  imagePosition={PRODUCT_SCREEN_POSITION}
+                />
               </div>
             </motion.div>
           </motion.div>
         </section>
+
+        <ProductShowcaseSection />
 
         {/* Feature Grid (Bento Style) */}
         <section id="features" className="py-32 px-6 max-w-7xl mx-auto">
@@ -232,15 +214,25 @@ const LandingPage: React.FC = () => {
               </div>
             </motion.div>
 
-            <div className="md:col-span-8 bg-surface-low rounded-3xl p-1 overflow-hidden group shadow-2xl">
-              <div className="w-full h-full rounded-[23px] relative overflow-hidden flex items-center justify-center bg-surface-high/50">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=2000')] bg-cover bg-center mix-blend-overlay opacity-20 transition-transform duration-700 group-hover:scale-110" />
-                <div className="relative z-10 text-center px-10">
-                  <h4 className="font-display text-2xl font-bold mb-2">Automated Governance</h4>
-                  <p className="text-muted-foreground">Continuous compliance monitoring across every byte.</p>
+            <motion.a
+              href="#product"
+              whileHover={{ y: -4 }}
+              className="md:col-span-8 rounded-3xl p-1 overflow-hidden group shadow-2xl border border-border/10 bg-surface-low block"
+            >
+              <div className="rounded-[23px] overflow-hidden relative">
+                <img
+                  src={dashboardShot}
+                  alt=""
+                  aria-hidden
+                  className="w-full h-48 md:h-56 object-cover object-top object-left bg-[#070b14] transition-transform duration-700 group-hover:scale-[1.02]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <h4 className="font-display text-2xl font-bold mb-2">See the full product tour</h4>
+                  <p className="text-muted-foreground text-sm">Dashboard metrics and document Q&A — switch views below.</p>
                 </div>
               </div>
-            </div>
+            </motion.a>
           </div>
         </section>
 
@@ -330,36 +322,10 @@ const LandingPage: React.FC = () => {
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
               className="relative"
             >
-              {/* Efficiency Visualization */}
-              <div className="bg-surface-high/30 backdrop-blur-md rounded-3xl p-8 border border-border/10 shadow-3xl">
-                <div className="flex items-end gap-3 h-64 mb-8">
-                  {[40, 55, 45, 95, 60, 50].map((h, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center group relative">
-                      <motion.div
-                        initial={{ height: 0 }}
-                        whileInView={{ height: `${h}%` }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1, duration: 1 }}
-                        className={`w-full rounded-t-xl transition-all relative ${h === 95 ? 'bg-primary shadow-[0_-8px_24px_-4px_rgba(173,198,255,0.4)]' : 'bg-surface-highest hover:bg-primary/40 cursor-help'}`}
-                      >
-                        {h === 95 && (
-                          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap shadow-xl">
-                            1-glance Performance
-                          </div>
-                        )}
-                      </motion.div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em] opacity-50">
-                  <span>Processing Volume</span>
-                  <span>Intelligence Level</span>
-                </div>
-              </div>
-              {/* Decorative Glow */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 blur-[60px] rounded-full -z-10" />
+              <NoLinePhilosophyVisual />
             </motion.div>
           </div>
         </section>
@@ -375,115 +341,29 @@ const LandingPage: React.FC = () => {
                 Transform document chaos into structured intelligence. Efficient plans for every stage of growth.
               </p>
 
-              {/* Billing Toggle */}
-              <div className="flex items-center justify-center gap-4 pt-8">
-                <span className={`text-xs font-bold uppercase tracking-widest transition-colors ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>Monthly</span>
-                <button
-                  onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-                  className="w-14 h-7 rounded-full bg-surface-highest/20 border border-border/10 relative p-1 transition-all cursor-pointer"
-                >
-                  <motion.div
-                    animate={{ x: billingCycle === 'monthly' ? 0 : 28 }}
-                    className="w-5 h-5 rounded-full bg-primary shadow-lg shadow-primary/40"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold uppercase tracking-widest transition-colors ${billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}`}>Annually</span>
-                  <span className="bg-primary-container/20 text-primary-container text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary-container/30">
-                    -20%
-                  </span>
-                </div>
+              <div className="flex justify-center pt-8">
+                <BillingCycleToggle
+                  cycle={billingCycle}
+                  onChange={setBillingCycle}
+                  discountPercent={discountPercentFromPlans(plans)}
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Lite",
-                  icon: Leaf,
-                  monthlyPrice: 20,
-                  yearlyPrice: 16,
-                  desc: "Perfect for niche builders and researchers.",
-                  usage: "for up to 500 documents",
-                  features: ["Semantic search", "Basic PII masking", "Community support", "1.5 GB Storage"],
-                  cta: "Try 7 days for free",
-                  popular: false
-                },
-                {
-                  name: "Premium",
-                  icon: Diamond,
-                  monthlyPrice: 65,
-                  yearlyPrice: 52,
-                  desc: "The standard for professionals and agencies.",
-                  usage: "for up to 5,000 documents",
-                  features: ["Unlimited OCR engine", "Automated redaction", "Advanced relationship mapping", "Custom metadata tagging", "Priority 24/7 support"],
-                  cta: "Get started",
-                  popular: true
-                },
-                {
-                  name: "Enterprise",
-                  icon: Crown,
-                  monthlyPrice: 120,
-                  yearlyPrice: 96,
-                  desc: "Mission-critical infrastructure for the modern org.",
-                  usage: "for mid to big agencies",
-                  features: ["Dedicated compute nodes", "Custom AI fine-tuning", "SSO & SAML integration", "Audit logs & compliance repo", "Dedicated account manager"],
-                  cta: "Get started",
-                  popular: false
-                }
-              ].map((tier) => (
-                <div
-                  key={tier.name}
-                  className={`relative glass p-10 rounded-3xl border transition-all duration-500 flex flex-col ${tier.popular ? 'border-primary/30 shadow-2xl shadow-primary/10 scale-105 z-10 bg-surface-highest/5' : 'border-border/5 opacity-80 hover:opacity-100 hover:border-border/10'}`}
-                >
-                  {tier.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">
-                      Recommended
-                    </div>
-                  )}
-                  <div className="mb-8">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${tier.popular ? 'bg-primary/20 text-primary' : 'bg-surface-highest/10 text-muted-foreground'}`}>
-                      <tier.icon className="w-6 h-6" />
-                    </div>
-                    <h4 className="text-3xl font-bold font-display tracking-tight mb-2">{tier.name}</h4>
-                    <p className="text-xs text-muted-foreground font-medium mb-8 leading-relaxed h-10">{tier.desc}</p>
+            <PublicPricingGrid
+              plans={plans}
+              cycle={billingCycle}
+              isLoading={plansLoading}
+              error={plansError}
+              ctaHref="/signup"
+              ctaLabel="Get started"
+            />
 
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-extrabold font-display">
-                        ${billingCycle === 'monthly' ? tier.monthlyPrice : tier.yearlyPrice}
-                      </span>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">/ mo</span>
-                        <span className="text-[10px] text-primary/60 font-medium italic">{tier.usage}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link
-                    to="/signup"
-                    className={`w-full block text-center py-4 rounded-xl font-bold transition-all shadow-lg mb-10 ${tier.popular ? 'bg-primary text-primary-foreground shadow-primary/20 hover:scale-[1.02]' : 'bg-surface-highest/50 text-foreground hover:bg-surface-highest'}`}
-                  >
-                    {tier.cta}
-                  </Link>
-
-                  <ul className="space-y-4 flex-1">
-                    {tier.features.map(f => (
-                      <li key={f} className="flex items-start gap-3 text-sm">
-                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <Check className="w-3 h-3 text-primary" />
-                        </div>
-                        <span className="text-muted-foreground leading-tight">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {tier.popular && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent blur-sm" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <p className="text-center mt-10">
+              <Link to="/pricing" className="text-sm font-bold text-primary hover:underline">
+                Compare all plans →
+              </Link>
+            </p>
           </div>
         </section>
 
@@ -538,7 +418,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20">
             <div className="space-y-6 max-w-xs">
-              <img src={logoFull} alt="1-glance" className="h-8 md:h-10 origin-left object-contain opacity-80" />
+              <BrandHomeLink imgClassName="h-8 md:h-10 origin-left object-contain opacity-80 hover:opacity-100 transition-opacity" />
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Empowering the digital curator through sophisticated document intelligence and role-based excellence.
               </p>

@@ -9,52 +9,15 @@ import {
 import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
-import type { BillingCycle } from '../../utils/billingUtils';
-
-// ── Types ────────────────────────────────────────────────────────────────────
-interface PlanLimits {
-  maxConnectors: number;
-  maxDocumentsMonth: number;
-  maxUsers: number;
-  maxStorageBytes: number;
-}
-
-interface BillingSubscription {
-  plan: {
-    name: string;
-    displayName: string;
-    description: string;
-    priceMonthlyUsd: number;
-    limits: PlanLimits;
-  };
-  subscription: {
-    status: string;
-    currentPeriodEnd: string | null;
-    trialEndsAt: string | null;
-    cancelAtPeriodEnd: boolean;
-  };
-  usage: {
-    docsThisMonth: number;
-    connectors: number;
-    users: number;
-    storageBytes: number;
-  };
-  limits: PlanLimits;
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function formatBytes(bytes: number): string {
-  if (bytes === -1) return 'Unlimited';
-  if (bytes < 1024) return `${bytes} B`;
-  const gb = bytes / 1024 / 1024 / 1024;
-  if (gb >= 1) return `${gb.toFixed(0)} GB`;
-  const mb = bytes / 1024 / 1024;
-  return `${mb.toFixed(0)} MB`;
-}
-
-function limitLabel(limit: number): string {
-  return limit === -1 ? 'Unlimited' : String(limit);
-}
+import { fmtBytes, limitLabel, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
+import {
+  fetchBillingPlans,
+  fetchBillingConfig,
+  getNextUpgradePlan,
+  planQuotaPills,
+  upgradePitch,
+  type BillingSubscriptionResponse,
+} from '../../services/billingService';
 
 function usagePercent(used: number, limit: number): number {
   if (limit === -1) return 0;
@@ -139,14 +102,26 @@ export const BillingPage: React.FC = () => {
     navigate(`/org-settings?upgrade=${encodeURIComponent(upgrade)}`, { replace: true });
   }, [searchParams, navigate]);
 
-  const { data, isLoading, error } = useQuery<BillingSubscription>({
+  const { data, isLoading, error } = useQuery<BillingSubscriptionResponse>({
     queryKey: ['billing-subscription', orgId],
     queryFn: async () => {
-      const { data } = await apiClient.get<BillingSubscription>('/billing/subscription');
+      const { data } = await apiClient.get<BillingSubscriptionResponse>('/billing/subscription');
       return data;
     },
     enabled: !!orgId,
     staleTime: 30_000,
+  });
+
+  const { data: allPlans = [] } = useQuery({
+    queryKey: ['plans'],
+    queryFn: fetchBillingPlans,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: billingConfig } = useQuery({
+    queryKey: ['billing-config'],
+    queryFn: fetchBillingConfig,
+    staleTime: 60_000,
   });
 
   const checkoutMutation = useMutation({
@@ -194,6 +169,12 @@ export const BillingPage: React.FC = () => {
   const gradient = planGradient[plan.name] || 'from-slate-400 to-slate-600';
   const isFreePlan = plan.priceMonthlyUsd === 0;
   const isPaidPlan = !isFreePlan && subscription.status === 'active';
+  const nextPlan = getNextUpgradePlan(plan.name, allPlans);
+  const checkoutAllowed =
+    billingConfig?.stripeConfigured &&
+    billingConfig?.checkoutReady &&
+    nextPlan &&
+    stripePriceIdForCycle(nextPlan, 'monthly');
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 px-4 py-8">
@@ -308,33 +289,36 @@ export const BillingPage: React.FC = () => {
               icon={<HardDrive className="h-4 w-4" />}
               used={usage.storageBytes ?? 0}
               limit={limits.maxStorageBytes}
-              formatValue={formatBytes}
+              formatValue={fmtBytes}
             />
           </div>
         </div>
       </div>
 
-      {/* Upgrade CTA (only show for free/starter plans) */}
-      {(plan.name === 'FREE' || plan.name === 'STARTER') && (
+      {billingConfig && (!billingConfig.stripeConfigured || !billingConfig.checkoutReady) && (
+        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200/90">
+          <p className="font-bold text-amber-300 mb-1">Paid upgrades are not available yet</p>
+          <p className="text-xs leading-relaxed">
+            {!billingConfig.stripeConfigured
+              ? 'Add STRIPE_SECRET_KEY to the backend .env and restart the API.'
+              : 'Set STRIPE_PRICE_* for Starter and Pro in .env, then restart the API.'}
+          </p>
+        </div>
+      )}
+
+      {nextPlan && (
         <div className="rounded-3xl border border-violet/20 bg-violet/5 shadow-xl p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-5 w-5 text-violet" />
                 <span className="text-sm font-black text-violet uppercase tracking-wider">
-                  {plan.name === 'FREE' ? 'Upgrade to Starter' : 'Upgrade to Pro'}
+                  Upgrade to {nextPlan.displayName}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {plan.name === 'FREE'
-                  ? 'Get 3 connectors, 500 documents/month, and 10 team members for $49/mo.'
-                  : 'Get 10 connectors, 5,000 documents/month, and 50 team members for $149/mo.'}
-              </p>
+              <p className="text-sm text-muted-foreground">{upgradePitch(plan, nextPlan)}</p>
               <div className="flex flex-wrap gap-2 mt-3">
-                {(plan.name === 'FREE'
-                  ? ['3 Connectors', '500 Docs/mo', '10 Users', '5 GB Storage']
-                  : ['10 Connectors', '5,000 Docs/mo', '50 Users', '50 GB Storage']
-                ).map((feature) => (
+                {planQuotaPills(nextPlan).map((feature) => (
                   <span key={feature} className="inline-flex items-center gap-1 text-[10px] font-bold text-violet bg-violet/10 px-2 py-0.5 rounded-full">
                     <CheckCircle2 className="h-2.5 w-2.5" />
                     {feature}
@@ -343,9 +327,10 @@ export const BillingPage: React.FC = () => {
               </div>
             </div>
             <button
-              id={`upgrade-to-${plan.name === 'FREE' ? 'starter' : 'pro'}-btn`}
-              onClick={() => checkoutMutation.mutate({ planName: plan.name === 'FREE' ? 'STARTER' : 'PRO', billingCycle: 'monthly' })}
-              disabled={checkoutMutation.isPending}
+              id={`upgrade-to-${nextPlan.name.toLowerCase()}-btn`}
+              onClick={() => checkoutMutation.mutate({ planName: nextPlan.name, billingCycle: 'monthly' })}
+              disabled={checkoutMutation.isPending || !checkoutAllowed}
+              title={!checkoutAllowed ? 'Stripe checkout is not configured for this plan.' : undefined}
               className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet text-white font-black text-sm hover:bg-violet/90 transition-all hover:scale-[1.02] shadow-lg shadow-violet/20 disabled:opacity-50"
             >
               {checkoutMutation.isPending
@@ -363,7 +348,7 @@ export const BillingPage: React.FC = () => {
           { label: 'Connectors', value: limitLabel(limits.maxConnectors), icon: <Zap className="h-4 w-4 text-primary" /> },
           { label: 'Docs / Month', value: limitLabel(limits.maxDocumentsMonth), icon: <FileText className="h-4 w-4 text-info" /> },
           { label: 'Team Members', value: limitLabel(limits.maxUsers), icon: <Users className="h-4 w-4 text-violet" /> },
-          { label: 'Storage', value: formatBytes(limits.maxStorageBytes), icon: <HardDrive className="h-4 w-4 text-emerald-500" /> },
+          { label: 'Storage', value: fmtBytes(limits.maxStorageBytes), icon: <HardDrive className="h-4 w-4 text-emerald-500" /> },
         ].map(({ label, value, icon }) => (
           <div key={label} className="rounded-2xl border border-border/10 bg-surface-highest/5 p-4 text-center">
             <div className="flex justify-center mb-2">{icon}</div>

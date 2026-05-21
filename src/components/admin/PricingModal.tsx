@@ -10,28 +10,9 @@ import {
   annualDiscountPercent,
 } from '../../utils/billingUtils';
 import { BillingCycleToggle, type BillingCycle } from './BillingCycleToggle';
+import { sortBillingPlans, connectorQuotaLabel, type BillingPlan } from '../../services/billingService';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface PlanLimits {
-  maxConnectors: number;
-  maxDocumentsMonth: number;
-  maxUsers: number;
-  maxStorageBytes: number;
-}
-
-export interface PricingPlan {
-  _id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  priceMonthlyUsd: number;
-  limits: PlanLimits;
-  stripePriceId: string | null;
-  stripePriceIdMonthly?: string | null;
-  stripePriceIdYearly?: string | null;
-  /** From GET /billing/plans — drives annual display discount (see BILLING_ANNUAL_DISCOUNT_FRACTION). */
-  annualDiscountFraction?: number;
-}
+export type PricingPlan = BillingPlan;
 
 interface PricingModalProps {
   open: boolean;
@@ -42,11 +23,6 @@ interface PricingModalProps {
   upgrading: string | null;
 }
 
-// Canonical display order
-const PLAN_ORDER: Record<string, number> = { FREE: 0, STARTER: 1, PRO: 2, ENTERPRISE: 3 };
-function sortPlans(plans: PricingPlan[]) {
-  return [...plans].sort((a, b) => (PLAN_ORDER[a.name] ?? 99) - (PLAN_ORDER[b.name] ?? 99));
-}
 
 // ── Per-plan visual config ────────────────────────────────────────────────────
 const PLAN_CFG: Record<string, {
@@ -86,7 +62,6 @@ const PLAN_CFG: Record<string, {
 // Compact, focused feature list — max 5 per plan to avoid overflow
 function features(plan: PricingPlan): string[] {
   const docs = limitLabel(plan.limits.maxDocumentsMonth);
-  const conn = limitLabel(plan.limits.maxConnectors);
   const users = limitLabel(plan.limits.maxUsers);
   const stor = fmtBytes(plan.limits.maxStorageBytes);
 
@@ -96,9 +71,7 @@ function features(plan: PricingPlan): string[] {
     PRO:        ['API ingestion', 'Audit logs & classification'],
     ENTERPRISE: ['Custom SLAs & on-prem', 'Dedicated account manager'],
   };
-  const connLabel = plan.limits.maxConnectors === 0
-    ? 'No connectors'
-    : `${conn} connector${plan.limits.maxConnectors === 1 ? '' : 's'}`;
+  const connLabel = connectorQuotaLabel(plan.limits.maxConnectors).replace(/^Unlimited /, '∞ ');
   return [`${docs} docs/mo`, connLabel, `${users} users`, `${stor} storage`, ...(extra[plan.name] ?? [])];
 }
 
@@ -126,9 +99,9 @@ const PlanCard: React.FC<{
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 + index * 0.06, duration: 0.38, ease: 'easeOut' }}
       className={cn(
-        'relative glass rounded-2xl border flex flex-col transition-all duration-300',
+        'relative flex h-full flex-col glass rounded-2xl border transition-all duration-300',
         cfg.popular
-          ? 'border-primary/30 shadow-xl shadow-primary/10 scale-[1.02] z-10'
+          ? 'border-primary/30 shadow-xl shadow-primary/10 z-10'
           : 'border-border/10 hover:border-border/25',
         isCurrent && 'ring-1 ring-primary/30',
       )}
@@ -144,7 +117,7 @@ const PlanCard: React.FC<{
         </div>
       )}
 
-      <div className="p-5 flex flex-col flex-1 gap-3">
+      <div className="flex h-full min-h-0 flex-1 flex-col gap-3 p-5">
         {/* Header row */}
         <div className="flex items-center gap-2.5">
           <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center shrink-0', cfg.iconCls)}>
@@ -162,7 +135,7 @@ const PlanCard: React.FC<{
         </div>
 
         {/* Price block — stacked, always legible */}
-        <div className="space-y-0.5">
+        <div className="min-h-[4.75rem] space-y-0.5">
           {isFree ? (
             <div className="font-display text-3xl font-extrabold text-foreground leading-none">Free</div>
           ) : isEnterprise ? (
@@ -213,40 +186,41 @@ const PlanCard: React.FC<{
           ))}
         </ul>
 
-        {/* CTA */}
-        {isCurrent ? (
-          <div className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-surface-highest/20 border border-border/15 text-xs font-bold text-muted-foreground">
-            <Check className="w-3.5 h-3.5 text-primary" /> Current Plan
-          </div>
-        ) : isEnterprise ? (
-          <a
-            href="mailto:sales@alonix.ai?subject=Enterprise%20Plan%20Enquiry"
-            id="pricing-modal-contact-sales-btn"
-            className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl font-bold text-xs transition-all bg-gradient-to-r from-amber-400 to-orange-500 text-white hover:opacity-90 hover:scale-[1.01] shadow-md"
-          >
-            <Mail className="w-3.5 h-3.5" /> Contact Sales
-          </a>
-        ) : (
-          <button
-            id={`pricing-modal-upgrade-${plan.name.toLowerCase()}-btn`}
-            type="button"
-            onClick={() => onUpgrade(plan.name, cycle)}
-            disabled={!!upgrading || !checkoutPriceId}
-            title={!checkoutPriceId ? 'This billing interval is not configured in Stripe yet.' : undefined}
-            className={cn(
-              'flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl font-bold text-xs transition-all shadow-md',
-              'disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99] cursor-pointer',
-              cfg.popular
-                ? 'bg-primary text-primary-foreground shadow-primary/20 hover:bg-primary/90'
-                : 'bg-surface-highest/40 text-foreground hover:bg-surface-highest/60',
-            )}
-          >
-            {isLoading
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : <ArrowRight className="w-3.5 h-3.5" />}
-            {plan.name === 'FREE' ? 'Downgrade' : `Upgrade to ${plan.displayName}`}
-          </button>
-        )}
+        <div className="mt-auto shrink-0 pt-2">
+          {isCurrent ? (
+            <div className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-border/15 bg-surface-highest/20 py-2.5 text-xs font-bold text-muted-foreground">
+              <Check className="h-3.5 w-3.5 shrink-0 text-primary" /> Current Plan
+            </div>
+          ) : isEnterprise ? (
+            <a
+              href="mailto:sales@alonix.ai?subject=Enterprise%20Plan%20Enquiry"
+              id="pricing-modal-contact-sales-btn"
+              className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:opacity-90"
+            >
+              <Mail className="h-3.5 w-3.5 shrink-0" /> Contact Sales
+            </a>
+          ) : (
+            <button
+              id={`pricing-modal-upgrade-${plan.name.toLowerCase()}-btn`}
+              type="button"
+              onClick={() => onUpgrade(plan.name, cycle)}
+              disabled={!!upgrading || !checkoutPriceId}
+              title={!checkoutPriceId ? 'This billing interval is not configured in Stripe yet.' : undefined}
+              className={cn(
+                'flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold shadow-md transition-all',
+                'disabled:opacity-50 active:scale-[0.99] hover:scale-[1.01]',
+                cfg.popular
+                  ? 'bg-primary text-primary-foreground shadow-primary/20 hover:bg-primary/90'
+                  : 'bg-surface-highest/40 text-foreground hover:bg-surface-highest/60',
+              )}
+            >
+              {isLoading
+                ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                : <ArrowRight className="h-3.5 w-3.5 shrink-0" />}
+              {plan.name === 'FREE' ? 'Downgrade' : `Upgrade to ${plan.displayName}`}
+            </button>
+          )}
+        </div>
 
         {/* Bottom glow strip for popular */}
         {cfg.popular && (
@@ -348,10 +322,10 @@ const PricingModal: React.FC<PricingModalProps> = ({
               {/* ── Plan grid ───────────────────────────────────────────── */}
               <div className="px-6 pt-6 pb-5">
                 <div className={cn(
-                  'grid gap-4 items-start',
+                  'grid gap-4 items-stretch',
                   plans.length <= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
                 )}>
-                  {sortPlans(plans).map((plan, i) => (
+                  {sortBillingPlans(plans).map((plan, i) => (
                     <PlanCard
                       key={plan._id}
                       plan={plan}

@@ -2,6 +2,10 @@
 
 Frontend application for the Alonix IDP platform, built with React + TypeScript + Vite.
 
+## Multi-product / white-label (Findout v3)
+
+Architecture for running multiple branded products (e.g. Alonix and Findout v3) from one codebase: [docs/MULTI_PRODUCT_WHITE_LABEL.md](../docs/MULTI_PRODUCT_WHITE_LABEL.md).
+
 ## Tech stack
 
 - React 19 + TypeScript

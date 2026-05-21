@@ -29,6 +29,7 @@ import BillingPage from './pages/billing/BillingPage';
 import PricingPage from './pages/billing/PricingPage';
 import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
 
+import ScrollToTop from './components/routing/ScrollToTop';
 import './index.css';
 
 const ForbiddenPage = () => (
@@ -90,6 +91,7 @@ function App() {
           {/* Global upload progress panel — persists across all routes */}
           <UploadToastPanel />
         <Router>
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginRoute />} />

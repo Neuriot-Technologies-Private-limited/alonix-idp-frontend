@@ -11,41 +11,17 @@ import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { fmtBytes, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
+import {
+  fetchBillingPlans,
+  fetchBillingConfig,
+  fetchBillingSubscription,
+  getNextUpgradePlan,
+  planQuotaPills,
+  type BillingPlan,
+  type BillingSubscriptionResponse,
+} from '../../services/billingService';
 import PricingModal from './PricingModal';
 import { useAlert } from '../alert';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface PlanLimits {
-  maxConnectors: number;
-  maxDocumentsMonth: number;
-  maxUsers: number;
-  maxStorageBytes: number;
-}
-
-interface Plan {
-  _id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  priceMonthlyUsd: number;
-  limits: PlanLimits;
-  stripePriceId: string | null;
-  stripePriceIdMonthly?: string | null;
-  stripePriceIdYearly?: string | null;
-  annualDiscountFraction?: number;
-}
-
-interface BillingData {
-  plan: Plan;
-  subscription: {
-    status: string;
-    currentPeriodEnd: string | null;
-    trialEndsAt: string | null;
-    cancelAtPeriodEnd: boolean;
-  };
-  usage: { docsThisMonth: number; connectors: number; users: number; storageBytes: number };
-  limits: PlanLimits;
-}
 
 
 function limitLabel(n: number) { return n === -1 ? '∞' : String(n); }
@@ -151,20 +127,23 @@ const SubscriptionPanel: React.FC = () => {
     }
   }, [upgradeResult, queryClient]);
 
-  const { data, isLoading, error } = useQuery<BillingData>({
+  const { data, isLoading, error } = useQuery<BillingSubscriptionResponse>({
     queryKey: ['billing-subscription', orgId],
-    queryFn: async () => {
-      const { data } = await apiClient.get<BillingData>('/billing/subscription');
-      return data;
-    },
+    queryFn: fetchBillingSubscription,
     enabled: !!orgId,
     staleTime: 30_000,
   });
 
-  const { data: allPlans = [] } = useQuery<Plan[]>({
+  const { data: allPlans = [] } = useQuery<BillingPlan[]>({
     queryKey: ['plans'],
-    queryFn: async () => (await apiClient.get<Plan[]>('/billing/plans')).data,
+    queryFn: fetchBillingPlans,
     staleTime: 5 * 60_000,
+  });
+
+  const { data: billingConfig } = useQuery({
+    queryKey: ['billing-config'],
+    queryFn: fetchBillingConfig,
+    staleTime: 60_000,
   });
 
   const checkoutMut = useMutation({
@@ -223,8 +202,7 @@ const SubscriptionPanel: React.FC = () => {
   const grad = planGrad[plan.name] || planGrad.FREE;
   const isFreePlan = plan.name === 'FREE';
   const isPaid = !isFreePlan && subscription.status === 'active';
-  const nextPlanName = plan.name === 'FREE' ? 'STARTER' : plan.name === 'STARTER' ? 'PRO' : null;
-  const nextPlan = nextPlanName ? allPlans.find(p => p.name === nextPlanName) : null;
+  const nextPlan = getNextUpgradePlan(plan.name, allPlans);
 
   return (
     <>
@@ -294,6 +272,16 @@ const SubscriptionPanel: React.FC = () => {
             </button>
           </div>
         )}
+        {billingConfig && (!billingConfig.stripeConfigured || !billingConfig.checkoutReady) && (
+          <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200/90">
+            <p className="font-bold text-amber-300 mb-1">Paid upgrades are not available yet</p>
+            <p className="text-xs leading-relaxed">
+              {!billingConfig.stripeConfigured
+                ? 'Add STRIPE_SECRET_KEY to the backend .env file and restart the API server.'
+                : 'Create Stripe Prices for Starter/Pro, set STRIPE_PRICE_* in the backend .env, then restart the API server.'}
+            </p>
+          </div>
+        )}
 
         {/* Current plan row */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -356,13 +344,8 @@ const SubscriptionPanel: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {[
-                    `${limitLabel(nextPlan.limits.maxConnectors)} connectors`,
-                    `${limitLabel(nextPlan.limits.maxDocumentsMonth)} docs/mo`,
-                    `${limitLabel(nextPlan.limits.maxUsers)} users`,
-                    `${fmtBytes(nextPlan.limits.maxStorageBytes)} storage`,
-                  ].map((f, idx) => (
-                    <span key={`${nextPlan.name}-feat-${idx}`} className="inline-flex items-center gap-1 text-[10px] font-bold text-violet bg-violet/10 px-2 py-0.5 rounded-full">
+                  {planQuotaPills(nextPlan).map((f) => (
+                    <span key={`${nextPlan.name}-${f}`} className="inline-flex items-center gap-1 text-[10px] font-bold text-violet bg-violet/10 px-2 py-0.5 rounded-full">
                       <CheckCircle2 className="h-2.5 w-2.5" />{f}
                     </span>
                   ))}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Check, Zap, ArrowRight,
   Loader2, Sparkles, Star, Building2, Mail,
@@ -15,46 +15,19 @@ import {
   annualSavings,
   stripePriceIdForCycle,
   annualDiscountPercent,
+  limitLabel,
+  fmtBytes,
   type BillingCycle,
 } from '../../utils/billingUtils';
 import { BillingCycleToggle } from '../../components/admin/BillingCycleToggle';
-
-// ── Types ────────────────────────────────────────────────────────────────────
-interface Plan {
-  _id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  priceMonthlyUsd: number;
-  limits: {
-    maxConnectors: number;
-    maxDocumentsMonth: number;
-    maxUsers: number;
-    maxStorageBytes: number;
-  };
-  stripePriceId: string | null;
-  stripePriceIdMonthly?: string | null;
-  stripePriceIdYearly?: string | null;
-  annualDiscountFraction?: number;
-}
-
-const PLAN_ORDER: Record<string, number> = { FREE: 0, STARTER: 1, PRO: 2, ENTERPRISE: 3 };
-function sortPlans(plans: Plan[]) {
-  return [...plans].sort((a, b) => (PLAN_ORDER[a.name] ?? 99) - (PLAN_ORDER[b.name] ?? 99));
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function formatBytes(bytes: number): string {
-  if (bytes === -1) return 'Unlimited';
-  const gb = bytes / 1024 / 1024 / 1024;
-  if (gb >= 1) return `${gb.toFixed(0)} GB`;
-  const mb = bytes / 1024 / 1024;
-  return `${mb.toFixed(0)} MB`;
-}
-
-function limitLabel(n: number): string {
-  return n === -1 ? 'Unlimited' : String(n);
-}
+import BrandHomeLink from '../../components/branding/BrandHomeLink';
+import {
+  fetchBillingPlans,
+  fetchBillingConfig,
+  sortBillingPlans,
+  connectorQuotaLabel,
+  type BillingPlan,
+} from '../../services/billingService';
 
 // ── Plan styling ──────────────────────────────────────────────────────────
 const planStyles: Record<string, {
@@ -89,15 +62,14 @@ const planStyles: Record<string, {
 };
 
 // ── Feature list per plan ────────────────────────────────────────────────
-function getPlanFeatures(plan: Plan): string[] {
+function getPlanFeatures(plan: BillingPlan): string[] {
   const docs  = limitLabel(plan.limits.maxDocumentsMonth);
-  const conn  = limitLabel(plan.limits.maxConnectors);
   const users = limitLabel(plan.limits.maxUsers);
-  const stor  = formatBytes(plan.limits.maxStorageBytes);
+  const stor  = fmtBytes(plan.limits.maxStorageBytes);
 
   return [
     `${docs} documents / month`,
-    `${conn} active connector${plan.limits.maxConnectors === 1 ? '' : 's'}`,
+    connectorQuotaLabel(plan.limits.maxConnectors),
     `${users} team member${plan.limits.maxUsers === 1 ? '' : 's'}`,
     `${stor} storage`,
     ...(plan.name === 'FREE'    ? ['Email & Fax ingestion', 'Basic AI extraction'] : []),
@@ -109,7 +81,7 @@ function getPlanFeatures(plan: Plan): string[] {
 
 // ── Plan Card ─────────────────────────────────────────────────────────────
 interface PlanCardProps {
-  plan: Plan;
+  plan: BillingPlan;
   cycle: BillingCycle;
   currentPlanName?: string;
   onUpgrade: (planName: string, billingCycle: BillingCycle) => void;
@@ -126,11 +98,14 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
   const yearly = annualTotal(plan);
   const checkoutPriceId = stripePriceIdForCycle(plan, cycle);
 
+  const ctaClass =
+    'w-full min-h-12 flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-black transition-all disabled:opacity-50';
+
   return (
     <div className={cn(
-      'relative flex flex-col rounded-3xl border bg-surface-lowest overflow-hidden transition-all duration-300',
+      'relative flex h-full flex-col rounded-3xl border bg-surface-lowest overflow-hidden transition-all duration-300',
       style.featured
-        ? 'border-violet/40 shadow-2xl shadow-violet/10 scale-[1.02] ring-1 ring-violet/20'
+        ? 'border-violet/40 shadow-2xl shadow-violet/10 ring-1 ring-violet/20'
         : 'border-border/20 hover:border-border/40 hover:shadow-xl',
     )}>
       {/* Top accent */}
@@ -144,7 +119,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
         </div>
       )}
 
-      <div className="p-6 flex flex-col flex-1">
+      <div className="flex h-full min-h-0 flex-1 flex-col p-6">
         {/* Plan header */}
         <div className="flex items-center gap-3 mb-4">
           <div className={cn(
@@ -160,7 +135,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
         </div>
 
         {/* Price */}
-        <div className="mb-5">
+        <div className="mb-5 min-h-[5.25rem]">
           {plan.priceMonthlyUsd === 0 && !isEnterprise ? (
             <div className="text-3xl font-black text-foreground">Free</div>
           ) : isEnterprise ? (
@@ -193,7 +168,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
         </div>
 
         {/* Features */}
-        <ul className="space-y-2.5 flex-1 mb-6">
+        <ul className="mb-0 flex-1 space-y-2.5">
           {features.map((feature) => (
             <li key={feature} className="flex items-start gap-2.5 text-sm">
               <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
@@ -202,41 +177,43 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
           ))}
         </ul>
 
-        {/* CTA */}
-        {isCurrent ? (
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-surface-highest/20 border border-border/20 py-3 text-sm font-bold text-muted-foreground">
-            <Check className="h-4 w-4 text-success" />
-            Current Plan
-          </div>
-        ) : isEnterprise ? (
-          <a
-            href="mailto:sales@alonix.ai?subject=Enterprise%20Plan%20Enquiry"
-            id="contact-sales-btn"
-            className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 text-sm font-black hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/20"
-          >
-            <Mail className="h-4 w-4" />
-            Contact Sales
-          </a>
-        ) : (
-          <button
-            id={`upgrade-to-${plan.name.toLowerCase()}-btn`}
-            type="button"
-            title={!checkoutPriceId && !isEnterprise ? 'This billing interval is not configured in Stripe yet.' : undefined}
-            onClick={() => onUpgrade(plan.name, cycle)}
-            disabled={!!upgrading || !checkoutPriceId}
-            className={cn(
-              'flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-black transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100',
-              style.featured
-                ? 'bg-gradient-to-r from-violet to-purple-600 text-white shadow-lg shadow-violet/20'
-                : 'bg-foreground text-background hover:opacity-90'
-            )}
-          >
-            {isLoading
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <ArrowRight className="h-4 w-4" />}
-            {plan.name === 'FREE' ? 'Downgrade' : 'Upgrade'}
-          </button>
-        )}
+        <div className="mt-auto shrink-0 pt-6">
+          {isCurrent ? (
+            <div className={cn(ctaClass, 'bg-surface-highest/20 border border-border/20 text-muted-foreground font-bold')}>
+              <Check className="h-4 w-4 shrink-0 text-success" />
+              Current Plan
+            </div>
+          ) : isEnterprise ? (
+            <a
+              href="mailto:sales@alonix.ai?subject=Enterprise%20Plan%20Enquiry"
+              id="contact-sales-btn"
+              className={cn(ctaClass, 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:opacity-90 shadow-lg shadow-amber-500/20')}
+            >
+              <Mail className="h-4 w-4 shrink-0" />
+              Contact Sales
+            </a>
+          ) : (
+            <button
+              id={`upgrade-to-${plan.name.toLowerCase()}-btn`}
+              type="button"
+              title={!checkoutPriceId && !isEnterprise ? 'This billing interval is not configured in Stripe yet.' : undefined}
+              onClick={() => onUpgrade(plan.name, cycle)}
+              disabled={!!upgrading || !checkoutPriceId}
+              className={cn(
+                ctaClass,
+                'hover:scale-[1.02] disabled:hover:scale-100',
+                style.featured
+                  ? 'bg-gradient-to-r from-violet to-purple-600 text-white shadow-lg shadow-violet/20'
+                  : 'bg-foreground text-background hover:opacity-90',
+              )}
+            >
+              {isLoading
+                ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                : <ArrowRight className="h-4 w-4 shrink-0" />}
+              {plan.name === 'FREE' ? 'Downgrade' : 'Upgrade'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -258,13 +235,16 @@ export const PricingPage: React.FC = () => {
     if (params.get('upgrade') === 'canceled') setUpgradeResult('canceled');
   }, []);
 
-  const { data: plans = [] } = useQuery<Plan[]>({
+  const { data: plans = [], isLoading: plansLoading, isError: plansError } = useQuery({
     queryKey: ['plans'],
-    queryFn: async () => {
-      const { data } = await apiClient.get<Plan[]>('/billing/plans');
-      return data;
-    },
+    queryFn: fetchBillingPlans,
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: billingConfig } = useQuery({
+    queryKey: ['billing-config'],
+    queryFn: fetchBillingConfig,
+    staleTime: 60_000,
   });
 
   const { data: billingData } = useQuery<{ plan: { name: string } }>({
@@ -300,6 +280,18 @@ export const PricingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <nav className="fixed top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          <BrandHomeLink />
+          <Link
+            to="/login"
+            className="text-sm font-bold font-display text-muted-foreground hover:text-primary transition-colors"
+          >
+            Login
+          </Link>
+        </div>
+      </nav>
+
       {/* Hero */}
       <div className="relative overflow-hidden pt-24 pb-16 px-4 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
@@ -323,7 +315,7 @@ export const PricingPage: React.FC = () => {
             <BillingCycleToggle
               cycle={billingCycle}
               onChange={setBillingCycle}
-              discountPercent={annualDiscountPercent(sortPlans(plans)[0])}
+              discountPercent={annualDiscountPercent(sortBillingPlans(plans)[0])}
             />
           </div>
         </div>
@@ -346,10 +338,25 @@ export const PricingPage: React.FC = () => {
         </div>
       )}
 
+      {billingConfig && token && (!billingConfig.stripeConfigured || !billingConfig.checkoutReady) && (
+        <div className="max-w-3xl mx-auto px-4 mb-6">
+          <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200/90 text-center">
+            Paid checkout is not configured on the server yet. Plans and limits below are live from your account API.
+          </div>
+        </div>
+      )}
+
       {/* Plan grid */}
       <div className="max-w-6xl mx-auto px-4 pb-24">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 items-start">
-          {sortPlans(plans).map((plan) => (
+        {plansLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          </div>
+        ) : plansError ? (
+          <p className="text-center text-muted-foreground py-12">Could not load plans. Please try again later.</p>
+        ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 items-stretch">
+          {sortBillingPlans(plans).map((plan) => (
             <PlanCard
               key={plan._id}
               plan={plan}
@@ -360,6 +367,7 @@ export const PricingPage: React.FC = () => {
             />
           ))}
         </div>
+        )}
 
         {/* FAQ / trust signals */}
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
