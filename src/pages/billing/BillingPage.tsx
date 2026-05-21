@@ -99,7 +99,10 @@ export const BillingPage: React.FC = () => {
   React.useEffect(() => {
     const upgrade = searchParams.get('upgrade');
     if (!upgrade) return;
-    navigate(`/org-settings?upgrade=${encodeURIComponent(upgrade)}`, { replace: true });
+    const params = new URLSearchParams({ upgrade });
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) params.set('session_id', sessionId);
+    navigate(`/org-settings?${params.toString()}`, { replace: true });
   }, [searchParams, navigate]);
 
   const { data, isLoading, error } = useQuery<BillingSubscriptionResponse>({

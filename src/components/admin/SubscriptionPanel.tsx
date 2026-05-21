@@ -15,6 +15,7 @@ import {
   fetchBillingPlans,
   fetchBillingConfig,
   fetchBillingSubscription,
+  confirmBillingCheckout,
   getNextUpgradePlan,
   planQuotaPills,
   type BillingPlan,
@@ -117,15 +118,52 @@ const SubscriptionPanel: React.FC = () => {
   const clearUpgradeQuery = React.useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete('upgrade');
+    next.delete('session_id');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  const syncedCheckoutKeyRef = React.useRef<string | null>(null);
+  const [syncingCheckout, setSyncingCheckout] = React.useState(false);
+  const sessionIdFromUrl = searchParams.get('session_id');
+
   React.useEffect(() => {
-    if (upgradeResult === 'success') {
-      void queryClient.invalidateQueries({ queryKey: ['billing-subscription'] });
-      void queryClient.invalidateQueries({ queryKey: ['plans'] });
+    if (upgradeResult !== 'success' || !orgId) {
+      if (upgradeResult !== 'success') syncedCheckoutKeyRef.current = null;
+      return;
     }
-  }, [upgradeResult, queryClient]);
+
+    const syncKey = sessionIdFromUrl || `org:${orgId}`;
+    if (syncedCheckoutKeyRef.current === syncKey) return;
+
+    let active = true;
+    setSyncingCheckout(true);
+
+    (async () => {
+      try {
+        const payload = await confirmBillingCheckout(sessionIdFromUrl);
+        if (!active) return;
+        syncedCheckoutKeyRef.current = syncKey;
+        queryClient.setQueryData(['billing-subscription', orgId], payload);
+        clearUpgradeQuery();
+      } catch (err: unknown) {
+        if (!active) return;
+        const ax = err as { response?: { data?: { error?: string } }; message?: string };
+        const msg = ax.response?.data?.error || ax.message || 'Could not refresh subscription from Stripe.';
+        await appAlert({
+          title: 'Plan not updated yet',
+          description: `${msg} Refresh the page in a moment, or configure Stripe webhooks for automatic updates.`,
+          variant: 'warning',
+        });
+        void queryClient.invalidateQueries({ queryKey: ['billing-subscription'] });
+      } finally {
+        setSyncingCheckout(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [upgradeResult, orgId, sessionIdFromUrl, queryClient, clearUpgradeQuery, appAlert]);
 
   const { data, isLoading, error } = useQuery<BillingSubscriptionResponse>({
     queryKey: ['billing-subscription', orgId],
@@ -180,7 +218,7 @@ const SubscriptionPanel: React.FC = () => {
   });
 
   // ── Early states ──────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="mt-8 rounded-3xl border border-border/20 bg-surface-lowest p-8 flex items-center gap-3 text-muted-foreground text-sm">
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -240,7 +278,13 @@ const SubscriptionPanel: React.FC = () => {
       <div className="p-6 space-y-6">
 
         {/* Stripe result banners */}
-        {upgradeResult === 'success' && (
+        {syncingCheckout && (
+          <div className="flex items-center gap-2.5 rounded-2xl bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-primary font-bold">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            <span>Activating your new plan…</span>
+          </div>
+        )}
+        {upgradeResult === 'success' && !syncingCheckout && (
           <div className="flex flex-col gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5 text-emerald-400 text-sm font-bold">
               <CheckCircle2 className="h-4 w-4 shrink-0" />

@@ -120,3 +120,11 @@ export async function fetchBillingSubscription(): Promise<BillingSubscriptionRes
   const { data } = await apiClient.get<BillingSubscriptionResponse>('/billing/subscription');
   return data;
 }
+
+/** Sync plan from Stripe after Checkout redirect (when webhooks are not configured locally). */
+export async function confirmBillingCheckout(sessionId?: string | null): Promise<BillingSubscriptionResponse> {
+  const { data } = await apiClient.post<BillingSubscriptionResponse>('/billing/confirm-checkout', {
+    sessionId: sessionId || undefined,
+  });
+  return data;
+}
