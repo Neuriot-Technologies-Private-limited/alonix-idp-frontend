@@ -1,9 +1,27 @@
 {
-  "title": "Workspaces",
-  "subtitle": "Create and manage team workspaces with isolated data environments.",
-  "createGroup": "New Workspace",
-  "noGroups": "No workspaces yet",
-  "inviteUsers": "Invite Users",
+  "title": "Groups",
+  "subtitle": "Manage group boundaries, resource allocation, and collaborative workspaces.",
+  "inviteUsers": "Invite users",
+  "createGroup": "New Group",
+  "filters": {
+    "searchPlaceholder": "Search groups by name, ID, or status...",
+    "resultsLabel": "{{count}} result for \"{{query}}\"",
+    "resultsLabelPlural": "{{count}} results for \"{{query}}\""
+  },
+  "table": {
+    "loading": "Loading groups",
+    "noGroupsFound": "No groups found",
+    "noWorkspaces": "No workspaces yet",
+    "noGroupsHint": "Try a different search term",
+    "noWorkspacesHintAdmin": "Create a group to get started",
+    "noWorkspacesHintUser": "You're not assigned to any workspace yet. Ask an admin for access."
+  },
+  "actions": {
+    "enterWorkspace": "Enter Workspace",
+    "enter": "Enter",
+    "viewWorkspace": "View Workspace",
+    "view": "View"
+  },
   "modals": {
     "create": {
       "title": "Create Workspace",

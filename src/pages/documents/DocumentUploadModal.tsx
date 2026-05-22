@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UploadCloud, Upload, Folder, File, X, Shield } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { ThemedSelect } from '../../components/ui/ThemedSelect';
@@ -34,9 +35,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   uploadSensitivityOptions,
   onUpload,
 }) => {
+  const { t } = useTranslation('documents');
+
   const selectedHint =
     uploadSensitivityOptions.find((o) => o.value === uploadSensitivityLevel)?.hint ??
-    'Applies to every file in this batch.';
+    t('upload.appliesHint');
 
   const groupSelectOptions = useMemo(
     () => groups.map((g: { groupId: string; groupName: string }) => ({ value: g.groupId, label: g.groupName })),
@@ -52,8 +55,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Upload documents"
-      subtitle="Pipeline · same sensitivity for the whole batch"
+      title={t('upload.title')}
+      subtitle={t('upload.subtitle')}
       icon={<UploadCloud className="w-5 h-5 sm:w-6 sm:h-6" />}
       maxWidth="max-w-md"
       footer={
@@ -63,7 +66,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             onClick={onClose}
             className="flex-1 min-h-[44px] min-w-0 rounded-xl border border-border/40 bg-surface-lowest/80 px-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:border-border hover:bg-surface-highest/15 hover:text-foreground sm:min-h-[48px] sm:px-4 sm:text-[11px]"
           >
-            Cancel
+            {t('upload.cancelButton')}
           </button>
           <button
             type="button"
@@ -76,7 +79,9 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             )}
           >
             <Upload className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-            Upload{selectedFiles.length > 0 ? ` (${selectedFiles.length})` : ''}
+            {selectedFiles.length > 0
+              ? t('upload.uploadWithCount', { count: selectedFiles.length })
+              : t('upload.uploadButton')}
           </button>
         </div>
       }
@@ -102,9 +107,9 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               <UploadCloud className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Drop files here or tap to browse</p>
+              <p className="text-sm font-bold text-foreground">{t('upload.dropZoneTitle')}</p>
               <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/55">
-                PDF, JSON, XLSX, CSV · up to 50MB each
+                {t('upload.dropZoneHint')}
               </p>
             </div>
           </div>
@@ -124,18 +129,18 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           <div className="mb-2.5 flex items-center gap-2 border-b border-border/20 pb-2 dark:border-border/30">
             <Shield className="h-3.5 w-3.5 text-primary/70" aria-hidden />
             <span className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground/50">
-              Batch settings
+              {t('upload.batchSettings')}
             </span>
           </div>
 
           <div className="space-y-3">
             {orgWideUpload ? (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-muted-foreground/70">Workspace</span>
+                <span className="text-[10px] font-bold text-muted-foreground/70">{t('upload.workspaceLabel')}</span>
                 <ThemedSelect
                   id="upload-modal-group"
-                  aria-label="Workspace"
-                  placeholder="Select workspace…"
+                  aria-label={t('upload.workspaceLabel')}
+                  placeholder={t('upload.workspacePlaceholder')}
                   value={targetGroupId}
                   onChange={setTargetGroupId}
                   options={groupSelectOptions}
@@ -145,21 +150,21 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             ) : null}
 
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-muted-foreground/70">Sensitivity level</span>
+              <span className="text-[10px] font-bold text-muted-foreground/70">{t('upload.sensitivityLabel')}</span>
               {uploadSensitivityOptions.length > 0 ? (
                 <>
                   <ThemedSelect
-                    id="upload-modal-sensitivity"
-                    aria-label="Document sensitivity"
-                    value={uploadSensitivityLevel}
-                    onChange={onUploadSensitivityChange}
-                    options={sensitivitySelectOptions}
+                     id="upload-modal-sensitivity"
+                     aria-label={t('upload.sensitivityLabel')}
+                     value={uploadSensitivityLevel}
+                     onChange={onUploadSensitivityChange}
+                     options={sensitivitySelectOptions}
                   />
                   <p className="line-clamp-2 text-[10px] leading-snug text-muted-foreground/50">{selectedHint}</p>
                 </>
               ) : (
                 <p className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
-                  No sensitivity tiers available for this workspace.
+                  {t('upload.noSensitivityTiers')}
                 </p>
               )}
             </div>
@@ -170,14 +175,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           <div>
             <div className="mb-1.5 flex items-center justify-between px-0.5">
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
-                Files ({selectedFiles.length})
+                {t('upload.filesLabel', { count: selectedFiles.length })}
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedFiles([])}
                 className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 transition-colors hover:text-destructive"
               >
-                Clear all
+                {t('upload.clearAll')}
               </button>
             </div>
             <ul className="max-h-[min(28vh,9.5rem)] space-y-1 overflow-y-auto rounded-lg border border-border/25 bg-surface-highest/[0.04] p-1.5 pr-1 dark:border-border/35">

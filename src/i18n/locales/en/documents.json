@@ -13,7 +13,8 @@
     "clearAll": "Clear all",
     "cancelButton": "Cancel",
     "uploadButton": "Upload",
-    "uploadWithCount": "Upload ({{count}})"
+    "uploadWithCount": "Upload ({{count}})",
+    "appliesHint": "Applies to every file in this batch."
   },
   "documents": {
     "title": "Documents",

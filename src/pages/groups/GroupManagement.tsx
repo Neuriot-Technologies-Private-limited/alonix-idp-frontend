@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -19,6 +20,7 @@ import { InviteUsersToGroupModal } from './modals/InviteUsersToGroupModal';
 
 export const GroupManagement: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation('groups');
   const { orgRole, isGroupAdminFor } = useRbac();
   const { data: groups, isLoading } = useGroupHealth();
   const { data: allUsers = [] } = useUsers();
@@ -62,10 +64,10 @@ export const GroupManagement: React.FC = () => {
       <section className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start md:items-center">
         <div className="min-w-0 space-y-1.5">
           <h1 className="bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text font-display text-xl font-black tracking-tight text-transparent sm:text-2xl">
-            Groups
+            {t('title')}
           </h1>
           <p className="max-w-2xl text-[11px] font-medium tracking-wide text-muted-foreground sm:text-[12px]">
-            Manage group boundaries, resource allocation, and collaborative workspaces.
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
@@ -76,7 +78,7 @@ export const GroupManagement: React.FC = () => {
               className="flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-border/30 dark:border-border/45 bg-gradient-to-r from-surface-highest/40 to-surface-highest/20 px-5 py-3 font-bold text-[11px] uppercase tracking-widest text-foreground shadow-sm shadow-black/5 transition-all hover:border-border/45 dark:hover:border-border/55 hover:bg-surface-highest/60 active:scale-95 sm:w-auto sm:px-6 sm:py-3.5"
             >
               <UserPlus className="h-4 w-4" />
-              Invite users
+              {t('inviteUsers')}
             </button>
           ) : null}
           {isCompanyAdmin ? (
@@ -86,7 +88,7 @@ export const GroupManagement: React.FC = () => {
             className="flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-primary/35 bg-gradient-to-r from-primary to-primary/90 px-5 py-3 font-bold text-[11px] uppercase tracking-widest text-primary-foreground shadow-[0_20px_40px_rgba(173,198,255,0.24)] transition-all hover:opacity-90 active:scale-95 sm:w-auto sm:px-6 sm:py-3.5"
           >
             <Plus className="h-4 w-4" />
-            New Group
+            {t('createGroup')}
           </button>
           ) : null}
         </div>
@@ -114,7 +116,7 @@ export const GroupManagement: React.FC = () => {
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search groups by name, ID, or status..."
+          placeholder={t('filters.searchPlaceholder')}
           showClear
           className="w-full"
           inputClassName="rounded-2xl pl-11 py-4 text-[13px] focus:ring-4 focus:ring-primary/10 backdrop-blur-xl border-border/30 dark:border-border/45 bg-gradient-to-r from-surface-highest/18 to-surface-highest/8"
@@ -144,7 +146,9 @@ export const GroupManagement: React.FC = () => {
       {/* Results count */}
       {searchQuery && !isLoading && (
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
-          {filteredGroups.length} result{filteredGroups.length !== 1 ? 's' : ''} for "{searchQuery}"
+          {filteredGroups.length === 1
+            ? t('filters.resultsLabel', { count: 1, query: searchQuery })
+            : t('filters.resultsLabelPlural', { count: filteredGroups.length, query: searchQuery })}
         </p>
       )}
 
@@ -159,19 +163,19 @@ export const GroupManagement: React.FC = () => {
       >
         {isLoading ? (
           <div className="col-span-full">
-            <Loader variant="section" label="Loading groups" />
+            <Loader variant="section" label={t('table.loading')} />
           </div>
         ) : filteredGroups.length === 0 ? (
           <div className="col-span-full rounded-xl border border-border/20 dark:border-border/35 bg-surface-highest/6 py-16 text-center space-y-2">
             <p className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground/30">
-              {searchQuery.trim() ? 'No groups found' : 'No workspaces yet'}
+              {searchQuery.trim() ? t('table.noGroupsFound') : t('table.noWorkspaces')}
             </p>
             <p className="text-[10px] text-muted-foreground/20">
               {searchQuery.trim()
-                ? 'Try a different search term'
+                ? t('table.noGroupsHint')
                 : isCompanyAdmin
-                  ? 'Create a group to get started'
-                  : "You're not assigned to any workspace yet. Ask an admin for access."}
+                  ? t('table.noWorkspacesHintAdmin')
+                  : t('table.noWorkspacesHintUser')}
             </p>
           </div>
         ) : (
@@ -183,11 +187,11 @@ export const GroupManagement: React.FC = () => {
               primaryActionLabel={
                 isCompanyAdmin || isGroupAdminFor(group.id)
                   ? viewMode === 'grid'
-                    ? 'Enter Workspace'
-                    : 'Enter'
+                    ? t('actions.enterWorkspace')
+                    : t('actions.enter')
                   : viewMode === 'grid'
-                    ? 'View Workspace'
-                    : 'View'
+                    ? t('actions.viewWorkspace')
+                    : t('actions.view')
               }
               onClick={() => navigate(`/groups/${group.id}`)}
             />

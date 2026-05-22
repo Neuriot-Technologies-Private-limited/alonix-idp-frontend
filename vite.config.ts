@@ -14,7 +14,7 @@ import path from 'path';
  * This means all components can safely reference `/brand/logo.png` etc.
  * without knowing which brand they're building for.
  */
-function brandPlugin(mode: string): Plugin {
+function brandPlugin(mode: string, brandEnv: Record<string, string>): Plugin {
   const brandDir = path.resolve(__dirname, 'brands', mode);
   const assetsDir = path.join(brandDir, 'assets');
   const publicBrandDir = path.resolve(__dirname, 'public', 'brand');
@@ -24,33 +24,74 @@ function brandPlugin(mode: string): Plugin {
   return {
     name: 'vite-plugin-brand',
     buildStart() {
-      // Skip if no brand folder found (default dev mode without --mode flag)
-      if (!fs.existsSync(brandDir)) {
-        // In plain `vite` / `vite --mode development`, fall back to 1glance assets
+      // 1. Clean public/brand/ to prevent leftover files from previous brand builds
+      if (fs.existsSync(publicBrandDir)) {
+        fs.rmSync(publicBrandDir, { recursive: true, force: true });
+      }
+
+      // 2. Copy brand assets to public/brand/
+      if (fs.existsSync(brandDir) && fs.existsSync(assetsDir)) {
+        copyAssets(assetsDir, publicBrandDir);
+      } else {
+        // Fallback to 1glance assets
         const fallbackDir = path.resolve(__dirname, 'brands', '1glance', 'assets');
         if (fs.existsSync(fallbackDir)) {
           copyAssets(fallbackDir, publicBrandDir);
         }
-        return;
       }
 
-      // Copy brand assets to public/brand/
-      if (fs.existsSync(assetsDir)) {
-        copyAssets(assetsDir, publicBrandDir);
-      }
-
-      // Copy brand theme CSS if present
-      if (fs.existsSync(themeSrc)) {
+      // 3. Copy brand theme CSS if present
+      if (fs.existsSync(brandDir) && fs.existsSync(themeSrc)) {
         fs.mkdirSync(path.dirname(themeDest), { recursive: true });
         fs.copyFileSync(themeSrc, themeDest);
+      } else {
+        // Fallback to 1glance theme
+        const fallbackTheme = path.resolve(__dirname, 'brands', '1glance', 'theme.css');
+        if (fs.existsSync(fallbackTheme)) {
+          fs.mkdirSync(path.dirname(themeDest), { recursive: true });
+          fs.copyFileSync(fallbackTheme, themeDest);
+        }
       }
     },
+    transformIndexHtml(html) {
+      // Find favicon file inside public/brand/
+      let faviconFile = 'favicon.svg';
+      if (fs.existsSync(publicBrandDir)) {
+        const files = fs.readdirSync(publicBrandDir);
+        const found = files.find(f => f.startsWith('favicon.'));
+        if (found) {
+          faviconFile = found;
+        }
+      }
+
+      const ext = path.extname(faviconFile).slice(1);
+      const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+      
+      let modifiedHtml = html.replace(
+        /<link rel="icon" type="[^"]*" href="\/brand\/favicon\.[^"]*" \/>/g,
+        `<link rel="icon" type="${mimeType}" href="/brand/${faviconFile}" />`
+      );
+      
+      if (modifiedHtml === html) {
+        modifiedHtml = html.replace(
+          /\/brand\/favicon\.svg/g,
+          `/brand/${faviconFile}`
+        );
+      }
+
+      // Explicitly replace title placeholder %VITE_BRAND_NAME%
+      const brandName = brandEnv.VITE_BRAND_NAME || '1-Glance';
+      modifiedHtml = modifiedHtml.replace(/%VITE_BRAND_NAME%/g, brandName);
+
+      return modifiedHtml;
+    }
   };
 }
 
 function copyAssets(src: string, dest: string) {
   fs.mkdirSync(dest, { recursive: true });
   for (const file of fs.readdirSync(src)) {
+    if (file === '.DS_Store') continue;
     fs.copyFileSync(path.join(src, file), path.join(dest, file));
   }
 }
@@ -92,7 +133,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      brandPlugin(mode),
+      brandPlugin(mode, brandEnv),
     ],
     // Expose brand env vars to import.meta.env
     define: {

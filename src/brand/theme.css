@@ -1,25 +1,25 @@
 /**
- * FindoutAI Brand Theme
+ * 1-Glance Brand Theme
  *
  * This file is auto-copied to src/brand/theme.css by the Vite brand plugin
- * when running `vite --mode findoutai`.
+ * when running `vite --mode 1glance`.
  *
  * Override only the tokens that differ from the base index.css.
  * All other tokens fall through to the defaults.
  */
 
 :root {
-  /* FindoutAI signature purple */
-  --color-primary: #7C3AED;
+  /* 1-Glance signature blue */
+  --color-primary: #005ac1;
   --color-primary-foreground: #ffffff;
-  --color-primary-container: #EDE9FE;
-  --color-ring: #7C3AED;
+  --color-primary-container: #d8e2ff;
+  --color-ring: #005ac1;
 }
 
 .dark {
-  /* FindoutAI signature purple — dark mode */
-  --color-primary: #C4B5FD;
-  --color-primary-foreground: #2E1065;
-  --color-primary-container: #2E1065;
-  --color-ring: #c4b5fd;
+  /* 1-Glance signature blue — dark mode */
+  --color-primary: #ADC6FF;
+  --color-primary-foreground: #002e6a;
+  --color-primary-container: #1E2B4B;
+  --color-ring: #adc6ff;
 }

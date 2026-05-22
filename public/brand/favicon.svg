@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <linearGradient id="purpleViolet" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7C3AED" />
-      <stop offset="100%" stop-color="#4F46E5" />
+    <linearGradient id="cyanBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#2563eb" />
     </linearGradient>
   </defs>
   <style>
-    .font { font-family: system-ui, -apple-system, sans-serif; font-weight: 900; font-size: 62px; }
+    .font { font-family: system-ui, -apple-system, sans-serif; font-weight: 900; font-size: 85px; }
   </style>
-  <text x="50" y="72" class="font" text-anchor="middle" fill="url(#purpleViolet)">FA</text>
+  <text x="50" y="82" class="font" text-anchor="middle" fill="url(#cyanBlue)">1</text>
 </svg>

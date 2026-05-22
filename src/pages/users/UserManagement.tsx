@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { UserPlus, Mail, Users, UserCheck, ChevronDown, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUsers, userService, type User } from '../../services/userService';
@@ -18,6 +19,7 @@ import { pickManagedGroupId } from './userManagement/pickManagedGroupId';
 import { MetricStateCard } from '../../components/ui/MetricStateCard';
 
 export const UserManagement: React.FC = () => {
+  const { t } = useTranslation('users');
   const queryClient = useQueryClient();
   const { confirm, alert: appAlert } = useAlert();
   const { data: users, isLoading } = useUsers();
@@ -120,20 +122,20 @@ export const UserManagement: React.FC = () => {
 
   const handleSuspend = async (u: User) => {
     const ok = await confirm({
-      title: 'Suspend user',
-      description: `Suspend ${u.email}? They will not be able to sign in until re-activated.`,
-      confirmLabel: 'Suspend',
+      title: t('actions.suspend.title'),
+      description: t('actions.suspend.description', { email: u.email }),
+      confirmLabel: t('actions.suspend.confirmLabel'),
       variant: 'danger',
     });
     if (!ok) return;
     try {
       await userService.patchOrgUser(u._id, { status: 'INACTIVE' }, patchUserCtx(u));
       await invalidateUsers();
-      await appAlert({ title: 'User suspended', description: u.email, variant: 'success' });
+      await appAlert({ title: t('actions.suspend.success'), description: u.email, variant: 'success' });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } }; message?: string };
       await appAlert({
-        title: 'Could not suspend',
+        title: t('actions.suspend.errorTitle'),
         description: ax.response?.data?.message || ax.message || 'Request failed',
         variant: 'danger',
       });
@@ -144,11 +146,11 @@ export const UserManagement: React.FC = () => {
     try {
       await userService.patchOrgUser(u._id, { status: 'ACTIVE' }, patchUserCtx(u));
       await invalidateUsers();
-      await appAlert({ title: 'User activated', description: u.email, variant: 'success' });
+      await appAlert({ title: t('actions.activate.success'), description: u.email, variant: 'success' });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } }; message?: string };
       await appAlert({
-        title: 'Could not activate',
+        title: t('actions.activate.errorTitle'),
         description: ax.response?.data?.message || ax.message || 'Request failed',
         variant: 'danger',
       });
@@ -157,20 +159,20 @@ export const UserManagement: React.FC = () => {
 
   const handleRemoveOrgUser = async (u: User) => {
     const ok = await confirm({
-      title: 'Remove user',
-      description: `Permanently remove ${u.email} from this organization? This cannot be undone.`,
-      confirmLabel: 'Remove',
+      title: t('actions.remove.title'),
+      description: t('actions.remove.description', { email: u.email }),
+      confirmLabel: t('actions.remove.confirmLabel'),
       variant: 'danger',
     });
     if (!ok) return;
     try {
       await userService.deleteOrgUser(u._id);
       await invalidateUsers();
-      await appAlert({ title: 'User removed', description: u.email, variant: 'success' });
+      await appAlert({ title: t('actions.remove.success'), description: u.email, variant: 'success' });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } }; message?: string };
       await appAlert({
-        title: 'Could not remove',
+        title: t('actions.remove.errorTitle'),
         description: ax.response?.data?.message || ax.message || 'Request failed',
         variant: 'danger',
       });
@@ -189,28 +191,28 @@ export const UserManagement: React.FC = () => {
     const gid = pickManagedGroupId(u, activeGroupId, adminGroupIds);
     if (!gid) {
       await appAlert({
-        title: 'No workspace',
-        description: 'Could not determine which group to remove this user from.',
+        title: t('actions.removeFromGroup.noWorkspace.title'),
+        description: t('actions.removeFromGroup.noWorkspace.description'),
         variant: 'danger',
       });
       return;
     }
     const gname = u.workspaces?.find((w) => String(w.groupId) === String(gid))?.groupName || gid;
     const ok = await confirm({
-      title: 'Remove from group',
-      description: `Remove ${u.email} from ${gname}?`,
-      confirmLabel: 'Remove',
+      title: t('actions.removeFromGroup.title'),
+      description: t('actions.removeFromGroup.description', { email: u.email, groupName: gname }),
+      confirmLabel: t('actions.removeFromGroup.confirmLabel'),
       variant: 'danger',
     });
     if (!ok) return;
     try {
       await userService.removeUserFromGroup(gid, u.email);
       await invalidateUsers();
-      await appAlert({ title: 'Removed from group', description: u.email, variant: 'success' });
+      await appAlert({ title: t('actions.removeFromGroup.success'), description: u.email, variant: 'success' });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } }; message?: string };
       await appAlert({
-        title: 'Could not remove',
+        title: t('actions.removeFromGroup.errorTitle'),
         description: ax.response?.data?.message || ax.message || 'Request failed',
         variant: 'danger',
       });
@@ -222,12 +224,12 @@ export const UserManagement: React.FC = () => {
       <section className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start md:items-center">
         <div className="min-w-0 space-y-1">
           <h1 className="bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text font-display text-xl font-black tracking-tight text-transparent sm:text-2xl">
-            {isCompanyAdmin ? 'Users' : 'Group Members'}
+            {isCompanyAdmin ? t('title') : t('titleGroupAdmin')}
           </h1>
           <p className="text-[11px] font-medium tracking-wide text-muted-foreground sm:text-[12px]">
             {isCompanyAdmin
-              ? 'Manage access, roles, and group assignments for all members.'
-              : 'Manage membership for workspaces where you are a group administrator.'}
+              ? t('subtitle')
+              : t('subtitleGroupAdmin')}
           </p>
         </div>
         <button
@@ -236,7 +238,7 @@ export const UserManagement: React.FC = () => {
           className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/35 bg-gradient-to-r from-primary to-primary/90 px-5 py-3 font-bold text-[11px] uppercase tracking-widest text-primary-foreground transition-all shadow-[0_16px_32px_rgba(173,198,255,0.24)] hover:opacity-90 active:scale-95 sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
-          {isCompanyAdmin ? 'Invite User' : 'Add To Group'}
+          {isCompanyAdmin ? t('inviteUser') : t('addToGroup')}
         </button>
       </section>
 
@@ -261,16 +263,16 @@ export const UserManagement: React.FC = () => {
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        <MetricStateCard label="Total Users" value={totalUsers} tone="primary" icon={Users} />
-        <MetricStateCard label="Active" value={activeCount} tone="emerald" icon={UserCheck} />
-        <MetricStateCard label="Pending" value={pendingCount} tone="amber" icon={UserCheck} />
+        <MetricStateCard label={t('stats.totalUsers')} value={totalUsers} tone="primary" icon={Users} />
+        <MetricStateCard label={t('stats.active')} value={activeCount} tone="emerald" icon={UserCheck} />
+        <MetricStateCard label={t('stats.pending')} value={pendingCount} tone="amber" icon={UserCheck} />
       </section>
 
       <section className="flex flex-col items-stretch gap-3 rounded-2xl border border-border/35 dark:border-border/50 bg-gradient-to-r from-surface-highest/26 via-surface-highest/14 to-transparent p-3 sm:p-4 md:flex-row md:flex-wrap md:items-center shadow-[0_18px_38px_-28px_hsl(var(--background)/0.9)] backdrop-blur-xl">
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Search by name, email or role..."
+          placeholder={t('filters.searchPlaceholder')}
           showClear
           inputClassName="focus:ring-primary/20 border-border/35 dark:border-border/50 bg-surface-highest/24 dark:bg-surface-highest/16"
         />
@@ -283,7 +285,7 @@ export const UserManagement: React.FC = () => {
           >
             {groups.map((g) => (
               <option key={g} value={g}>
-                {g === 'All' ? 'All Groups' : g}
+                {g === 'All' ? t('filters.allGroups') : g}
               </option>
             ))}
           </select>
@@ -302,7 +304,7 @@ export const UserManagement: React.FC = () => {
                   : 'text-muted-foreground/65 dark:text-muted-foreground/55 hover:text-foreground'
               )}
             >
-              {s}
+              {s === 'All' ? t('filters.status.all') : s === 'Active' ? t('filters.status.active') : s === 'Inactive' ? t('filters.status.inactive') : t('filters.status.pending')}
             </button>
           ))}
         </div>
@@ -316,7 +318,7 @@ export const UserManagement: React.FC = () => {
             }}
             className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/30 transition-colors hover:text-destructive"
           >
-            <X className="h-3 w-3" /> Clear
+            <X className="h-3 w-3" /> {t('filters.clearFilters')}
           </button>
         )}
       </section>
@@ -324,8 +326,8 @@ export const UserManagement: React.FC = () => {
       <section className="overflow-hidden rounded-2xl border border-border/35 dark:border-border/50 bg-gradient-to-b from-surface-highest/25 via-surface-highest/12 to-transparent shadow-xl shadow-black/5 dark:shadow-black/25 backdrop-blur-xl">
         <div className="flex items-center justify-between border-b border-border/30 dark:border-border/45 bg-gradient-to-r from-primary/14 via-primary/6 to-transparent px-4 py-3 sm:px-6">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/65 dark:text-muted-foreground/55">
-            {filtered.length} User{filtered.length !== 1 ? 's' : ''}
-            {hasFilters ? ` matching filters` : ''}
+            {filtered.length === 1 ? t('table.countLabel', { count: 1 }) : t('table.countLabelPlural', { count: filtered.length })}
+            {hasFilters ? t('table.matchingFilters') : ''}
           </p>
         </div>
         <div className="-mx-px overflow-x-auto overscroll-x-contain sm:mx-0">
@@ -340,7 +342,7 @@ export const UserManagement: React.FC = () => {
                       h === 'Actions' && 'text-right'
                     )}
                   >
-                    {h}
+                    {h === 'User' ? t('table.headers.user') : h === 'Role' ? t('table.headers.role') : h === 'Group' ? t('table.headers.group') : h === 'Status' ? t('table.headers.status') : h === 'Last Active' ? t('table.headers.lastActive') : t('table.headers.actions')}
                   </th>
                 ))}
               </tr>
@@ -349,16 +351,16 @@ export const UserManagement: React.FC = () => {
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="py-6">
-                    <Loader variant="section" label="Loading users" />
+                    <Loader variant="section" label={t('loading')} />
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30">
-                      No users found
+                      {t('table.noUsersFound')}
                     </p>
-                    <p className="mt-1 text-[9px] text-muted-foreground/20">Try adjusting your filters</p>
+                    <p className="mt-1 text-[9px] text-muted-foreground/20">{t('table.noUsersHint')}</p>
                   </td>
                 </tr>
               ) : (
