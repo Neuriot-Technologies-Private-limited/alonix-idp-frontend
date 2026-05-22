@@ -3,8 +3,6 @@ import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useBrand } from '../../brand/useBrand';
-import dashboardShot from '../../assets/landing/product-dashboard.png';
-import chatShot from '../../assets/landing/product-chat.png';
 
 const VOLUME_BARS = [38, 52, 44, 96, 58, 48, 72, 65];
 
@@ -62,14 +60,14 @@ export const NoLinePhilosophyVisual: React.FC = () => {
 
       {/* Stacked product UI */}
       <UiCard
-        src={dashboardShot}
+        src={brand.dashboardShotUrl}
         alt={`${brand.name} dashboard — operational metrics and activity`}
         path={`app.${domain}/dashboard`}
         className="absolute left-0 top-4 z-10 w-[78%]"
         delay={0.1}
       />
       <UiCard
-        src={chatShot}
+        src={brand.chatShotUrl}
         alt={`${brand.name} chat — grounded document answers`}
         path={`app.${domain}/chat`}
         className="absolute right-0 top-[38%] z-20 w-[52%]"

@@ -21,7 +21,6 @@ import {
   PRODUCT_SCREEN_ASPECT,
   PRODUCT_SCREEN_POSITION,
 } from '../../components/landing/productScreens';
-import dashboardShot from '../../assets/landing/product-dashboard.png';
 import { fetchBillingPlans } from '../../services/billingService';
 import type { BillingCycle } from '../../utils/billingUtils';
 import { useBrand } from '../../brand/useBrand';
@@ -146,7 +145,7 @@ const LandingPage: React.FC = () => {
               <div className="absolute -inset-2 bg-gradient-to-r from-primary/25 via-violet/15 to-primary-container/20 rounded-3xl blur-2xl opacity-40 group-hover:opacity-55 transition duration-700" />
               <div className="relative rounded-2xl border border-border/10 shadow-2xl overflow-hidden">
                 <ProductScreenshotFrame
-                  src={dashboardShot}
+                  src={brand.dashboardShotUrl}
                   alt={t('product.screenshotAlt', { brandName: brand.name })}
                   pathLabel={t('product.pathLabel')}
                   priority
@@ -225,7 +224,7 @@ const LandingPage: React.FC = () => {
             >
               <div className="rounded-[23px] overflow-hidden relative">
                 <img
-                  src={dashboardShot}
+                  src={brand.dashboardShotUrl}
                   alt=""
                   aria-hidden
                   className="w-full h-48 md:h-56 object-cover object-top object-left bg-[#070b14] transition-transform duration-700 group-hover:scale-[1.02]"

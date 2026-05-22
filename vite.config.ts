@@ -29,28 +29,28 @@ function brandPlugin(mode: string, brandEnv: Record<string, string>): Plugin {
         fs.rmSync(publicBrandDir, { recursive: true, force: true });
       }
 
-      // 2. Copy brand assets to public/brand/
-      if (fs.existsSync(brandDir) && fs.existsSync(assetsDir)) {
-        copyAssets(assetsDir, publicBrandDir);
-      } else {
-        // Fallback to 1glance assets
-        const fallbackDir = path.resolve(__dirname, 'brands', '1glance', 'assets');
-        if (fs.existsSync(fallbackDir)) {
-          copyAssets(fallbackDir, publicBrandDir);
-        }
+      // 2. Copy baseline 1glance assets first
+      const fallbackDir = path.resolve(__dirname, 'brands', '1glance', 'assets');
+      if (fs.existsSync(fallbackDir)) {
+        copyAssets(fallbackDir, publicBrandDir);
       }
 
-      // 3. Copy brand theme CSS if present
-      if (fs.existsSync(brandDir) && fs.existsSync(themeSrc)) {
+      // Copy active brand assets on top of baseline if not in 1glance mode
+      if (mode !== '1glance' && fs.existsSync(brandDir) && fs.existsSync(assetsDir)) {
+        copyAssets(assetsDir, publicBrandDir);
+      }
+
+      // 3. Copy baseline 1glance theme first
+      const fallbackTheme = path.resolve(__dirname, 'brands', '1glance', 'theme.css');
+      if (fs.existsSync(fallbackTheme)) {
+        fs.mkdirSync(path.dirname(themeDest), { recursive: true });
+        fs.copyFileSync(fallbackTheme, themeDest);
+      }
+
+      // Copy active brand theme on top of baseline if not in 1glance mode
+      if (mode !== '1glance' && fs.existsSync(brandDir) && fs.existsSync(themeSrc)) {
         fs.mkdirSync(path.dirname(themeDest), { recursive: true });
         fs.copyFileSync(themeSrc, themeDest);
-      } else {
-        // Fallback to 1glance theme
-        const fallbackTheme = path.resolve(__dirname, 'brands', '1glance', 'theme.css');
-        if (fs.existsSync(fallbackTheme)) {
-          fs.mkdirSync(path.dirname(themeDest), { recursive: true });
-          fs.copyFileSync(fallbackTheme, themeDest);
-        }
       }
     },
     transformIndexHtml(html) {

@@ -49,6 +49,17 @@ export interface BrandConfig {
   showPricing: boolean;
   /** Whether to show the public landing page */
   showLanding: boolean;
+
+  /** URL to the product dashboard screenshot */
+  dashboardShotUrl: string;
+  /** URL to the product chat screenshot */
+  chatShotUrl: string;
+  /** URL to the product groups screenshot */
+  groupsShotUrl: string;
+  /** URL to the product users screenshot */
+  usersShotUrl: string;
+  /** URL to the product documents screenshot */
+  documentsShotUrl: string;
 }
 
 /** Read an optional VITE_ env var with a fallback. */
@@ -94,4 +105,10 @@ export const brandConfig: BrandConfig = {
 
   showPricing: flag('VITE_BRAND_SHOW_PRICING', true),
   showLanding: flag('VITE_BRAND_SHOW_LANDING', true),
+
+  dashboardShotUrl: optional('VITE_BRAND_DASHBOARD_SHOT', '/brand/product-dashboard.png'),
+  chatShotUrl: optional('VITE_BRAND_CHAT_SHOT', '/brand/product-chat.png'),
+  groupsShotUrl: optional('VITE_BRAND_GROUPS_SHOT', '/brand/product-groups.png'),
+  usersShotUrl: optional('VITE_BRAND_USERS_SHOT', '/brand/product-users.png'),
+  documentsShotUrl: optional('VITE_BRAND_DOCUMENTS_SHOT', '/brand/product-documents.png'),
 };
