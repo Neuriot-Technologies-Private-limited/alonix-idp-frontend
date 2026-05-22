@@ -35,6 +35,7 @@ i18n
     },
     // Default namespace — used when no namespace prefix given to t()
     defaultNS: 'common',
+    ns: ['common', 'landing', 'auth'],
     fallbackLng: 'en',
     supportedLngs: ['en'],
     interpolation: {

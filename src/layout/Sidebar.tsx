@@ -12,10 +12,7 @@ import {
 import { useUIStore } from '../stores/uiStore';
 import { useRbac } from '../hooks/useRbac';
 import { cn } from '../utils/cn';
-
-// Branding assets
-import logoFull from '../assets/1-glance.png';
-import logoFullLight from '../assets/1-glance.png';
+import { useBrand } from '../brand/useBrand';
 
 interface NavItem {
   icon: any;
@@ -26,20 +23,10 @@ interface NavItem {
 }
 
 const Sidebar: React.FC = () => {
+  const brand = useBrand();
   const { isSidebarCollapsed: isMinimized, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useUIStore();
   const { hasCapability, orgRole, hasAnyGroupAdmin, activeGroupRole, accessibleGroupIds } = useRbac();
-  const [isDarkTheme, setIsDarkTheme] = React.useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
 
-  React.useEffect(() => {
-    const htmlEl = document.documentElement;
-    const observer = new MutationObserver(() => {
-      setIsDarkTheme(htmlEl.classList.contains('dark'));
-    });
-    observer.observe(htmlEl, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
   const isSearchUserOnly = !isCompanyAdmin && !hasAnyGroupAdmin;
   /** JWT may omit dashboard caps on older tokens; org + workspace admins always use the dashboard. */
@@ -172,17 +159,23 @@ const Sidebar: React.FC = () => {
           {isMinimized ? <ChevronRightIcon className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
 
-        {/* Main Branding */}
+        {/* Main Branding — driven by useBrand() */}
         <div className={isMinimized ? 'p-6 flex justify-center' : 'p-8 pb-4 flex justify-center'}>
           <div className="flex items-center justify-center mb-2">
             {isMinimized ? (
               <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-background/50 border border-border/20 shadow-lg transition-all duration-300">
-                <span className="text-[26px] font-black tracking-tighter bg-gradient-to-br from-cyan-300 to-blue-600 text-transparent bg-clip-text drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] filter brightness-110">
-                  1
-                </span>
+                <img
+                  src={brand.logoIconUrl}
+                  alt={brand.shortName}
+                  className="w-7 h-7 object-contain"
+                />
               </div>
             ) : (
-              <img src={isDarkTheme ? logoFull : logoFullLight} alt="1-glance" className="h-10 md:h-14 w-auto object-contain origin-center scale-[1.3] dark:brightness-[1.3] dark:contrast-125 dark:drop-shadow-md transition-all duration-300" />
+              <img
+                src={brand.logoUrl}
+                alt={`${brand.name} logo`}
+                className="h-10 md:h-14 w-auto object-contain origin-center scale-[1.3] dark:brightness-[1.3] dark:contrast-125 dark:drop-shadow-md transition-all duration-300"
+              />
             )}
           </div>
         </div>

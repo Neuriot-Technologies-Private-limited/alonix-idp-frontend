@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
-import logoFull from '../../assets/1-glance.png';
+import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
 
 const VerifyPage: React.FC = () => {
@@ -109,7 +109,7 @@ const VerifyPage: React.FC = () => {
           
           <div className="relative z-10">
             <Link to="/">
-              <img src={logoFull} alt="1-glance" className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
+              <AuthPageLogo className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
             </Link>
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
               Verify <br />
@@ -219,9 +219,7 @@ const VerifyPage: React.FC = () => {
         </div>
       </motion.div>
 
-      <footer className="mt-12 text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.4em] relative z-10 transition-opacity hover:opacity-100 opacity-50">
-        &copy; {new Date().getFullYear()} Alonix Intelligence Systems. 
-      </footer>
+      <AuthPageFooter />
     </div>
   );
 };

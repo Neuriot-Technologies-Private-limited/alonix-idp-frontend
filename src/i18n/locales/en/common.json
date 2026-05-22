@@ -1,12 +1,25 @@
 {
   "nav": {
+    "dashboard": "Dashboard",
+    "groups": "Groups",
+    "users": "Users",
+    "documents": "Documents",
+    "aiChat": "AI Chat",
+    "workspace": "Workspace",
+    "administration": "Administration",
+    "switchWorkspace": "Switch workspace",
     "product": "Product",
     "solutions": "Solutions",
     "intelligence": "Intelligence",
     "pricing": "Pricing",
     "about": "About",
     "login": "Login",
-    "signUp": "Sign Up"
+    "signUp": "Sign Up",
+    "myProfile": "My Profile",
+    "orgSettings": "Organization Settings",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "signOut": "Sign Out"
   },
   "actions": {
     "getStartedFree": "Get Started for Free",

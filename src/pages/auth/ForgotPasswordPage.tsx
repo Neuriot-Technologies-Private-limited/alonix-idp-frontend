@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, Loader2, CheckCircle2, ChevronLeft, ShieldCheck, Building2 } from 'lucide-react';
-import logoFull from '../../assets/1-glance.png';
+import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
+import { useBrand } from '../../brand/useBrand';
 
 const ForgotPasswordPage: React.FC = () => {
+  const brand = useBrand();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [orgId, setOrgId] = useState(searchParams.get('orgId') || '');
@@ -57,7 +59,7 @@ const ForgotPasswordPage: React.FC = () => {
 
           <div className="relative z-10">
             <Link to="/">
-              <img src={logoFull} alt="1-glance" className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
+              <AuthPageLogo className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
             </Link>
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
               Recover Your <br />
@@ -111,7 +113,7 @@ const ForgotPasswordPage: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full bg-surface-highest/10 border border-border/5 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/20"
-                        placeholder="curator@alonix.ai"
+                        placeholder={`curator@${brand.supportEmail}`}
                         required
                       />
                     </div>
@@ -184,9 +186,7 @@ const ForgotPasswordPage: React.FC = () => {
         </div>
       </motion.div>
 
-      <footer className="mt-12 text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.4em] relative z-10 transition-opacity hover:opacity-100 opacity-50">
-        &copy; 2026 Alonix Intelligence Systems.
-      </footer>
+      <AuthPageFooter />
     </div>
   );
 };

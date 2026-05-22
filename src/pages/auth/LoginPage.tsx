@@ -4,11 +4,15 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, LayoutDashboard, Sparkles } from 'lucide-react';
 import { authApi } from '../../services/authApi';
-import logoFull from '../../assets/1-glance.png';
+import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
 import { useAlert } from '../../components/alert';
+import { useTranslation } from 'react-i18next';
+import { useBrand } from '../../brand/useBrand';
 
 const LoginPage: React.FC = () => {
   const { alert: appAlert } = useAlert();
+  const { t } = useTranslation('auth');
+  const brand = useBrand();
   const [searchParams] = useSearchParams();
   const orgIdFromUrl = searchParams.get('orgId') || '';
   const [email, setEmail] = useState('');
@@ -80,18 +84,13 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="relative z-10">
-            <Link to="/">
-              <motion.img
-                whileHover={{ scale: 1.05 }}
-                src={logoFull}
-                alt="1-glance"
-                className="h-12 md:h-14 mb-12 origin-left object-contain"
-              />
-            </Link>
+            <AuthPageLogo animate className="h-12 md:h-14 mb-12 origin-left object-contain" />
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
-              Welcome back
+              {t('login.tagline')}
               to the <br />
-              <span className="text-primary underline decoration-primary/20 underline-offset-[12px] decoration-4">Digital Curator</span>
+              <span className="text-primary underline decoration-primary/20 underline-offset-[12px] decoration-4">
+                {t('login.taglineHighlight')}
+              </span>
             </h3>
 
             <div className="space-y-8 mt-12">
@@ -100,8 +99,12 @@ const LoginPage: React.FC = () => {
                   <Sparkles className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black uppercase tracking-wider text-foreground mb-1">Intelligence Awaits</h4>
-                  <p className="text-sm text-muted-foreground/70 font-bold leading-relaxed">Your workspace is synchronized and ready for new document nodes.</p>
+                  <h4 className="text-sm font-black uppercase tracking-wider text-foreground mb-1">
+                    {t('login.feature1Title')}
+                  </h4>
+                  <p className="text-sm text-muted-foreground/70 font-bold leading-relaxed">
+                    {t('login.feature1Desc')}
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-5">
@@ -109,27 +112,35 @@ const LoginPage: React.FC = () => {
                   <LayoutDashboard className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black uppercase tracking-wider text-foreground mb-1">Total Control</h4>
-                  <p className="text-sm text-muted-foreground/70 font-bold leading-relaxed">Manage permissions and groups with enterprise-grade precision.</p>
+                  <h4 className="text-sm font-black uppercase tracking-wider text-foreground mb-1">
+                    {t('login.feature2Title')}
+                  </h4>
+                  <p className="text-sm text-muted-foreground/70 font-bold leading-relaxed">
+                    {t('login.feature2Desc')}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="relative z-10 pt-16">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30">Intelligence / Security / Clarity</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30">
+              {t('login.footerBadge')}
+            </p>
           </div>
         </div>
 
         <div className="p-8 md:p-12 flex flex-col justify-center bg-surface-lowest/40 backdrop-blur-sm">
           <div className="mb-6">
-            <h2 className="text-2xl font-extrabold font-display mb-2 tracking-tight">Login</h2>
-            <p className="text-muted-foreground text-sm mb-6 leading-relaxed font-medium">Please enter your credentials to continue.</p>
+            <h2 className="text-2xl font-extrabold font-display mb-2 tracking-tight">{t('login.heading')}</h2>
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed font-medium">{t('login.subheading')}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Work Email</label>
+              <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">
+                {t('login.emailLabel')}
+              </label>
               <div className="relative group/input">
                 <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 transition-colors group-focus-within/input:text-primary" />
                 <input
@@ -137,7 +148,7 @@ const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-surface-highest/10 border border-border/20 dark:border-border/10 rounded-2xl py-4 pl-14 pr-4 outline-none focus:border-primary/40 focus:bg-surface-highest/20 transition-all text-sm font-bold text-foreground placeholder:text-muted-foreground/40"
-                  placeholder="e.g. curator@alonix.ai"
+                  placeholder={`curator@${brand.supportEmail}`}
                   required
                 />
               </div>
@@ -145,8 +156,12 @@ const LoginPage: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em]">Password</label>
-                <Link to="/forgot-password" title="Recover Access" className="text-[10px] text-primary hover:text-primary-container font-black uppercase tracking-[0.2em] transition-colors">Forgot?</Link>
+                <label className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em]">
+                  {t('login.passwordLabel')}
+                </label>
+                <Link to="/forgot-password" title="Recover Access" className="text-[10px] text-primary hover:text-primary-container font-black uppercase tracking-[0.2em] transition-colors">
+                  {t('login.forgotPassword')}
+                </Link>
               </div>
               <div className="relative group/input">
                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 transition-colors group-focus-within/input:text-primary" />
@@ -180,7 +195,7 @@ const LoginPage: React.FC = () => {
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>
-                  <span className="text-sm font-black font-display uppercase tracking-[0.2em]">Login</span>
+                  <span className="text-sm font-black font-display uppercase tracking-[0.2em]">{t('login.submitButton')}</span>
                   <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1.5 transition-transform" />
                 </>
               )}
@@ -194,13 +209,17 @@ const LoginPage: React.FC = () => {
           </form>
 
           <p className="mt-12 text-center text-sm font-bold text-muted-foreground/60">
-            New to 1-glance? <Link to="/signup" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">Establish Workspace</Link>
+            {t('login.newToApp', { brandName: brand.name })}{' '}
+            <Link to="/signup" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">
+              {t('login.establishWorkspace')}
+            </Link>
           </p>
         </div>
       </motion.div>
 
+      {/* Watermark — uses brand short name */}
       <footer className="mt-16 text-[90px] md:text-[180px] font-black text-foreground/[0.01] absolute bottom-[-40px] left-1/2 -translate-x-1/2 select-none pointer-events-none whitespace-nowrap tracking-tighter">
-        1-GLANCE
+        {brand.name.toUpperCase()}
       </footer>
     </div>
   );

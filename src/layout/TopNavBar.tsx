@@ -7,9 +7,11 @@ import { useUIStore } from '../stores/uiStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { getMyContext } from '../services/chatApi';
+import { useBrand } from '../brand/useBrand';
 
 const TopNavBar: React.FC = () => {
   const navigate = useNavigate();
+  const brand = useBrand();
   const { user, context, setActiveGroup, updateContext, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const toggleMobileNav = useUIStore((s) => s.toggleMobileNav);
@@ -222,7 +224,11 @@ const TopNavBar: React.FC = () => {
               >
                 <div className="px-3 py-3 border-b border-border/10 mb-2">
                   <p className="text-xs font-bold truncate text-foreground">{user?.email}</p>
-                  <p className="text-[9px] text-muted-foreground font-medium uppercase mt-0.5 tracking-widest">{context?.orgRole || 'Professional Tier'}</p>
+                  <p className="text-[9px] text-muted-foreground font-medium uppercase mt-0.5 tracking-widest">
+                    {context?.orgRole
+                      ? context.orgRole.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                      : brand.name}
+                  </p>
                 </div>
 
                 <div className="space-y-0.5">

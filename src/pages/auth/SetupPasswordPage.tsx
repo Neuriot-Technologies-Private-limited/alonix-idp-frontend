@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import logoFull from '../../assets/1-glance.png';
+import { AuthPageLogo } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
 
 const EXPIRED_INVITE_COPY = 'Your invitation is expired. Please request a new invite.';
@@ -157,7 +157,7 @@ const SetupPasswordPage: React.FC = () => {
 
           <div className="relative z-10">
             <Link to="/">
-              <img src={logoFull} alt="1-glance" className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
+              <AuthPageLogo className="h-10 md:h-12 mb-12 origin-left scale-[1.25] object-contain" />
             </Link>
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
               Complete Your <br />

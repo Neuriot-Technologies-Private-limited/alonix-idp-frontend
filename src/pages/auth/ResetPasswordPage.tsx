@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Loader2, ArrowRight, ChevronLeft, KeyRound } from 'lucide-react';
-import logoFull from '../../assets/1-glance.png';
+import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
 
 const ResetPasswordPage: React.FC = () => {
@@ -67,7 +67,7 @@ const ResetPasswordPage: React.FC = () => {
         className="w-full max-w-lg z-10 overflow-hidden glass rounded-[2rem] shadow-4xl border border-border/5 p-8 md:p-10"
       >
         <Link to="/">
-          <img src={logoFull} alt="1-glance" className="h-10 md:h-12 mb-8 origin-left scale-[1.25] object-contain" />
+          <AuthPageLogo className="h-10 md:h-12 mb-8 origin-left scale-[1.25] object-contain" />
         </Link>
 
         <div className="mb-8 flex items-start gap-4">
@@ -166,9 +166,7 @@ const ResetPasswordPage: React.FC = () => {
         </Link>
       </motion.div>
 
-      <footer className="relative z-10 mt-12 text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30">
-        &copy; {new Date().getFullYear()} Alonix Intelligence Systems.
-      </footer>
+      <AuthPageFooter />
     </div>
   );
 };
