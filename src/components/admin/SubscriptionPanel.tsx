@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import {
   CreditCard, Zap, FileText, Users, HardDrive, Crown,
   ArrowUpRight, CheckCircle2, AlertTriangle, Loader2,
-  ExternalLink, TrendingUp, Calendar, Sparkles, BarChart3, X,
+  TrendingUp, Calendar, Sparkles, BarChart3, X,
 } from 'lucide-react';
 import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
-import { fmtBytes, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
+import { fmtBytes, productPlanDescription, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
 import {
   fetchBillingPlans,
   fetchBillingConfig,
@@ -107,6 +107,7 @@ const SubscriptionPanel: React.FC = () => {
   const orgId = context?.orgId;
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { alert: appAlert } = useAlert();
 
   const [showPlans, setShowPlans] = useState(false);
@@ -205,18 +206,6 @@ const SubscriptionPanel: React.FC = () => {
     onSettled: () => setUpgrading(null),
   });
 
-  const portalMut = useMutation({
-    mutationFn: async () => (await apiClient.get<{ url: string }>('/billing/portal-session')).data,
-    onSuccess: ({ url }) => {
-      window.location.href = url;
-    },
-    onError: async (err: unknown) => {
-      const ax = err as { response?: { data?: { error?: string } }; message?: string };
-      const msg = ax.response?.data?.error || ax.message || 'Could not open billing portal.';
-      await appAlert({ title: 'Portal unavailable', description: msg, variant: 'danger' });
-    },
-  });
-
   // ── Early states ──────────────────────────────────────────────────────────
   if (isLoading && !data) {
     return (
@@ -264,11 +253,11 @@ const SubscriptionPanel: React.FC = () => {
           {isPaid && (
             <button
               id="manage-billing-btn"
-              onClick={() => portalMut.mutate()}
-              disabled={portalMut.isPending}
-              className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-border/20 hover:border-primary/30 hover:text-primary transition-all text-muted-foreground disabled:opacity-50"
+              type="button"
+              onClick={() => navigate('/settings/billing')}
+              className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-border/20 hover:border-primary/30 hover:text-primary transition-all text-muted-foreground"
             >
-              {portalMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+              <CreditCard className="h-3 w-3" />
               Manage Billing
             </button>
           )}
@@ -344,7 +333,7 @@ const SubscriptionPanel: React.FC = () => {
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">{plan.description}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{productPlanDescription(plan.description)}</p>
           </div>
 
           <div className="shrink-0 text-right">

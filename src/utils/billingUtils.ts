@@ -1,5 +1,15 @@
 // ── Billing utilities ─────────────────────────────────────────────────────────
 
+export const PRODUCT_DISPLAY_NAME = '1-glance';
+
+/** Normalize legacy plan copy for in-app billing surfaces. */
+export function productPlanDescription(description: string | undefined | null): string {
+  if (!description) return '';
+  return description
+    .replace(/\bAlonix IDP\b/gi, PRODUCT_DISPLAY_NAME)
+    .replace(/\bAlonix\b/gi, PRODUCT_DISPLAY_NAME);
+}
+
 export type BillingCycle = 'monthly' | 'annually';
 
 /** Fallback when API does not attach `annualDiscountFraction` (older caches). */

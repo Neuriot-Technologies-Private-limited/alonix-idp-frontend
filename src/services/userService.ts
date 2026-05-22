@@ -140,6 +140,15 @@ export const userService = {
       } catch (e: unknown) {
         const msg = quotaErrorMessage(e, '');
         if (msg) return { ok: false, error: msg };
+        const ax = e as { response?: { status?: number; data?: { message?: string } } };
+        if (ax.response?.status === 404) {
+          return {
+            ok: false,
+            error:
+              ax.response?.data?.message ||
+              `${email} is not in your organization. Refresh the page or add them from Organization Settings first.`,
+          };
+        }
         /* skip duplicate / other per-user errors */
       }
     }

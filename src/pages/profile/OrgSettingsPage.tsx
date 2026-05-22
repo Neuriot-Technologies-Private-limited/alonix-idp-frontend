@@ -49,7 +49,7 @@ const OrgSettingsPage: React.FC = () => {
               Organization Settings
             </h1>
             <p className="mt-1 text-sm font-medium text-muted-foreground">
-              Company admins can manage organization-level AI provider settings.
+              Company admins can manage 1-glance organization-level AI provider settings.
             </p>
           </div>
 
