@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "product": "Product",
+    "solutions": "Solutions",
+    "intelligence": "Intelligence",
+    "pricing": "Pricing",
+    "about": "About",
+    "login": "Login",
+    "signUp": "Sign Up"
+  },
+  "actions": {
+    "getStartedFree": "Get Started for Free",
+    "watchProductTour": "Watch Product Tour",
+    "initializeWorkspace": "Initialize Free Workspace",
+    "compareAllPlans": "Compare all plans →",
+    "getStarted": "Get started"
+  },
+  "footer": {
+    "platform": "Platform",
+    "governance": "Governance",
+    "company": "Company",
+    "intelligence": "Intelligence",
+    "piiRedaction": "PII Redaction",
+    "roleBasedFlow": "Role-Based Flow",
+    "security": "Security",
+    "compliance": "Compliance",
+    "gdpr": "GDPR",
+    "aboutUs": "About Us",
+    "contact": "Contact",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "twitter": "Twitter",
+    "enterprise": "Enterprise"
+  },
+  "errors": {
+    "forbidden": "403 - Forbidden Access Denied"
+  }
+}

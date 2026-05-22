@@ -1,0 +1,81 @@
+{
+  "hero": {
+    "headline": "The Digital Curator for Your",
+    "headlineHighlight": "Document Intelligence Platform",
+    "subheadline": "A sophisticated, silent partner—organizing, surfacing, and securing document intelligence with enterprise-grade AI."
+  },
+  "product": {
+    "screenshotAlt": "{{brandName}} dashboard — document trends, workspaces, and activity",
+    "pathLabel": "app.1glance.ai/users"
+  },
+  "features": {
+    "sectionId": "features",
+    "aiInsights": {
+      "title": "AI-Powered Insights",
+      "description": "Go beyond search. Our neural engine understands the context, nuance, and relationships within your documentation to surface exactly what matters.",
+      "tags": ["Neural Analysis", "Semantic Search", "Vector Context"]
+    },
+    "secureWorkspace": {
+      "title": "Secure Workspace",
+      "description": "Enterprise-grade encryption and isolated data nodes ensure your intelligence stays yours."
+    },
+    "roleBasedFlow": {
+      "title": "Role-Based Flow",
+      "description": "Dynamic permissions that adapt to your team structure without rigid hierarchies."
+    },
+    "productTour": {
+      "title": "See the full product tour",
+      "subtitle": "Dashboard metrics and document Q&A — switch views below."
+    }
+  },
+  "intelligence": {
+    "sectionTitle": "Neural Document Intelligence",
+    "sectionSubtitle": "Sophisticated AI that doesn't just read—it understands, categorizes, and protects your document ecosystem.",
+    "items": {
+      "semantic": {
+        "title": "Semantic Understanding",
+        "description": "Identify relationships and entities across fragmented documentation sets with contextual precision.",
+        "tags": ["NER", "Relationship Mapping"]
+      },
+      "ocr": {
+        "title": "OCR Engine Pro",
+        "description": "High-fidelity extraction from legacy scans, complex tables, and handwritten annotations.",
+        "tags": ["Multimodal", "Structure Aware"]
+      },
+      "curator": {
+        "title": "Auto-Curator",
+        "description": "Intelligent sorting and metadata generation that eliminates manual document tagging forever.",
+        "tags": ["Auto-Tagging", "Taxonomy"]
+      }
+    }
+  },
+  "philosophy": {
+    "title": "The \"No-Line\"",
+    "titleLine2": "Philosophy of Design",
+    "description": "We believe that productivity is found in focus, not clutter. Our interface rejects traditional borders and rigid grids in favor of tonal layering. By using depth and color shifts, we guide your eyes naturally to the insights that matter, reducing cognitive load and visual fatigue.",
+    "stat1Value": "85%",
+    "stat1Label": "Reduced Visual Noise",
+    "stat2Value": "2.4x",
+    "stat2Label": "Faster Retrieval"
+  },
+  "pricing": {
+    "title": "Pay once, unlock",
+    "titleHighlight": "clarity.",
+    "subtitle": "Transform document chaos into structured intelligence. Efficient plans for every stage of growth."
+  },
+  "cta": {
+    "title": "Ready to experience clarity?",
+    "description": "Join forward-thinking enterprise teams who use {{brandName}} to turn static documents into dynamic intelligence engines."
+  },
+  "about": {
+    "visionLabel": "Our Vision",
+    "title": "We empower the",
+    "titleHighlight": "Digital Curator",
+    "titleSuffix": "within every enterprise team.",
+    "story": "{{brandName}} was born from a simple realization: information isn't power—retrieval is. Our mission is to eliminate the friction between data and decision-making, providing a sophisticated layer of intelligence that organizes the world's most complex document ecosystems."
+  },
+  "footer": {
+    "tagline": "Empowering the digital curator through sophisticated document intelligence and role-based excellence.",
+    "copyright": "© {{year}} {{copyright}}. The Digital Curator."
+  }
+}

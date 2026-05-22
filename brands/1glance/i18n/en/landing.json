@@ -1,0 +1,26 @@
+{
+  "hero": {
+    "headline": "The Digital Curator for Your",
+    "headlineHighlight": "Document Intelligence Platform",
+    "subheadline": "A sophisticated, silent partner—organizing, surfacing, and securing document intelligence with enterprise-grade AI."
+  },
+  "product": {
+    "screenshotAlt": "1-Glance dashboard — document trends, workspaces, and activity",
+    "pathLabel": "app.1glance.ai/users"
+  },
+  "cta": {
+    "title": "Ready to experience clarity?",
+    "description": "Join forward-thinking enterprise teams who use 1-Glance to turn static documents into dynamic intelligence engines."
+  },
+  "about": {
+    "visionLabel": "Our Vision",
+    "title": "We empower the",
+    "titleHighlight": "Digital Curator",
+    "titleSuffix": "within every enterprise team.",
+    "story": "1-Glance was born from a simple realization: information isn't power—retrieval is. Our mission is to eliminate the friction between data and decision-making, providing a sophisticated layer of intelligence that organizes the world's most complex document ecosystems."
+  },
+  "footer": {
+    "tagline": "Empowering the digital curator through sophisticated document intelligence and role-based excellence.",
+    "copyright": "© {{year}} Alonix Intelligence Systems. The Digital Curator."
+  }
+}

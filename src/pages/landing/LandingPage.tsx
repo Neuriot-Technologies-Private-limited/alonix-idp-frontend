@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   PlayCircle,
   ShieldCheck,
@@ -23,8 +24,11 @@ import {
 import dashboardShot from '../../assets/landing/product-dashboard.png';
 import { fetchBillingPlans } from '../../services/billingService';
 import type { BillingCycle } from '../../utils/billingUtils';
+import { useBrand } from '../../brand/useBrand';
 
 const LandingPage: React.FC = () => {
+  const { t } = useTranslation('landing');
+  const brand = useBrand();
   const [billingCycle, setBillingCycle] = React.useState<BillingCycle>('monthly');
 
   const { data: plans = [], isLoading: plansLoading, isError: plansError } = useQuery({
@@ -54,20 +58,20 @@ const LandingPage: React.FC = () => {
           <BrandHomeLink />
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground font-display">
-            <a href="#product" className="hover:text-primary transition-colors">Product</a>
-            <a href="#features" className="hover:text-primary transition-colors">Solutions</a>
-            <a href="#intelligence" className="hover:text-primary transition-colors">Intelligence</a>
-            <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
-            <a href="#about" className="hover:text-primary transition-colors">About</a>
+            <a href="#product" className="hover:text-primary transition-colors">{t('hero.headline', { ns: 'common', defaultValue: 'Product' })}</a>
+            <a href="#features" className="hover:text-primary transition-colors">{t('nav.solutions', { ns: 'common', defaultValue: 'Solutions' })}</a>
+            <a href="#intelligence" className="hover:text-primary transition-colors">{t('nav.intelligence', { ns: 'common', defaultValue: 'Intelligence' })}</a>
+            <Link to="/pricing" className="hover:text-primary transition-colors">{t('nav.pricing', { ns: 'common', defaultValue: 'Pricing' })}</Link>
+            <a href="#about" className="hover:text-primary transition-colors">{t('nav.about', { ns: 'common', defaultValue: 'About' })}</a>
           </div>
 
           <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm font-bold hover:text-primary transition-colors px-4 font-display">Login</Link>
+            <Link to="/login" className="text-sm font-bold hover:text-primary transition-colors px-4 font-display">{t('nav.login', { ns: 'common', defaultValue: 'Login' })}</Link>
             <Link
               to="/signup"
               className="btn-primary py-2.5 px-6 rounded-md text-sm font-bold shadow-lg shadow-primary/20 font-display"
             >
-              Sign Up
+              {t('nav.signUp', { ns: 'common', defaultValue: 'Sign Up' })}
             </Link>
           </div>
         </div>
@@ -107,9 +111,9 @@ const LandingPage: React.FC = () => {
               variants={fadeInUp}
               className="font-display text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1] text-foreground"
             >
-              The Digital Curator for Your <br />
+              {t('hero.headline')} <br />
               <span className="bg-gradient-to-r from-[#3B82F6] via-[#60A5FA] to-[#ADC6FF] bg-clip-text text-transparent">
-                Document Intelligence Platform
+                {t('hero.headlineHighlight')}
               </span>
             </motion.h1>
 
@@ -117,7 +121,7 @@ const LandingPage: React.FC = () => {
               variants={fadeInUp}
               className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
             >
-              A sophisticated, silent partner—organizing, surfacing, and securing document intelligence with enterprise-grade AI.
+              {t('hero.subheadline')}
             </motion.p>
 
             <motion.div
@@ -125,11 +129,11 @@ const LandingPage: React.FC = () => {
               className="flex flex-col md:flex-row gap-6 justify-center items-center mb-20"
             >
               <Link to="/signup" className="w-full md:w-auto btn-primary text-lg px-8 py-4 rounded-md shadow-xl shadow-primary/25">
-                Get Started for Free
+                {t('actions.getStartedFree', { ns: 'common', defaultValue: 'Get Started for Free' })}
               </Link>
               <button className="w-full md:w-auto glass hover:bg-surface-highest/20 text-primary font-bold text-lg px-8 py-4 rounded-md flex items-center justify-center gap-3 transition-all active:scale-95 group">
                 <PlayCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                Watch Product Tour
+                {t('actions.watchProductTour', { ns: 'common', defaultValue: 'Watch Product Tour' })}
               </button>
             </motion.div>
 
@@ -143,8 +147,8 @@ const LandingPage: React.FC = () => {
               <div className="relative rounded-2xl border border-border/10 shadow-2xl overflow-hidden">
                 <ProductScreenshotFrame
                   src={dashboardShot}
-                  alt="Alonix IDP dashboard — document trends, workspaces, and activity"
-                  pathLabel="app.alonix.ai/users"
+                  alt={t('product.screenshotAlt', { brandName: brand.name })}
+                  pathLabel={t('product.pathLabel')}
                   priority
                   imageAspect={PRODUCT_SCREEN_ASPECT}
                   imagePosition={PRODUCT_SCREEN_POSITION}
@@ -168,13 +172,13 @@ const LandingPage: React.FC = () => {
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-8">
                   <Sparkles className="w-7 h-7 text-primary" />
                 </div>
-                <h3 className="font-display text-3xl font-bold mb-4">AI-Powered Insights</h3>
+                <h3 className="font-display text-3xl font-bold mb-4">{t('features.aiInsights.title')}</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">
-                  Go beyond search. Our neural engine understands the context, nuance, and relationships within your documentation to surface exactly what matters.
+                  {t('features.aiInsights.description')}
                 </p>
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
-                {['Neural Analysis', 'Semantic Search', 'Vector Context'].map(tag => (
+                {(t('features.aiInsights.tags', { returnObjects: true }) as string[]).map(tag => (
                   <span key={tag} className="px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest">
                     {tag}
                   </span>
@@ -191,9 +195,9 @@ const LandingPage: React.FC = () => {
                 <div className="w-14 h-14 rounded-2xl bg-primary-container/10 flex items-center justify-center mb-8">
                   <ShieldCheck className="w-7 h-7 text-primary-container" />
                 </div>
-                <h3 className="font-display text-2xl font-bold mb-4">Secure Workspace</h3>
+                <h3 className="font-display text-2xl font-bold mb-4">{t('features.secureWorkspace.title')}</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Enterprise-grade encryption and isolated data nodes ensure your intelligence stays yours.
+                  {t('features.secureWorkspace.description')}
                 </p>
               </div>
             </motion.div>
@@ -207,9 +211,9 @@ const LandingPage: React.FC = () => {
                 <div className="w-14 h-14 rounded-2xl bg-surface-highest/50 flex items-center justify-center mb-8">
                   <Workflow className="w-7 h-7 text-foreground/50" />
                 </div>
-                <h3 className="font-display text-2xl font-bold mb-4">Role-Based Flow</h3>
+                <h3 className="font-display text-2xl font-bold mb-4">{t('features.roleBasedFlow.title')}</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Dynamic permissions that adapt to your team structure without rigid hierarchies.
+                  {t('features.roleBasedFlow.description')}
                 </p>
               </div>
             </motion.div>
@@ -228,8 +232,8 @@ const LandingPage: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <h4 className="font-display text-2xl font-bold mb-2">See the full product tour</h4>
-                  <p className="text-muted-foreground text-sm">Dashboard metrics and document Q&A — switch views below.</p>
+                  <h4 className="font-display text-2xl font-bold mb-2">{t('features.productTour.title')}</h4>
+                  <p className="text-muted-foreground text-sm">{t('features.productTour.subtitle')}</p>
                 </div>
               </div>
             </motion.a>
@@ -240,35 +244,20 @@ const LandingPage: React.FC = () => {
         <section id="intelligence" className="py-32 px-6 relative overflow-hidden">
           <div className="max-w-7xl mx-auto text-foreground">
             <div className="text-center mb-20 space-y-4">
-              <h2 className="font-display text-4xl md:text-5xl font-extrabold tracking-tight">Neural Document Intelligence</h2>
+              <h2 className="font-display text-4xl md:text-5xl font-extrabold tracking-tight">{t('intelligence.sectionTitle')}</h2>
               <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-                Sophisticated AI that doesn't just read—it understands, categorizes, and protects your document ecosystem.
+                {t('intelligence.sectionSubtitle')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  icon: Brain,
-                  title: "Semantic Understanding",
-                  desc: "Identify relationships and entities across fragmented documentation sets with contextual precision.",
-                  tags: ["NER", "Relationship Mapping"]
-                },
-                {
-                  icon: Cpu,
-                  title: "OCR Engine Pro",
-                  desc: "High-fidelity extraction from legacy scans, complex tables, and handwritten annotations.",
-                  tags: ["Multimodal", "Structure Aware"]
-                },
-                {
-                  icon: Sparkles,
-                  title: "Auto-Curator",
-                  desc: "Intelligent sorting and metadata generation that eliminates manual document tagging forever.",
-                  tags: ["Auto-Tagging", "Taxonomy"]
-                }
-              ].map((item, i) => (
+              {([
+                { icon: Brain, key: 'semantic' },
+                { icon: Cpu, key: 'ocr' },
+                { icon: Sparkles, key: 'curator' },
+              ] as const).map(({ icon: Icon, key }, i) => (
                 <motion.div
-                  key={item.title}
+                  key={key}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -276,12 +265,12 @@ const LandingPage: React.FC = () => {
                   className="glass p-8 rounded-3xl border border-border/5 hover:border-primary/20 transition-all group"
                 >
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform">
-                    <item.icon className="w-6 h-6" />
+                    <Icon className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-bold mb-3 font-display">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-6">{item.desc}</p>
+                  <h3 className="text-xl font-bold mb-3 font-display">{t(`intelligence.items.${key}.title`)}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-6">{t(`intelligence.items.${key}.description`)}</p>
                   <div className="flex gap-2">
-                    {item.tags.map(tag => (
+                    {(t(`intelligence.items.${key}.tags`, { returnObjects: true }) as string[]).map(tag => (
                       <span key={tag} className="text-[9px] font-bold uppercase tracking-wider text-primary/60 px-2 py-1 rounded bg-primary/5">
                         {tag}
                       </span>
@@ -300,20 +289,20 @@ const LandingPage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
             <div className="space-y-8">
               <h2 className="font-display text-4xl md:text-5xl font-extrabold leading-tight">
-                The "No-Line" <br />Philosophy of Design
+                {t('philosophy.title')} <br />{t('philosophy.titleLine2')}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                We believe that productivity is found in focus, not clutter. Our interface rejects traditional borders and rigid grids in favor of tonal layering. By using depth and color shifts, we guide your eyes naturally to the insights that matter, reducing cognitive load and visual fatigue.
+                {t('philosophy.description')}
               </p>
               <div className="flex items-center gap-12 pt-4">
                 <div className="flex flex-col">
-                  <span className="font-display text-4xl font-extrabold text-primary">85%</span>
-                  <span className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Reduced Visual Noise</span>
+                  <span className="font-display text-4xl font-extrabold text-primary">{t('philosophy.stat1Value')}</span>
+                  <span className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">{t('philosophy.stat1Label')}</span>
                 </div>
                 <div className="w-px h-12 bg-border/20" />
                 <div className="flex flex-col">
-                  <span className="font-display text-4xl font-extrabold text-primary-container">2.4x</span>
-                  <span className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Faster Retrieval</span>
+                  <span className="font-display text-4xl font-extrabold text-primary-container">{t('philosophy.stat2Value')}</span>
+                  <span className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">{t('philosophy.stat2Label')}</span>
                 </div>
               </div>
             </div>
@@ -335,10 +324,10 @@ const LandingPage: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16 space-y-4">
               <h2 className="font-display text-5xl md:text-6xl font-extrabold tracking-tight text-foreground">
-                Pay once, unlock <span className="text-primary italic">clarity.</span>
+                {t('pricing.title')} <span className="text-primary italic">{t('pricing.titleHighlight')}</span>
               </h2>
               <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-                Transform document chaos into structured intelligence. Efficient plans for every stage of growth.
+                {t('pricing.subtitle')}
               </p>
 
               <div className="flex justify-center pt-8">
@@ -356,12 +345,12 @@ const LandingPage: React.FC = () => {
               isLoading={plansLoading}
               error={plansError}
               ctaHref="/signup"
-              ctaLabel="Get started"
+              ctaLabel={t('actions.getStarted', { ns: 'common', defaultValue: 'Get started' })}
             />
 
             <p className="text-center mt-10">
               <Link to="/pricing" className="text-sm font-bold text-primary hover:underline">
-                Compare all plans →
+                {t('actions.compareAllPlans', { ns: 'common', defaultValue: 'Compare all plans →' })}
               </Link>
             </p>
           </div>
@@ -376,13 +365,13 @@ const LandingPage: React.FC = () => {
             viewport={{ once: true }}
             className="relative z-10 max-w-3xl mx-auto"
           >
-            <h2 className="font-display text-4xl md:text-6xl font-extrabold mb-8 tracking-tighter">Ready to experience clarity?</h2>
+            <h2 className="font-display text-4xl md:text-6xl font-extrabold mb-8 tracking-tighter">{t('cta.title')}</h2>
             <p className="text-xl text-muted-foreground mb-12">
-              Join forward-thinking enterprise teams who use 1-glance to turn static documents into dynamic intelligence engines.
+              {t('cta.description', { brandName: brand.name })}
             </p>
             <div className="flex flex-col md:flex-row gap-4 justify-center">
               <Link to="/signup" className="btn-primary text-xl px-12 py-5 rounded-md shadow-2xl shadow-primary/30">
-                Initialize Free Workspace
+                {t('actions.initializeWorkspace', { ns: 'common', defaultValue: 'Initialize Free Workspace' })}
               </Link>
             </div>
           </motion.div>
@@ -391,14 +380,14 @@ const LandingPage: React.FC = () => {
         {/* About Section */}
         <section id="about" className="py-32 px-6 bg-surface-lowest/50 text-foreground border-y border-border/5">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <h2 className="font-display text-xs font-bold uppercase tracking-[0.3em] text-primary">Our Vision</h2>
+            <h2 className="font-display text-xs font-bold uppercase tracking-[0.3em] text-primary">{t('about.visionLabel')}</h2>
             <motion.h3
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight"
             >
-              We empower the <span className="italic text-primary">Digital Curator</span> within every enterprise team.
+              {t('about.title')} <span className="italic text-primary">{t('about.titleHighlight')}</span> {t('about.titleSuffix')}
             </motion.h3>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -407,7 +396,7 @@ const LandingPage: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="text-xl text-muted-foreground leading-relaxed"
             >
-              1-glance was born from a simple realization: information isn't power—retrieval is. Our mission is to eliminate the friction between data and decision-making, providing a sophisticated layer of intelligence that organizes the world's most complex document ecosystems.
+              {t('about.story', { brandName: brand.name })}
             </motion.p>
           </div>
         </section>
@@ -420,30 +409,30 @@ const LandingPage: React.FC = () => {
             <div className="space-y-6 max-w-xs">
               <BrandHomeLink imgClassName="h-8 md:h-10 origin-left object-contain opacity-80 hover:opacity-100 transition-opacity" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Empowering the digital curator through sophisticated document intelligence and role-based excellence.
+                {t('footer.tagline')}
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-16">
               {[
                 {
-                  title: 'Platform', links: [
-                    { label: 'Intelligence', href: '#intelligence' },
-                    { label: 'PII Redaction', href: '#features' },
-                    { label: 'Role-Based Flow', href: '#features' }
+                  title: t('footer.platform', { ns: 'common', defaultValue: 'Platform' }), links: [
+                    { label: t('footer.intelligence', { ns: 'common', defaultValue: 'Intelligence' }), href: '#intelligence' },
+                    { label: t('footer.piiRedaction', { ns: 'common', defaultValue: 'PII Redaction' }), href: '#features' },
+                    { label: t('footer.roleBasedFlow', { ns: 'common', defaultValue: 'Role-Based Flow' }), href: '#features' }
                   ]
                 },
                 {
-                  title: 'Governance', links: [
-                    { label: 'Security', href: '#features' },
-                    { label: 'Compliance', href: '#features' },
-                    { label: 'GDPR', href: '#features' }
+                  title: t('footer.governance', { ns: 'common', defaultValue: 'Governance' }), links: [
+                    { label: t('footer.security', { ns: 'common', defaultValue: 'Security' }), href: '#features' },
+                    { label: t('footer.compliance', { ns: 'common', defaultValue: 'Compliance' }), href: '#features' },
+                    { label: t('footer.gdpr', { ns: 'common', defaultValue: 'GDPR' }), href: '#features' }
                   ]
                 },
                 {
-                  title: 'Company', links: [
-                    { label: 'About Us', href: '#about' },
-                    { label: 'Pricing', href: '#pricing' },
-                    { label: 'Contact', href: '#' }
+                  title: t('footer.company', { ns: 'common', defaultValue: 'Company' }), links: [
+                    { label: t('footer.aboutUs', { ns: 'common', defaultValue: 'About Us' }), href: '#about' },
+                    { label: t('nav.pricing', { ns: 'common', defaultValue: 'Pricing' }), href: '#pricing' },
+                    { label: t('footer.contact', { ns: 'common', defaultValue: 'Contact' }), href: '#' }
                   ]
                 }
               ].map(group => (
@@ -461,12 +450,12 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
           <div className="pt-8 border-t border-border/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
-            <p>© {new Date().getFullYear()} Alonix Intelligence Systems. The Digital Curator.</p>
+            <p>{t('footer.copyright', { year: new Date().getFullYear(), copyright: brand.copyright })}</p>
             <div className="flex gap-8">
-              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-primary transition-colors">Twitter</a>
-              <a href="#" className="hover:text-primary transition-colors">Enterprise</a>
+              <a href={brand.privacyUrl} className="hover:text-primary transition-colors">{t('footer.privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}</a>
+              <a href={brand.termsUrl} className="hover:text-primary transition-colors">{t('footer.termsOfService', { ns: 'common', defaultValue: 'Terms of Service' })}</a>
+              <a href="#" className="hover:text-primary transition-colors">{t('footer.twitter', { ns: 'common', defaultValue: 'Twitter' })}</a>
+              <a href="#" className="hover:text-primary transition-colors">{t('footer.enterprise', { ns: 'common', defaultValue: 'Enterprise' })}</a>
             </div>
           </div>
         </div>
