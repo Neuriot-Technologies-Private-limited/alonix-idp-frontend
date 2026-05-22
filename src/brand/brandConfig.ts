@@ -77,9 +77,9 @@ export const brandConfig: BrandConfig = {
   copyright: optional('VITE_BRAND_COPYRIGHT', 'Alonix Intelligence Systems'),
 
   // Assets are served from /brand/ — copied there by vite.config.ts at build time
-  logoUrl: '/brand/logo.png',
-  logoIconUrl: '/brand/logo-icon.png',
-  faviconUrl: '/brand/favicon.svg',
+  logoUrl: optional('VITE_BRAND_LOGO_URL', '/brand/logo.png'),
+  logoIconUrl: optional('VITE_BRAND_LOGO_ICON_URL', '/brand/logo-icon.png'),
+  faviconUrl: optional('VITE_BRAND_FAVICON_URL', '/brand/favicon.svg'),
 
   primaryLight: optional('VITE_BRAND_PRIMARY_LIGHT', '#005ac1'),
   primaryContainerLight: optional('VITE_BRAND_PRIMARY_CONTAINER_LIGHT', '#d8e2ff'),
