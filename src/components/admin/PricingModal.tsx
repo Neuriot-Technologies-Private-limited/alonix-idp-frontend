@@ -11,6 +11,7 @@ import {
 } from '../../utils/billingUtils';
 import { BillingCycleToggle, type BillingCycle } from './BillingCycleToggle';
 import { sortBillingPlans, connectorQuotaLabel, type BillingPlan } from '../../services/billingService';
+import { useBrand } from '../../brand/useBrand';
 
 export type PricingPlan = BillingPlan;
 
@@ -84,6 +85,7 @@ const PlanCard: React.FC<{
   upgrading: string | null;
   index: number;
 }> = ({ plan, cycle, isCurrent, onUpgrade, upgrading, index }) => {
+  const brand = useBrand();
   const cfg = PLAN_CFG[plan.name] ?? PLAN_CFG.FREE;
   const isEnterprise = plan.name === 'ENTERPRISE';
   const isFree = plan.priceMonthlyUsd === 0 && !isEnterprise;
@@ -193,7 +195,7 @@ const PlanCard: React.FC<{
             </div>
           ) : isEnterprise ? (
             <a
-              href="mailto:sales@alonix.ai?subject=Enterprise%20Plan%20Enquiry"
+              href={`mailto:${brand.salesEmail}?subject=Enterprise%20Plan%20Enquiry`}
               id="pricing-modal-contact-sales-btn"
               className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:opacity-90"
             >

@@ -16,6 +16,7 @@ import {
   fmtBytes,
   type BillingCycle,
 } from '../../utils/billingUtils';
+import { useBrand } from '../../brand/useBrand';
 
 const PLAN_STYLES: Record<string, { gradient: string; icon: React.ReactNode; featured?: boolean; badge?: string }> = {
   FREE: { gradient: 'from-slate-700 to-slate-900', icon: <Zap className="h-5 w-5" /> },
@@ -59,6 +60,7 @@ export const PublicPricingGrid: React.FC<PublicPricingGridProps> = ({
   ctaHref = '/signup',
   ctaLabel = 'Get started',
 }) => {
+  const brand = useBrand();
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -148,7 +150,7 @@ export const PublicPricingGrid: React.FC<PublicPricingGridProps> = ({
               <div className="mt-auto shrink-0 pt-6">
                 {isEnterprise ? (
                   <a
-                    href="mailto:sales@alonix.ai?subject=Enterprise%20Plan"
+                    href={`mailto:${brand.salesEmail}?subject=Enterprise%20Plan`}
                     className={cn(ctaClass, 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:opacity-90')}
                   >
                     <Mail className="h-4 w-4 shrink-0" /> Contact Sales

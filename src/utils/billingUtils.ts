@@ -1,6 +1,6 @@
-// ── Billing utilities ─────────────────────────────────────────────────────────
+import { brandConfig } from '../brand/brandConfig';
 
-export const PRODUCT_DISPLAY_NAME = '1-glance';
+export const PRODUCT_DISPLAY_NAME = brandConfig.name;
 
 /** Normalize legacy plan copy for in-app billing surfaces. */
 export function productPlanDescription(description: string | undefined | null): string {

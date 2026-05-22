@@ -1,5 +1,7 @@
 import React from 'react';
 import { SendHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useBrand } from '../../../brand/useBrand';
 
 type ChatComposerProps = {
   value: string;
@@ -14,6 +16,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   onChange,
   onSubmit,
 }) => {
+  const { t } = useTranslation('chat');
+  const brand = useBrand();
   return (
     <div className="shrink-0 space-y-1.5 border-t border-border/40 bg-surface-highest/20 px-4 pt-3 backdrop-blur-md sm:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
       <form
@@ -40,7 +44,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         )}
       </form>
       <p className="mx-auto max-w-7xl text-center text-[11px] leading-relaxed text-muted-foreground/60">
-        1-glance can make mistakes. Verify critical information.
+        {t('mistakesDisclaimer', { brandName: brand.name })}
       </p>
     </div>
   );

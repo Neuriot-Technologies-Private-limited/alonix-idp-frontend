@@ -19,5 +19,6 @@
   "failedToDeleteChat": "Delete chat failed",
   "failedToLoadDocument": "Failed to load document.",
   "composerPlaceholder": "Ask anything about your documents…",
-  "sendButton": "Send"
+  "sendButton": "Send",
+  "mistakesDisclaimer": "{{brandName}} can make mistakes. Verify critical information."
 }
