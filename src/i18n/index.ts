@@ -21,6 +21,14 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enCommon from './locales/en/common.json';
 import enLanding from './locales/en/landing.json';
 import enAuth from './locales/en/auth.json';
+import enDashboard from './locales/en/dashboard.json';
+import enChat from './locales/en/chat.json';
+import enProfile from './locales/en/profile.json';
+import enOrgSettings from './locales/en/orgSettings.json';
+import enBilling from './locales/en/billing.json';
+import enUsers from './locales/en/users.json';
+import enDocuments from './locales/en/documents.json';
+import enGroups from './locales/en/groups.json';
 
 i18n
   .use(LanguageDetector)
@@ -31,11 +39,19 @@ i18n
         common: enCommon,
         landing: enLanding,
         auth: enAuth,
+        dashboard: enDashboard,
+        chat: enChat,
+        profile: enProfile,
+        orgSettings: enOrgSettings,
+        billing: enBilling,
+        users: enUsers,
+        documents: enDocuments,
+        groups: enGroups,
       },
     },
     // Default namespace — used when no namespace prefix given to t()
     defaultNS: 'common',
-    ns: ['common', 'landing', 'auth'],
+    ns: ['common', 'landing', 'auth', 'dashboard', 'chat', 'profile', 'orgSettings', 'billing', 'users', 'documents', 'groups'],
     fallbackLng: 'en',
     supportedLngs: ['en'],
     interpolation: {

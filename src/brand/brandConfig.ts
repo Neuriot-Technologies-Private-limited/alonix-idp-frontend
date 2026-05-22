@@ -36,6 +36,8 @@ export interface BrandConfig {
 
   /** Support / contact email for this brand */
   supportEmail: string;
+  /** Sales / enterprise contact email */
+  salesEmail: string;
   /** Public website URL */
   websiteUrl: string;
   /** Privacy policy URL */
@@ -47,18 +49,6 @@ export interface BrandConfig {
   showPricing: boolean;
   /** Whether to show the public landing page */
   showLanding: boolean;
-}
-
-/** Read a required VITE_ env var and throw clearly if missing. */
-function required(key: string): string {
-  const val = import.meta.env[key];
-  if (!val) {
-    throw new Error(
-      `[Brand] Missing required environment variable: ${key}. ` +
-        `Did you run vite with the correct --mode flag? e.g. "vite --mode 1glance"`
-    );
-  }
-  return String(val);
 }
 
 /** Read an optional VITE_ env var with a fallback. */
@@ -97,6 +87,7 @@ export const brandConfig: BrandConfig = {
   primaryContainerDark: optional('VITE_BRAND_PRIMARY_CONTAINER_DARK', '#1E2B4B'),
 
   supportEmail: optional('VITE_BRAND_SUPPORT_EMAIL', 'support@1glance.ai'),
+  salesEmail: optional('VITE_BRAND_SALES_EMAIL', 'sales@1glance.ai'),
   websiteUrl: optional('VITE_BRAND_WEBSITE_URL', 'https://1glance.ai'),
   privacyUrl: optional('VITE_BRAND_PRIVACY_URL', 'https://1glance.ai/privacy'),
   termsUrl: optional('VITE_BRAND_TERMS_URL', 'https://1glance.ai/terms'),

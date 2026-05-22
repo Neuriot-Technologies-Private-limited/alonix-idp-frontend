@@ -11,6 +11,7 @@ import {
 } from '../../services/adminService';
 import { useAlert } from '../../components/alert';
 import { cn } from '../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 type DatePreset = '7d' | '30d' | '90d' | 'month';
 
@@ -36,6 +37,7 @@ export const ActivityLogs: React.FC = () => {
   const { orgRole, activeGroupRole } = useRbac();
   const role = (orgRole || activeGroupRole || undefined) as string;
   const { alert: appAlert } = useAlert();
+  const { t } = useTranslation('dashboard');
 
   const handleBack = () => {
     if (navState.from) {
@@ -49,7 +51,7 @@ export const ActivityLogs: React.FC = () => {
     navigate('/dashboard');
   };
 
-  const backLabel = navState.fromLabel ? `Back to ${navState.fromLabel}` : 'Back';
+  const backLabel = navState.fromLabel ? t('page.backTo', { label: navState.fromLabel }) : t('page.back');
 
   const [preset, setPreset] = React.useState<DatePreset>('30d');
   const [actorEmail, setActorEmail] = React.useState('');
@@ -161,14 +163,14 @@ export const ActivityLogs: React.FC = () => {
             <div className="mb-2 flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">
-                Governance & Audit
+                {t('page.badge')}
               </span>
             </div>
             <h1 className="font-display text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-              System Activity
+              {t('page.title')}
             </h1>
             <p className="mt-1 max-w-xl text-sm font-medium text-muted-foreground">
-              Filter by date, user, and workspace. Export CSV for compliance reporting.
+              {t('page.subtitle')}
             </p>
           </div>
 
@@ -179,7 +181,7 @@ export const ActivityLogs: React.FC = () => {
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search logs..."
+                placeholder={t('page.searchPlaceholder')}
                 className="w-full rounded-xl border border-border/10 bg-background/80 py-2.5 pl-10 pr-4 text-sm font-medium focus:border-primary/50 focus:outline-none"
               />
             </div>
@@ -187,7 +189,7 @@ export const ActivityLogs: React.FC = () => {
               type="email"
               value={actorEmail}
               onChange={(e) => setActorEmail(e.target.value)}
-              placeholder="Filter by user email"
+              placeholder={t('page.filterByUserPlaceholder')}
               className="w-full sm:w-48 rounded-xl border border-border/10 bg-background/80 py-2.5 px-3 text-sm"
             />
             <button
@@ -216,12 +218,12 @@ export const ActivityLogs: React.FC = () => {
                 : 'bg-surface-highest/5 border-border/10 text-muted-foreground hover:text-foreground'
             )}
           >
-            {p === '7d' ? '7 days' : p === '30d' ? '30 days' : p === '90d' ? '90 days' : 'This month'}
+            {p === '7d' ? t('page.presets.7d') : p === '30d' ? t('page.presets.30d') : p === '90d' ? t('page.presets.90d') : t('page.presets.month')}
           </button>
         ))}
         {auditResult != null && (
           <span className="text-xs text-muted-foreground ml-auto">
-            {auditResult.total} events in range
+            {t('page.eventsInRange', { count: auditResult.total })}
           </span>
         )}
       </section>
@@ -233,7 +235,7 @@ export const ActivityLogs: React.FC = () => {
         >
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-              Most active users
+              {t('page.mostActiveUsers')}
             </h2>
             {actorEmail && chipEmails.has(actorEmail) ? (
               <button
@@ -241,7 +243,7 @@ export const ActivityLogs: React.FC = () => {
                 onClick={() => setActorEmail('')}
                 className="text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary/80"
               >
-                Clear filter
+                {t('page.clearFilter')}
               </button>
             ) : null}
           </div>
@@ -276,7 +278,7 @@ export const ActivityLogs: React.FC = () => {
           {isLoading ? (
             <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              Loading activity…
+              {t('page.loadingActivity')}
             </div>
           ) : (
             <ActivityFeed role={role} logs={filteredLogs} />

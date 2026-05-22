@@ -1,0 +1,22 @@
+{
+  "page": {
+    "badge": "Governance & Audit",
+    "title": "System Activity",
+    "subtitle": "Filter by date, user, and workspace. Export CSV for compliance reporting.",
+    "searchPlaceholder": "Search logs...",
+    "filterByUserPlaceholder": "Filter by user email",
+    "exportButton": "Export",
+    "mostActiveUsers": "Most active users",
+    "clearFilter": "Clear filter",
+    "loadingActivity": "Loading activity…",
+    "eventsInRange": "{{count}} events in range",
+    "presets": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "month": "This month"
+    },
+    "back": "Back",
+    "backTo": "Back to {{label}}"
+  }
+}

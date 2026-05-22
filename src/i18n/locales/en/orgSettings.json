@@ -1,0 +1,16 @@
+{
+  "orgSettings": {
+    "title": "Organization Settings",
+    "subtitle": "Company admins can manage {{brandName}} organization-level AI provider settings.",
+    "forbidden": "Forbidden",
+    "stats": {
+      "organization": "Organization",
+      "members": "Members",
+      "workspaces": "Workspaces",
+      "governanceRole": "Governance Role",
+      "currentLabel": "Current",
+      "noActiveWorkspace": "No active workspace"
+    }
+  },
+  "back": "Back"
+}

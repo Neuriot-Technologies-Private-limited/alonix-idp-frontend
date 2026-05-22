@@ -1,0 +1,23 @@
+{
+  "signInRequired": "Sign in to use chat.",
+  "newChat": "New chat",
+  "chatsLabel": "Chats",
+  "loadingSessions": "Loading sessions…",
+  "noConversations": "No conversations yet",
+  "noConversationsHint": "Use <em>New chat</em> to begin",
+  "deleteSession": "Delete session",
+  "activeChat": "Active chat",
+  "newConversation": "New conversation",
+  "loading": "Loading…",
+  "question": "Question",
+  "answer": "Answer",
+  "thinking": "Thinking",
+  "noAnswerReturned": "No answer returned.",
+  "failedToLoadSessions": "Failed to load chat sessions.",
+  "failedToGetAnswer": "Failed to get answer.",
+  "failedToLoadHistory": "Failed to load chat history.",
+  "failedToDeleteChat": "Delete chat failed",
+  "failedToLoadDocument": "Failed to load document.",
+  "composerPlaceholder": "Ask anything about your documents…",
+  "sendButton": "Send"
+}

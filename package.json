@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "vite --mode 1glance",
     "dev:1glance": "vite --mode 1glance",
+    "dev:findoutai": "vite --mode findoutai",
     "build": "tsc -b && vite build --mode 1glance",
     "build:1glance": "tsc -b && vite build --mode 1glance",
+    "build:findoutai": "tsc -b && vite build --mode findoutai",
     "lint": "eslint .",
     "preview": "vite preview"
   },

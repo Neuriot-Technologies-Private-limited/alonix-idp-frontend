@@ -9,6 +9,8 @@ import {
 import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
+import { useTranslation } from 'react-i18next';
+import { useBrand } from '../../brand/useBrand';
 import { fmtBytes, limitLabel, productPlanDescription, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
 import {
   fetchBillingPlans,
@@ -91,6 +93,8 @@ const planGradient: Record<string, string> = {
 
 // ── Main Component ────────────────────────────────────────────────────────
 export const BillingPage: React.FC = () => {
+  const { t } = useTranslation('billing');
+  const brand = useBrand();
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
   const [searchParams] = useSearchParams();
@@ -193,10 +197,10 @@ export const BillingPage: React.FC = () => {
           <div>
             <h1 className="font-display flex items-center gap-2.5 text-2xl font-black tracking-tight text-foreground sm:text-3xl">
               <CreditCard className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
-              Billing & Plan
+              {t('billing.title')}
             </h1>
             <p className="mt-1 text-sm font-medium text-muted-foreground">
-              Manage your 1-glance subscription, view usage, and upgrade your plan.
+              {t('billing.subtitle', { brandName: brand.name })}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/20 bg-surface-highest/10 px-3 py-2">

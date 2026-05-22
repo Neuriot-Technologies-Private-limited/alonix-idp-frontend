@@ -1,0 +1,63 @@
+{
+  "hero": {
+    "headline": "Find What Matters,",
+    "headlineHighlight": "Instantly.",
+    "subheadline": "FindoutAI transforms your enterprise documents into instant, structured knowledge — powered by state-of-the-art AI extraction and retrieval.",
+    "badge": "AI-Powered Enterprise Intelligence"
+  },
+  "cta": {
+    "title": "Start Finding Answers Today",
+    "description": "{{brandName}} gives your team instant access to the knowledge locked inside your documents."
+  },
+  "about": {
+    "visionLabel": "Our Vision",
+    "title": "Enterprise knowledge,",
+    "titleHighlight": "unlocked",
+    "titleSuffix": "by AI.",
+    "story": "{{brandName}} was built to solve the universal challenge of enterprise data silos. We believe every team deserves instant, accurate access to their most important documents — securely and intelligently."
+  },
+  "footer": {
+    "tagline": "AI-Powered Document Intelligence for the modern enterprise.",
+    "copyright": "© {{year}} {{copyright}}. All rights reserved."
+  },
+  "pricing": {
+    "title": "Transparent pricing for",
+    "titleHighlight": "every team"
+  },
+  "product": {
+    "screenshotAlt": "{{brandName}} dashboard showing document intelligence features",
+    "pathLabel": "app.findoutai.com / dashboard"
+  },
+  "intelligence": {
+    "sectionTitle": "Built on Advanced AI",
+    "sectionSubtitle": "FindoutAI combines OCR, semantic search, and large language models to give your team superpowers."
+  },
+  "philosophy": {
+    "title": "No data silos.",
+    "titleLine2": "Just answers.",
+    "description": "Traditional enterprise search is slow, inaccurate, and disconnected. FindoutAI breaks down data silos and surfaces the exact answer — from any document, in seconds.",
+    "stat1Value": "10x",
+    "stat1Label": "Faster retrieval",
+    "stat2Value": "99%",
+    "stat2Label": "Accuracy rate"
+  },
+  "features": {
+    "aiInsights": {
+      "title": "Intelligent Document Understanding",
+      "description": "FindoutAI goes beyond search — it understands relationships, entities, and context across your entire document corpus.",
+      "tags": ["Entity Extraction", "Semantic Search", "Classification"]
+    },
+    "secureWorkspace": {
+      "title": "Enterprise-Grade Security",
+      "description": "SOC 2 aligned architecture with role-based access, PII redaction, and encrypted data pipelines."
+    },
+    "roleBasedFlow": {
+      "title": "Role-Based Access",
+      "description": "Granular permissions ensure every user sees only what they're authorized to access."
+    },
+    "productTour": {
+      "title": "See FindoutAI in action",
+      "subtitle": "Book a live demo and see how teams unlock knowledge in minutes."
+    }
+  }
+}

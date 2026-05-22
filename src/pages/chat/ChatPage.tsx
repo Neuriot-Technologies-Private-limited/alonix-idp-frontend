@@ -21,6 +21,7 @@ import { ChatErrorBanner } from './components/ChatErrorBanner';
 import { ChatComposer } from './components/ChatComposer';
 import { ChatAlertModal } from './components/ChatAlertModal';
 import { ChatToast } from './components/ChatToast';
+import { useTranslation } from 'react-i18next';
 
 /** Referenced in DOM createElement — keep so Tailwind can scan utility strings */
 const SOURCE_PILL_CLASS =
@@ -237,6 +238,7 @@ function formatSessionMeta(iso: string): string {
 }
 
 const ChatPage: React.FC = () => {
+  const { t } = useTranslation('chat');
   const user = useAuthStore((s) => s.user);
   const context = useAuthStore((s) => s.context);
   const updateContext = useAuthStore((s) => s.updateContext);
@@ -549,7 +551,7 @@ const ChatPage: React.FC = () => {
   if (!user || !context) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-        Sign in to use chat.
+        {t('signInRequired')}
       </div>
     );
   }
@@ -608,14 +610,14 @@ const ChatPage: React.FC = () => {
               >
                 <div className="border-b border-border/10 bg-gradient-to-r from-surface-highest/20 to-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
                   <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                    Question
+                    {t('question')}
                   </div>
                   <div className="text-[15px] font-medium leading-relaxed text-foreground">{uq.text}</div>
                 </div>
                 {ai && (
                   <div className="bg-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Answer
+                      {t('answer')}
                     </div>
                     <div
                       className="mt-1 space-y-1 overflow-visible break-words whitespace-pre-wrap pb-1 text-[15px] leading-[1.65] text-muted-foreground/80 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary/40 [&_a]:underline-offset-2 [&_code]:rounded-md [&_code]:bg-surface-highest/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border/40 [&_pre]:bg-surface-highest/5 [&_pre]:p-4 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_th]:border [&_th]:border-border/60 [&_th]:bg-surface-highest/10 [&_th]:px-3 [&_th]:py-2 [&_tr:nth-child(even)]:bg-surface-highest/5"
@@ -664,7 +666,7 @@ const ChatPage: React.FC = () => {
             <div className="mb-6 text-left">
               <div className="rounded-2xl border border-border/10 bg-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
                 <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Thinking
+                  {t('thinking')}
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-primary/80 [animation-delay:0ms]" />

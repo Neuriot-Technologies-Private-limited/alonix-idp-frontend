@@ -1,0 +1,80 @@
+{
+  "sections": {
+    "profile": "Profile",
+    "preferences": "Preferences",
+    "security": "Security"
+  },
+  "back": "Back",
+  "removePhoto": "Remove photo",
+  "uploadPhoto": "Upload photo",
+  "personalInfo": {
+    "title": "Personal information",
+    "subtitle": "Update how you appear across {{brandName}}. Your email is managed by your organization.",
+    "displayNameLabel": "Display name",
+    "jobTitleLabel": "Job title",
+    "jobTitlePlaceholder": "e.g. Senior Analyst",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "A short bio for your teammates…",
+    "timezoneLabel": "Timezone",
+    "languageLabel": "Language",
+    "saveButton": "Save profile",
+    "savedConfirm": "Saved"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "subtitle": "Choose how {{brandName}} looks on this device.",
+    "lightMode": "light",
+    "darkMode": "dark",
+    "toggleButton": "Toggle"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Control emails and digests. Changes apply to this account only.",
+    "emailNotifications": "Email notifications",
+    "emailNotificationsDesc": "Important alerts about your workspaces.",
+    "productUpdates": "Product updates",
+    "productUpdatesDesc": "Occasional news about features and improvements.",
+    "weeklyDigest": "Weekly digest",
+    "weeklyDigestDesc": "A summary of activity across your groups.",
+    "saveButton": "Save preferences",
+    "savedConfirm": "Saved"
+  },
+  "security": {
+    "changePassword": {
+      "title": "Change password",
+      "subtitle": "Signed-in users can update the password here. Requests include your organization scope.",
+      "currentPasswordLabel": "Current password",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "updateButton": "Update password",
+      "forgotNote": "Forgot your current password?",
+      "resetLink": "Reset via email",
+      "errorTooShort": "New password must be at least 8 characters.",
+      "errorMismatch": "New passwords do not match.",
+      "successMessage": "Password updated."
+    },
+    "signOut": {
+      "title": "Sign out everywhere",
+      "subtitle": "End this session on this browser. You can sign in again anytime.",
+      "button": "Sign out"
+    }
+  },
+  "avatarTooLarge": {
+    "title": "Image too large",
+    "description": "Please use a file under 1.4 MB."
+  },
+  "uploadFailed": {
+    "title": "Upload failed"
+  },
+  "removeFailed": {
+    "title": "Remove failed"
+  },
+  "roles": {
+    "companyAdmin": "Company admin",
+    "groupAdmin": "Group admin",
+    "searchUser": "Search user",
+    "member": "Member"
+  }
+}

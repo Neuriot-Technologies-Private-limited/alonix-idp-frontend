@@ -22,6 +22,8 @@ import { useThemeStore } from '../../stores/themeStore';
 import { useRbac } from '../../hooks/useRbac';
 import type { UserDetails, UserProfilePreferences } from '../../types/auth';
 import { useAlert } from '../../components/alert';
+import { useTranslation } from 'react-i18next';
+import { useBrand } from '../../brand/useBrand';
 
 const AVATAR_MAX_BYTES = 1_400_000;
 
@@ -61,6 +63,8 @@ function displayNameFromUser(u: UserDetails) {
 
 const ProfilePage: React.FC = () => {
   const { alert: appAlert } = useAlert();
+  const { t } = useTranslation('profile');
+  const brand = useBrand();
   const user = useAuthStore((s) => s.user);
   const context = useAuthStore((s) => s.context);
   const updateUser = useAuthStore((s) => s.updateUser);
@@ -381,9 +385,9 @@ const ProfilePage: React.FC = () => {
                 exit={{ opacity: 0, y: -6 }}
                 className="rounded-3xl border border-border/20 bg-surface-lowest dark:bg-surface-highest/5 dark:border-border/10 p-6 sm:p-8"
               >
-                <h2 className="font-display text-lg font-black text-foreground">Personal information</h2>
+                <h2 className="font-display text-lg font-black text-foreground">{t('personalInfo.title')}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Update how you appear across 1-glance. Your email is managed by your organization.
+                  {t('personalInfo.subtitle', { brandName: brand.name })}
                 </p>
 
                 <div className="mt-8 grid gap-6 sm:grid-cols-2">
@@ -502,23 +506,23 @@ const ProfilePage: React.FC = () => {
                 className="space-y-6"
               >
                 <div className="rounded-3xl border border-border/10 bg-surface-highest/5 p-6 sm:p-8">
-                  <h2 className="font-display text-lg font-black text-foreground">Appearance</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Choose how 1-glance looks on this device.</p>
+                  <h2 className="font-display text-lg font-black text-foreground">{t('appearance.title')}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{t('appearance.subtitle', { brandName: brand.name })}</p>
                   <div className="mt-6 flex flex-wrap gap-3">
-                    {(['light', 'dark'] as const).map((t) => (
+                    {(['light', 'dark'] as const).map((themeMode) => (
                       <button
-                        key={t}
+                        key={themeMode}
                         type="button"
-                        onClick={() => setTheme(t)}
+                        onClick={() => setTheme(themeMode)}
                         className={cn(
                           'flex items-center gap-2 rounded-2xl border px-5 py-3 text-[12px] font-bold capitalize transition',
-                          theme === t
+                          theme === themeMode
                             ? 'border-primary/50 bg-primary/15 text-primary'
                             : 'border-border/10 bg-background/40 text-muted-foreground hover:border-border/20'
                         )}
                       >
-                        {t === 'light' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                        {t}
+                        {themeMode === 'light' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        {themeMode}
                       </button>
                     ))}
                     <button

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, LayoutDashboard, Sparkles } from 'lucide-react';
 import { authApi } from '../../services/authApi';
-import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
+import { AuthPageLogo } from '../../components/branding/AuthPageBranding';
 import { useAlert } from '../../components/alert';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../brand/useBrand';

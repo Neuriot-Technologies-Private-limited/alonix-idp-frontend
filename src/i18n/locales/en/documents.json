@@ -1,0 +1,25 @@
+{
+  "upload": {
+    "title": "Upload documents",
+    "subtitle": "Pipeline · same sensitivity for the whole batch",
+    "dropZoneTitle": "Drop files here or tap to browse",
+    "dropZoneHint": "PDF, JSON, XLSX, CSV · up to 50MB each",
+    "batchSettings": "Batch settings",
+    "workspaceLabel": "Workspace",
+    "workspacePlaceholder": "Select workspace…",
+    "sensitivityLabel": "Sensitivity level",
+    "noSensitivityTiers": "No sensitivity tiers available for this workspace.",
+    "filesLabel": "Files ({{count}})",
+    "clearAll": "Clear all",
+    "cancelButton": "Cancel",
+    "uploadButton": "Upload",
+    "uploadWithCount": "Upload ({{count}})"
+  },
+  "documents": {
+    "title": "Documents",
+    "subtitle": "Upload, search and manage documents in your workspace.",
+    "uploadButton": "Upload",
+    "noDocuments": "No documents yet",
+    "noDocumentsHint": "Upload your first document to get started."
+  }
+}

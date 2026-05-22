@@ -21,6 +21,8 @@ import {
 } from '../../utils/billingUtils';
 import { BillingCycleToggle } from '../../components/admin/BillingCycleToggle';
 import BrandHomeLink from '../../components/branding/BrandHomeLink';
+import { useTranslation } from 'react-i18next';
+import { useBrand } from '../../brand/useBrand';
 import {
   fetchBillingPlans,
   fetchBillingConfig,
@@ -89,6 +91,7 @@ interface PlanCardProps {
 }
 
 const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpgrade, upgrading }) => {
+  const brand = useBrand();
   const style = planStyles[plan.name] || planStyles.FREE;
   const isCurrent = plan.name === currentPlanName;
   const features = getPlanFeatures(plan);
@@ -185,7 +188,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
             </div>
           ) : isEnterprise ? (
             <a
-              href="mailto:sales@alonix.ai?subject=Enterprise%20Plan%20Enquiry"
+              href={`mailto:${brand.salesEmail}?subject=Enterprise%20Plan%20Enquiry`}
               id="contact-sales-btn"
               className={cn(ctaClass, 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:opacity-90 shadow-lg shadow-amber-500/20')}
             >
@@ -221,6 +224,8 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, cycle, currentPlanName, onUpg
 
 // ── Main Page ─────────────────────────────────────────────────────────────
 export const PricingPage: React.FC = () => {
+  const { t } = useTranslation('billing');
+  const brand = useBrand();
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.token);
   const context = useAuthStore((s) => s.context);
@@ -301,11 +306,10 @@ export const PricingPage: React.FC = () => {
             Simple, transparent pricing
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight leading-tight">
-            Scale your document
+            {t('pricing.title')}
             <br />
-            intelligence with{' '}
             <span className="bg-gradient-to-r from-primary to-violet bg-clip-text text-transparent">
-              Alonix IDP
+              {t('pricing.titleBrand', { brandName: brand.name })}
             </span>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">

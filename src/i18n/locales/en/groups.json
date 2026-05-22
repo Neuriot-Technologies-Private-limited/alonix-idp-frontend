@@ -1,0 +1,27 @@
+{
+  "title": "Workspaces",
+  "subtitle": "Create and manage team workspaces with isolated data environments.",
+  "createGroup": "New Workspace",
+  "noGroups": "No workspaces yet",
+  "inviteUsers": "Invite Users",
+  "modals": {
+    "create": {
+      "title": "Create Workspace",
+      "nameLabel": "Workspace name",
+      "namePlaceholder": "e.g. Research Team",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What will this workspace be used for?",
+      "cancelButton": "Cancel",
+      "createButton": "Create Workspace"
+    },
+    "invite": {
+      "title": "Invite Users",
+      "subtitle": "Send invitations to join a workspace",
+      "emailLabel": "Email addresses",
+      "emailPlaceholder": "name@company.com",
+      "groupLabel": "Workspace",
+      "cancelButton": "Cancel",
+      "inviteButton": "Send Invites"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "title": "Users",
+  "titleGroupAdmin": "Group Members",
+  "subtitle": "Manage access, roles, and group assignments for all members.",
+  "subtitleGroupAdmin": "Manage membership for workspaces where you are a group administrator.",
+  "inviteUser": "Invite User",
+  "addToGroup": "Add To Group",
+  "stats": {
+    "totalUsers": "Total Users",
+    "active": "Active",
+    "pending": "Pending"
+  },
+  "table": {
+    "headers": {
+      "user": "User",
+      "role": "Role",
+      "group": "Group",
+      "status": "Status",
+      "lastActive": "Last Active",
+      "actions": "Actions"
+    },
+    "countLabel": "{{count}} User",
+    "countLabelPlural": "{{count}} Users",
+    "matchingFilters": " matching filters",
+    "noUsersFound": "No users found",
+    "noUsersHint": "Try adjusting your filters"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by name, email or role...",
+    "allGroups": "All Groups",
+    "clearFilters": "Clear",
+    "status": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending"
+    }
+  },
+  "actions": {
+    "suspend": {
+      "title": "Suspend user",
+      "description": "Suspend {{email}}? They will not be able to sign in until re-activated.",
+      "confirmLabel": "Suspend",
+      "success": "User suspended",
+      "errorTitle": "Could not suspend"
+    },
+    "activate": {
+      "success": "User activated",
+      "errorTitle": "Could not activate"
+    },
+    "remove": {
+      "title": "Remove user",
+      "description": "Permanently remove {{email}} from this organization? This cannot be undone.",
+      "confirmLabel": "Remove",
+      "success": "User removed",
+      "errorTitle": "Could not remove"
+    },
+    "removeFromGroup": {
+      "noWorkspace": {
+        "title": "No workspace",
+        "description": "Could not determine which group to remove this user from."
+      },
+      "title": "Remove from group",
+      "description": "Remove {{email}} from {{groupName}}?",
+      "confirmLabel": "Remove",
+      "success": "Removed from group",
+      "errorTitle": "Could not remove"
+    }
+  },
+  "loading": "Loading users"
+}

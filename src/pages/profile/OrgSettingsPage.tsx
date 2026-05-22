@@ -9,8 +9,12 @@ import SubscriptionPanel from '../../components/admin/SubscriptionPanel';
 import { useAuthStore } from '../../stores/authStore';
 import { useDashboardState } from '../../services/adminService';
 import { StatCard } from '../../components/ui/StatCard';
+import { useTranslation } from 'react-i18next';
+import { useBrand } from '../../brand/useBrand';
 
 const OrgSettingsPage: React.FC = () => {
+  const { t } = useTranslation('orgSettings');
+  const brand = useBrand();
   const { orgRole, groups } = useRbac();
   const context = useAuthStore((s) => s.context);
   const user = useAuthStore((s) => s.user);
@@ -46,10 +50,10 @@ const OrgSettingsPage: React.FC = () => {
         <div className="relative flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-              Organization Settings
+              {t('orgSettings.title')}
             </h1>
             <p className="mt-1 text-sm font-medium text-muted-foreground">
-              Company admins can manage 1-glance organization-level AI provider settings.
+              {t('orgSettings.subtitle', { brandName: brand.name })}
             </p>
           </div>
 
@@ -63,24 +67,24 @@ const OrgSettingsPage: React.FC = () => {
 
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Organization"
+          label={t('orgSettings.stats.organization')}
           value={orgName || '—'}
           trend={{ value: String(orgSlug || 'Org'), label: String(orgId || '').substring(0, 8), isPositive: true }}
           icon={<Building2 className="w-4 h-4" />}
         />
         <StatCard
-          label="Members"
+          label={t('orgSettings.stats.members')}
           value={dashboard?.stats.totalUsers ?? '—'}
           icon={<Users className="w-4 h-4" />}
         />
         <StatCard
-          label="Workspaces"
+          label={t('orgSettings.stats.workspaces')}
           value={dashboard?.stats.totalGroups ?? groups.length}
-          trend={{ value: String(activeWorkspace || ''), label: 'Current', isPositive: true }}
+          trend={{ value: String(activeWorkspace || ''), label: t('orgSettings.stats.currentLabel'), isPositive: true }}
           icon={<Database className="w-4 h-4" />}
         />
         <StatCard
-          label="Governance Role"
+          label={t('orgSettings.stats.governanceRole')}
           value={String(orgRole || 'MEMBER').replace(/_/g, ' ')}
           icon={<ShieldCheck className="w-4 h-4" />}
         />
