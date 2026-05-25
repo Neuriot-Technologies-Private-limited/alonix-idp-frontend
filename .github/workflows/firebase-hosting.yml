@@ -1,0 +1,81 @@
+name: Firebase Hosting CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: firebase-hosting-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            echo "VITE_API_BASE_URL secret is required"
+            exit 1
+          fi
+          printf "VITE_API_BASE_URL=%s\n" "$VITE_API_BASE_URL" > .env.production
+          npm run build:findoutai
+
+      - name: Authenticate Firebase service account
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "FIREBASE_SERVICE_ACCOUNT secret is required"
+            exit 1
+          fi
+          SERVICE_ACCOUNT_FILE="$RUNNER_TEMP/firebase-service-account.json"
+          printf "%s" "$FIREBASE_SERVICE_ACCOUNT" > "$SERVICE_ACCOUNT_FILE"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$SERVICE_ACCOUNT_FILE" >> "$GITHUB_ENV"
+
+      - name: Deploy live hosting
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_HOSTING_SITE: ${{ secrets.FIREBASE_HOSTING_SITE }}
+        run: |
+          if [ -z "$FIREBASE_PROJECT_ID" ]; then
+            echo "FIREBASE_PROJECT_ID secret is required"
+            exit 1
+          fi
+          if [ -z "$FIREBASE_HOSTING_SITE" ]; then
+            echo "FIREBASE_HOSTING_SITE secret is required"
+            exit 1
+          fi
+          TARGET_ALIAS="findout-v3"
+          TARGET_SITE="$FIREBASE_HOSTING_SITE"
+          npx -y firebase-tools@latest target:apply hosting "$TARGET_ALIAS" "$TARGET_SITE" \
+            --project "$FIREBASE_PROJECT_ID"
+          npx -y firebase-tools@latest deploy \
+            --only "hosting:${TARGET_ALIAS}" \
+            --project "$FIREBASE_PROJECT_ID" \
+            --non-interactive
+          echo "Live URL: https://${TARGET_SITE}.web.app"
+          echo "Live URL (fallback): https://${TARGET_SITE}.firebaseapp.com"
