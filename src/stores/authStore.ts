@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AuthState, UserDetails, AuthContextPayload } from '../types/auth';
+import type {
+  AuthState,
+  UserDetails,
+  AuthContextPayload,
+  UserProfilePreferences,
+} from '../types/auth';
 import { defaultUserPreferences } from '../types/auth';
 import { applyActiveGroupToContext } from '../core/rbac/capabilities';
 
@@ -10,7 +15,11 @@ interface AuthActions {
   setActiveGroup: (groupId: string) => void;
   updateContext: (context: AuthContextPayload) => void;
   /** Merge fields into the signed-in user (profile, avatar, preferences). */
-  updateUser: (partial: Partial<UserDetails>) => void;
+  updateUser: (
+    partial: Partial<Omit<UserDetails, 'preferences'>> & {
+      preferences?: Partial<UserProfilePreferences>;
+    }
+  ) => void;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(

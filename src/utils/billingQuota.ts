@@ -18,6 +18,7 @@ export type QuotaErrorPayload = {
 };
 
 export function parseQuotaError(err: unknown): QuotaErrorPayload | null {
+  if (err == null || typeof err !== 'object') return null;
   const ax = err as AxiosError<QuotaErrorPayload>;
   const status = ax.response?.status;
   const data = ax.response?.data;
@@ -30,6 +31,7 @@ export function parseQuotaError(err: unknown): QuotaErrorPayload | null {
 export function quotaErrorMessage(err: unknown, fallback = 'Plan limit reached.'): string {
   const q = parseQuotaError(err);
   if (!q) {
+    if (err == null || typeof err !== 'object') return fallback;
     const ax = err as AxiosError<{ message?: string; error?: string }>;
     return ax.response?.data?.message || ax.message || fallback;
   }

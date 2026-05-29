@@ -30,6 +30,7 @@ import PricingPage from './pages/billing/PricingPage';
 import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
 
 import ScrollToTop from './components/routing/ScrollToTop';
+import { getDefaultAuthedPath, isSearchUserOnly } from './utils/routingAuth';
 import './index.css';
 
 const ForbiddenPage = () => (
@@ -42,13 +43,6 @@ const PrivateRoute = () => {
   const token = useAuthStore((state) => state.token);
   return token ? <Outlet /> : <Navigate to="/login" replace />;
 };
-
-const isSearchUserOnly = (context: ReturnType<typeof useAuthStore.getState>['context']) =>
-  context?.orgRole === 'MEMBER' && !(context.groups || []).some((g) => g.role === 'GROUP_ADMIN');
-
-const getDefaultAuthedPath = (
-  context: ReturnType<typeof useAuthStore.getState>['context']
-) => (isSearchUserOnly(context) ? '/documents' : '/dashboard');
 
 const LoginRoute = () => {
   const token = useAuthStore((state) => state.token);

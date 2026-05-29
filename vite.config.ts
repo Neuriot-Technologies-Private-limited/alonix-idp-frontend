@@ -121,6 +121,7 @@ function loadBrandEnv(mode: string, root: string): Record<string, string> {
 }
 
 // https://vite.dev/config/
+/// <reference types="vitest/config" />
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const brandEnv = loadBrandEnv(mode, process.cwd());
@@ -159,6 +160,12 @@ export default defineConfig(({ mode }) => {
           headers: { 'ngrok-skip-browser-warning': 'true' },
         },
       },
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['./src/test/setup.ts'],
+      include: ['src/test/**/*.{test,spec}.{ts,tsx}'],
     },
   };
 });
