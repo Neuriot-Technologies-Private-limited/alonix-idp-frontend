@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Mail, Box, Plus, Trash2, Webhook, Loader2,
-  AlertCircle, Clock, History, Zap, CheckCircle2, FolderOpen,
+  Clock, History, Zap, CheckCircle2, FolderOpen,
   Server, Eye, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
