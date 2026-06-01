@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
+import { getCsrfTokenFromCookie } from '../../utils/csrf';
 
 /** Ensures REST paths hit `/api/...` (avoids 404 when env points at server root without `/api`). */
 function normalizeApiBaseUrl(raw: string | undefined): string {
@@ -14,16 +15,22 @@ function normalizeApiBaseUrl(raw: string | undefined): string {
 
 const apiClient = axios.create({
   baseURL: normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL),
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true',
   },
 });
 
+const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const method = (config.method || 'get').toLowerCase();
+  if (MUTATING_METHODS.has(method)) {
+    const csrf = getCsrfTokenFromCookie();
+    if (csrf) {
+      config.headers['X-CSRF-Token'] = csrf;
+    }
   }
 
   const rawOrg =
@@ -34,7 +41,6 @@ apiClient.interceptors.request.use((config) => {
     typeof rawGroup === 'string' && rawGroup.trim().length > 0 ? rawGroup.trim() : undefined;
   if (orgId) {
     config.headers['X-Org-Id'] = orgId;
-    const method = (config.method || 'get').toLowerCase();
     if (method === 'get' || method === 'delete' || method === 'head') {
       config.params = { ...(config.params || {}), orgId };
     } else if (
@@ -63,7 +69,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
-      const reqUrl = String((error.config as any)?.url || '');
+      const reqUrl = String((error.config as { url?: string })?.url || '');
       const path = typeof window !== 'undefined' ? window.location.pathname : '';
       const isAuthRoute =
         reqUrl.includes('/users/login') ||
@@ -75,7 +81,6 @@ apiClient.interceptors.response.use(
 
       const isOnLoginPage = path === '/login' || path.startsWith('/login?');
 
-      // If the 401 happened during the login flow, let the caller (LoginPage) show UI errors.
       if (isAuthRoute || isOnLoginPage) {
         return Promise.reject(error);
       }

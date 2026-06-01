@@ -22,6 +22,7 @@ import { ChatComposer } from './components/ChatComposer';
 import { ChatAlertModal } from './components/ChatAlertModal';
 import { ChatToast } from './components/ChatToast';
 import { useTranslation } from 'react-i18next';
+import { sanitizeChatHtml } from '../../utils/sanitizeChatHtml';
 
 /** Referenced in DOM createElement — keep so Tailwind can scan utility strings */
 const SOURCE_PILL_CLASS =
@@ -54,9 +55,10 @@ interface ConversationPair {
 function mdToHtml(raw: string): string {
   try {
     const out = marked.parse(raw || '', { async: false });
-    return typeof out === 'string' ? out : '';
+    const html = typeof out === 'string' ? out : '';
+    return sanitizeChatHtml(html);
   } catch {
-    return raw || '';
+    return sanitizeChatHtml(raw || '');
   }
 }
 
@@ -218,7 +220,7 @@ function parseHtmlWithSources(html: string, sourcesMap: Record<string, NormSourc
     }
     node.parentNode?.replaceChild(fragment, node);
   });
-  return tempDiv.innerHTML;
+  return sanitizeChatHtml(tempDiv.innerHTML);
 }
 
 function formatSessionMeta(iso: string): string {

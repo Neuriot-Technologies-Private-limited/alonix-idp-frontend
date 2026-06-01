@@ -11,19 +11,26 @@ import {
 function ToggleSwitch({
   checked,
   onChange,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      onClick={() => onChange(!checked)}
+      disabled={disabled}
+      aria-disabled={disabled}
+      onClick={() => {
+        if (!disabled) onChange(!checked);
+      }}
       className={[
         'relative inline-flex h-5 w-10 shrink-0 items-center rounded-full border transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-low',
+        disabled ? 'cursor-not-allowed opacity-50' : '',
         checked
           ? 'bg-primary/80 border-primary/70 shadow-[0_0_0_1px_rgba(59,130,246,0.28)]'
           : 'bg-surface-highest/30 border-border/40 hover:bg-surface-highest/45',
@@ -86,6 +93,9 @@ export const OrgAiSettingsPanel: React.FC = () => {
     OPEN_SOURCE: '',
   });
   const [apiKey, setApiKey] = useState('');
+  const [inferenceMode, setInferenceMode] = useState<'LOCAL_ONLY' | 'CLOUD_ALLOWED'>('CLOUD_ALLOWED');
+  const [cloudLlmEnabled, setCloudLlmEnabled] = useState(true);
+  const [hipaaRegulated, setHipaaRegulated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string>('');
   // `keyStatus` is evaluated per-provider where needed.
@@ -111,6 +121,9 @@ export const OrgAiSettingsPanel: React.FC = () => {
         (settings.provider === 'OPEN_SOURCE' ? fallbackModel : ''),
     });
     setApiKey('');
+    setInferenceMode(settings.inferenceMode === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'CLOUD_ALLOWED');
+    setCloudLlmEnabled(settings.cloudLlmEnabled !== false);
+    setHipaaRegulated(Boolean(settings.hipaaRegulated));
   }, [settings]);
 
   useEffect(() => {
@@ -119,6 +132,9 @@ export const OrgAiSettingsPanel: React.FC = () => {
   }, [provider]);
 
   const selectProvider = (next: AiProvider) => {
+    if (hipaaRegulated && next !== 'OPEN_SOURCE') return;
+    if (inferenceMode === 'LOCAL_ONLY' && next !== 'OPEN_SOURCE') return;
+    if (!cloudLlmEnabled && next !== 'OPEN_SOURCE') return;
     if (next === provider) return;
     setProvider(next);
     setStatus('');
@@ -129,9 +145,12 @@ export const OrgAiSettingsPanel: React.FC = () => {
     setSaving(true);
     setStatus('');
     try {
-      const payload: Record<string, string> = {
+      const payload: Record<string, string | boolean> = {
         provider,
         model: providerModels[provider] || '',
+        inferenceMode,
+        cloudLlmEnabled,
+        hipaaRegulated,
       };
 
       if (provider !== 'OPEN_SOURCE' && apiKey.trim()) {
@@ -173,6 +192,24 @@ export const OrgAiSettingsPanel: React.FC = () => {
         <p className="mt-1 text-[11px] text-muted-foreground/80">
           Last updated: {formatUpdatedAt(settings?.updatedAt)}
         </p>
+        {hipaaRegulated && (
+          <p className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-900 dark:text-rose-100">
+            HIPAA regulated profile: cloud LLMs are disabled until BAAs are in place. Only local/open-source
+            inference is allowed. Enable only when processing PHI and BAAs are not yet signed.
+          </p>
+        )}
+        {(inferenceMode === 'LOCAL_ONLY' || !cloudLlmEnabled) && (
+          <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+            Regulated mode: document content is processed only on your configured local/open-source endpoint.
+            Third-party cloud LLMs (OpenAI, Anthropic, Gemini) are blocked for this organization.
+          </p>
+        )}
+        {cloudLlmEnabled && inferenceMode === 'CLOUD_ALLOWED' && provider !== 'OPEN_SOURCE' && (
+          <p className="mt-3 rounded-lg border border-border/30 bg-surface-highest/10 px-3 py-2 text-xs text-muted-foreground">
+            Cloud LLM enabled: prompts and document excerpts may be sent to the selected provider under their DPA.
+            Review your provider&apos;s data processing agreement before enabling.
+          </p>
+        )}
         <p className="mt-1 text-[11px] text-muted-foreground/85">
           Effective runtime config: <span className="font-semibold text-foreground">{provider}</span> · model{' '}
           <span className="font-semibold text-foreground">{effectiveModel}</span>
@@ -189,6 +226,54 @@ export const OrgAiSettingsPanel: React.FC = () => {
             {effectiveKeyConfigured ? 'saved' : 'missing'}
           </span>
         </p>
+      </div>
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-xl border border-border/20 bg-surface-low p-4 dark:bg-surface-highest/10">
+          <p className="text-sm font-bold text-foreground">HIPAA regulated (PHI)</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Forces local-only inference until provider BAAs are executed.
+          </p>
+          <div className="mt-3">
+            <ToggleSwitch
+              checked={hipaaRegulated}
+              onChange={(on) => {
+                setHipaaRegulated(on);
+                if (on) {
+                  setInferenceMode('LOCAL_ONLY');
+                  setCloudLlmEnabled(false);
+                  setProvider('OPEN_SOURCE');
+                }
+              }}
+            />
+          </div>
+        </div>
+        <div className="rounded-xl border border-border/20 bg-surface-low p-4 dark:bg-surface-highest/10">
+          <p className="text-sm font-bold text-foreground">Local-only inference</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Block all third-party cloud LLMs for this organization.
+          </p>
+          <div className="mt-3">
+            <ToggleSwitch
+              checked={inferenceMode === 'LOCAL_ONLY'}
+              disabled={hipaaRegulated}
+              onChange={(on) => setInferenceMode(on ? 'LOCAL_ONLY' : 'CLOUD_ALLOWED')}
+            />
+          </div>
+        </div>
+        <div className="rounded-xl border border-border/20 bg-surface-low p-4 dark:bg-surface-highest/10">
+          <p className="text-sm font-bold text-foreground">Allow cloud LLM</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            When off, only open-source/local endpoints may be used.
+          </p>
+          <div className="mt-3">
+            <ToggleSwitch
+              checked={cloudLlmEnabled}
+              disabled={inferenceMode === 'LOCAL_ONLY' || hipaaRegulated}
+              onChange={setCloudLlmEnabled}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="mb-5 space-y-3">

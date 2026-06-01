@@ -67,7 +67,7 @@ function features(plan: PricingPlan): string[] {
   const stor = fmtBytes(plan.limits.maxStorageBytes);
 
   const extra: Record<string, string[]> = {
-    FREE:       ['Email & Fax ingestion', 'Basic AI extraction'],
+    FREE:       ['Email ingestion', 'Basic AI extraction'],
     STARTER:    ['All connectors + SharePoint', 'Priority processing'],
     PRO:        ['API ingestion', 'Audit logs & classification'],
     ENTERPRISE: ['Custom SLAs & on-prem', 'Dedicated account manager'],

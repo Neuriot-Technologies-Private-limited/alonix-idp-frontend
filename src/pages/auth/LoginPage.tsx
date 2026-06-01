@@ -29,12 +29,12 @@ const LoginPage: React.FC = () => {
     setFormError(null);
 
     try {
-      const { token, user, context } = await authApi.login(
+      const { user, context } = await authApi.login(
         email,
         password,
         orgIdFromUrl || undefined
       );
-      setAuth(token, user, context);
+      setAuth(user, context);
       setIsLoading(false);
       setFormError(null);
       navigate('/dashboard');

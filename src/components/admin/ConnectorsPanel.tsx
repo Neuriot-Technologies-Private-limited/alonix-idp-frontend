@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Mail, Printer, Box, Plus, Trash2, Webhook, Loader2,
+  Mail, Box, Plus, Trash2, Webhook, Loader2,
   AlertCircle, Clock, History, Zap, CheckCircle2, FolderOpen,
   Server, Eye, ToggleLeft, ToggleRight,
 } from 'lucide-react';
@@ -16,7 +16,7 @@ import { useAlert } from '../alert';
 interface Connector {
   _id: string;
   name: string;
-  type: 'EMAIL' | 'FAX' | 'BOX' | 'API' | 'SHAREPOINT' | 'SFTP';
+  type: 'EMAIL' | 'BOX' | 'API' | 'SHAREPOINT' | 'SFTP';
   status: 'ACTIVE' | 'PAUSED' | 'ERROR';
   ingestHistoric: boolean;
   lastHistoricSyncAt?: string | null;
@@ -25,7 +25,7 @@ interface Connector {
 
 type IngestionMode = 'new-only' | 'historic';
 
-type ConnectorType = 'EMAIL' | 'FAX' | 'SHAREPOINT' | 'SFTP';
+type ConnectorType = 'EMAIL' | 'SHAREPOINT' | 'SFTP';
 
 export const ConnectorsPanel: React.FC = () => {
   const context = useAuthStore((s) => s.context);
@@ -111,8 +111,6 @@ export const ConnectorsPanel: React.FC = () => {
 
     if (newType === 'EMAIL') {
       config = { emailAddress: formData.get('emailAddress'), password: formData.get('password') };
-    } else if (newType === 'FAX') {
-      config = { twilioPhoneNumber: formData.get('twilioPhoneNumber') };
     } else if (newType === 'SHAREPOINT') {
       config = {
         tenantId: formData.get('tenantId'), clientId: formData.get('clientId'),
@@ -138,7 +136,6 @@ export const ConnectorsPanel: React.FC = () => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'EMAIL':      return <Mail className="h-5 w-5 text-info" />;
-      case 'FAX':        return <Printer className="h-5 w-5 text-violet" />;
       case 'BOX':        return <Box className="h-5 w-5 text-primary" />;
       case 'SHAREPOINT': return <FolderOpen className="h-5 w-5 text-emerald-500" />;
       case 'SFTP':       return <Server className="h-5 w-5 text-amber-400" />;
@@ -148,7 +145,6 @@ export const ConnectorsPanel: React.FC = () => {
 
   const getConnectorSubtitle = (c: Connector) => {
     if (c.type === 'EMAIL')      return c.config?.emailAddress as string;
-    if (c.type === 'FAX')        return c.config?.twilioPhoneNumber as string;
     if (c.type === 'SHAREPOINT') return c.config?.siteUrl as string;
     if (c.type === 'SFTP')       return `${c.config?.username}@${c.config?.host}:${c.config?.remotePath}`;
     return 'API Mode';
@@ -168,7 +164,7 @@ export const ConnectorsPanel: React.FC = () => {
               Ingestion Connectors
             </h2>
             <p className="text-sm text-muted-foreground mt-1 font-medium">
-              Configure dynamic pipelines to ingest documents from Email, Fax, SharePoint, or Webhooks.
+              Configure dynamic pipelines to ingest documents from Email, SharePoint, SFTP, or Webhooks.
             </p>
           </div>
           <button
@@ -334,7 +330,7 @@ export const ConnectorsPanel: React.FC = () => {
                   Type
                 </label>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  {(['EMAIL', 'FAX', 'SHAREPOINT', 'SFTP'] as const).map((t) => (
+                  {(['EMAIL', 'SHAREPOINT', 'SFTP'] as const).map((t) => (
                     <button
                       type="button"
                       key={t}
@@ -474,27 +470,6 @@ export const ConnectorsPanel: React.FC = () => {
                     )}
                   </div>
                 </>
-              )}
-
-              {/* ── FAX config ────────────────────────────────────────────── */}
-              {newType === 'FAX' && (
-                <div className="space-y-3 p-4 rounded-xl bg-violet/10 border border-violet/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Printer className="h-4 w-4 text-violet" />
-                    <span className="text-xs font-bold text-violet">TWILIO CONFIGURATION</span>
-                  </div>
-                  <input
-                    required
-                    id="connector-twilio-phone"
-                    name="twilioPhoneNumber"
-                    placeholder="Twilio Webhook Phone Number"
-                    className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    <AlertCircle className="inline h-3 w-3 mr-1" />
-                    Point your Twilio webhook URL at your server endpoint.
-                  </p>
-                </div>
               )}
 
               {/* ── SHAREPOINT config ─────────────────────────────────────── */}

@@ -31,6 +31,7 @@ import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
 
 import ScrollToTop from './components/routing/ScrollToTop';
 import { getDefaultAuthedPath, isSearchUserOnly } from './utils/routingAuth';
+import { hasActiveSession } from './utils/session';
 import './index.css';
 
 const ForbiddenPage = () => (
@@ -40,26 +41,46 @@ const ForbiddenPage = () => (
 );
 
 const PrivateRoute = () => {
-  const token = useAuthStore((state) => state.token);
-  return token ? <Outlet /> : <Navigate to="/login" replace />;
+  const user = useAuthStore((state) => state.user);
+  const context = useAuthStore((state) => state.context);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  if (!isInitialized) {
+    return null;
+  }
+  if (!hasActiveSession(user, context)) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
 };
 
 const LoginRoute = () => {
-  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const context = useAuthStore((state) => state.context);
-  return token ? <Navigate to={getDefaultAuthedPath(context)} replace /> : <LoginPage />;
+  return hasActiveSession(user, context) ? (
+    <Navigate to={getDefaultAuthedPath(context)} replace />
+  ) : (
+    <LoginPage />
+  );
 };
 
 const SignupRoute = () => {
-  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const context = useAuthStore((state) => state.context);
-  return token ? <Navigate to={getDefaultAuthedPath(context)} replace /> : <SignupPage />;
+  return hasActiveSession(user, context) ? (
+    <Navigate to={getDefaultAuthedPath(context)} replace />
+  ) : (
+    <SignupPage />
+  );
 };
 
 const SetupPasswordRoute = () => {
-  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const context = useAuthStore((state) => state.context);
-  return token ? <Navigate to={getDefaultAuthedPath(context)} replace /> : <SetupPasswordPage />;
+  return hasActiveSession(user, context) ? (
+    <Navigate to={getDefaultAuthedPath(context)} replace />
+  ) : (
+    <SetupPasswordPage />
+  );
 };
 
 const DashboardRoute = () => {

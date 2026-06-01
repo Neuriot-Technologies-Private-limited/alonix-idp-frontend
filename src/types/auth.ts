@@ -54,6 +54,7 @@ export interface AuthContextPayload {
 }
 
 export interface AuthState {
+  /** @deprecated JWT is stored in httpOnly cookie; kept null in browser storage */
   token: string | null;
   user: UserDetails | null;
   context: AuthContextPayload | null;

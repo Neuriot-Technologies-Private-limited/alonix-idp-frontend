@@ -23,11 +23,10 @@ export function connectSocket(email: string, groupId: string) {
     socket = null;
   }
 
-  const token = useAuthStore.getState().token;
   socket = io(socketBaseUrl(), {
     path: import.meta.env.VITE_SOCKET_PATH || '/socket.io',
     query: { email: nextIdentity.email, groupId: nextIdentity.groupId },
-    auth: { token },
+    withCredentials: true,
     transports: ['websocket', 'polling'],
     autoConnect: true,
   });

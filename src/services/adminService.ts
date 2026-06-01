@@ -181,8 +181,14 @@ export interface Document {
 
 export type AiProvider = 'OPENAI' | 'ANTHROPIC' | 'GEMINI' | 'OPEN_SOURCE';
 
+export type InferenceMode = 'LOCAL_ONLY' | 'CLOUD_ALLOWED';
+
 export interface OrgAiSettings {
   orgId: string;
+  inferenceMode?: InferenceMode;
+  cloudLlmEnabled?: boolean;
+  /** When true, forces LOCAL_ONLY and disables cloud LLMs (HIPAA / PHI tenants). */
+  hipaaRegulated?: boolean;
   provider: AiProvider;
   model: string;
   providerModels?: Record<AiProvider, string>;
@@ -195,6 +201,9 @@ export interface OrgAiSettings {
 }
 
 export interface UpdateOrgAiSettingsInput {
+  inferenceMode?: InferenceMode;
+  cloudLlmEnabled?: boolean;
+  hipaaRegulated?: boolean;
   provider?: AiProvider;
   model?: string;
   openSourceBaseUrl?: string;

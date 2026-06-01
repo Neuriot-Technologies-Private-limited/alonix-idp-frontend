@@ -30,17 +30,17 @@ describe('authStore', () => {
     });
   });
 
-  it('setAuth stores token, user, and context', () => {
-    useAuthStore.getState().setAuth('tok', baseUser, baseContext);
+  it('setAuth stores user and context without persisting JWT', () => {
+    useAuthStore.getState().setAuth(baseUser, baseContext);
     const s = useAuthStore.getState();
-    expect(s.token).toBe('tok');
+    expect(s.token).toBeNull();
     expect(s.user?.email).toBe('a@example.com');
     expect(s.context?.activeGroupId).toBe('g1');
     expect(s.isInitialized).toBe(true);
   });
 
   it('setActiveGroup updates capabilities for the selected workspace', () => {
-    useAuthStore.getState().setAuth('tok', baseUser, baseContext);
+    useAuthStore.getState().setAuth(baseUser, baseContext);
     useAuthStore.getState().setActiveGroup('g2');
     const ctx = useAuthStore.getState().context;
     expect(ctx?.activeGroupId).toBe('g2');
@@ -50,7 +50,7 @@ describe('authStore', () => {
   });
 
   it('updateUser merges preferences with defaults', () => {
-    useAuthStore.getState().setAuth('tok', baseUser, baseContext);
+    useAuthStore.getState().setAuth(baseUser, baseContext);
     useAuthStore.getState().updateUser({ preferences: { weeklyDigest: false } });
     expect(useAuthStore.getState().user?.preferences).toEqual({
       emailNotifications: true,
@@ -59,9 +59,9 @@ describe('authStore', () => {
     });
   });
 
-  it('logout clears session', () => {
-    useAuthStore.getState().setAuth('tok', baseUser, baseContext);
-    useAuthStore.getState().logout();
+  it('logout clears session', async () => {
+    useAuthStore.getState().setAuth(baseUser, baseContext);
+    await useAuthStore.getState().logout();
     expect(useAuthStore.getState().token).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().context).toBeNull();

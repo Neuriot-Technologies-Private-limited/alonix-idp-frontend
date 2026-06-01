@@ -74,7 +74,7 @@ function getPlanFeatures(plan: BillingPlan): string[] {
     connectorQuotaLabel(plan.limits.maxConnectors),
     `${users} team member${plan.limits.maxUsers === 1 ? '' : 's'}`,
     `${stor} storage`,
-    ...(plan.name === 'FREE'    ? ['Email & Fax ingestion', 'Basic AI extraction'] : []),
+    ...(plan.name === 'FREE'    ? ['Email ingestion', 'Basic AI extraction'] : []),
     ...(plan.name === 'STARTER' ? ['All connector types', 'Priority processing', 'SharePoint sync'] : []),
     ...(plan.name === 'PRO'     ? ['All connector types', 'API ingestion', 'Advanced classification', 'Audit logs'] : []),
     ...(plan.name === 'ENTERPRISE' ? ['Custom SLAs', 'Dedicated support', 'On-prem deployment', 'Custom integrations'] : []),
@@ -227,7 +227,7 @@ export const PricingPage: React.FC = () => {
   const { t } = useTranslation('billing');
   const brand = useBrand();
   const navigate = useNavigate();
-  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
@@ -258,7 +258,7 @@ export const PricingPage: React.FC = () => {
       const { data } = await apiClient.get('/billing/subscription');
       return data;
     },
-    enabled: !!token && !!orgId,
+    enabled: !!user && !!orgId,
   });
 
   const [upgrading, setUpgrading] = useState<string | null>(null);
@@ -274,7 +274,7 @@ export const PricingPage: React.FC = () => {
   });
 
   const handleUpgrade = (planName: string, cycle: BillingCycle) => {
-    if (!token) {
+    if (!user) {
       navigate('/signup');
       return;
     }
@@ -342,7 +342,7 @@ export const PricingPage: React.FC = () => {
         </div>
       )}
 
-      {billingConfig && token && (!billingConfig.stripeConfigured || !billingConfig.checkoutReady) && (
+      {billingConfig && user && (!billingConfig.stripeConfigured || !billingConfig.checkoutReady) && (
         <div className="max-w-3xl mx-auto px-4 mb-6">
           <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200/90 text-center">
             Paid checkout is not configured on the server yet. Plans and limits below are live from your account API.

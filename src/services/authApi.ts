@@ -20,7 +20,6 @@ function mapApiUser(u: Record<string, unknown>): UserDetails {
 
 export const authApi = {
   async login(email: string, password: string, orgId?: string | null): Promise<{
-    token: string;
     user: UserDetails;
     context: AuthContextPayload;
   }> {
@@ -30,10 +29,26 @@ export const authApi = {
       ...(orgId ? { orgId } : {}),
     });
     return {
-      token: data.token,
       user: mapApiUser(data.user),
       context: data.context as AuthContextPayload,
     };
+  },
+
+  async logout(): Promise<void> {
+    await apiClient.post('/users/logout');
+  },
+
+  async fetchSession(): Promise<{ user: UserDetails; context: AuthContextPayload } | null> {
+    try {
+      const { data } = await apiClient.get('/users/me/context');
+      if (!data?.user || !data?.context) return null;
+      return {
+        user: mapApiUser(data.user),
+        context: data.context as AuthContextPayload,
+      };
+    } catch {
+      return null;
+    }
   },
 
   async onboardCompany(payload: {

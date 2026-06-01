@@ -10,11 +10,11 @@ import { defaultUserPreferences } from '../types/auth';
 import { applyActiveGroupToContext } from '../core/rbac/capabilities';
 
 interface AuthActions {
-  setAuth: (token: string, user: UserDetails, context: AuthContextPayload) => void;
-  logout: () => void;
+  setAuth: (user: UserDetails, context: AuthContextPayload) => void;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<boolean>;
   setActiveGroup: (groupId: string) => void;
   updateContext: (context: AuthContextPayload) => void;
-  /** Merge fields into the signed-in user (profile, avatar, preferences). */
   updateUser: (
     partial: Partial<Omit<UserDetails, 'preferences'>> & {
       preferences?: Partial<UserProfilePreferences>;
@@ -24,15 +24,40 @@ interface AuthActions {
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       context: null,
       isInitialized: false,
 
-      setAuth: (token, user, context) => set({ token, user, context, isInitialized: true }),
+      setAuth: (user, context) =>
+        set({ token: null, user, context, isInitialized: true }),
 
-      logout: () => set({ token: null, user: null, context: null, isInitialized: true }),
+      logout: async () => {
+        try {
+          const { authApi } = await import('../services/authApi');
+          await authApi.logout();
+        } catch {
+          // Clear local state even if server call fails
+        }
+        set({ token: null, user: null, context: null, isInitialized: true });
+      },
+
+      refreshSession: async () => {
+        const { authApi } = await import('../services/authApi');
+        const session = await authApi.fetchSession();
+        if (!session) {
+          set({ token: null, user: null, context: null, isInitialized: true });
+          return false;
+        }
+        set({
+          token: null,
+          user: session.user,
+          context: session.context,
+          isInitialized: true,
+        });
+        return true;
+      },
 
       setActiveGroup: (groupId) =>
         set((state) => {
@@ -56,7 +81,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     }),
     {
       name: 'alonix-auth-storage',
-      partialize: (state) => ({ token: state.token, user: state.user, context: state.context }),
+      partialize: (state) => ({ user: state.user, context: state.context }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.user && state?.context) {
+          void state.refreshSession();
+        } else if (state) {
+          state.isInitialized = true;
+        }
+      },
     }
   )
 );
