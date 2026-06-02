@@ -23,6 +23,8 @@ export type InviteUsersToGroupPayload = {
   groupId: string;
   newUser?: { name: string; email: string } | null;
   existingUserIds: string[];
+  /** Group membership role for invitees. Company admin is org-level and managed separately. */
+  role?: 'GROUP_ADMIN' | 'SEARCH_USER';
   /** Max document sensitivity for newly added SEARCH_USER members (default INTERNAL_USE). */
   maxDocumentSensitivity?: string;
 };
@@ -103,6 +105,9 @@ export const userService = {
     const orgId = useAuthStore.getState().context?.orgId;
     if (!orgId) return { ok: false, error: 'Not signed in' };
 
+    const role = payload.role || 'SEARCH_USER';
+    let invitedNew = false;
+
     const nu = payload.newUser;
     if (nu?.email?.trim() && nu?.name?.trim()) {
       try {
@@ -110,9 +115,10 @@ export const userService = {
           groupId: payload.groupId,
           email: nu.email.trim().toLowerCase(),
           name: nu.name.trim(),
+          role,
           maxDocumentSensitivity: payload.maxDocumentSensitivity || 'INTERNAL_USE',
         });
-        return { ok: true, addedExisting: 0, invitedNew: true };
+        invitedNew = true;
       } catch (e: unknown) {
         return { ok: false, error: quotaErrorMessage(e, 'Invite email failed') };
       }
@@ -131,7 +137,7 @@ export const userService = {
       try {
         await apiClient.post(`/admin/groups/${encodeURIComponent(payload.groupId)}/members`, {
           userEmail: email,
-          role: 'SEARCH_USER',
+          role,
           ...(payload.maxDocumentSensitivity
             ? { maxDocumentSensitivity: payload.maxDocumentSensitivity }
             : {}),
@@ -153,11 +159,11 @@ export const userService = {
       }
     }
 
-    if (addedExisting === 0 && !(nu?.email?.trim() && nu?.name?.trim())) {
+    if (addedExisting === 0 && !invitedNew) {
       return { ok: false, error: 'Select people from the list and/or complete the new invite.' };
     }
 
-    return { ok: true, addedExisting, invitedNew: false };
+    return { ok: true, addedExisting, invitedNew };
   },
 
   /**

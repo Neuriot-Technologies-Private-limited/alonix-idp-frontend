@@ -38,6 +38,12 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
   fixedGroupId,
   fixedGroupName,
 }) => {
+  const isAlreadyInGroup = React.useCallback((u: User, gid: string) => {
+    if (!gid) return false;
+    if (u.groupID && String(u.groupID) === String(gid)) return true;
+    return Boolean((u.workspaces || []).some((w) => String(w.groupId) === String(gid)));
+  }, []);
+
   const groupLocked = Boolean(fixedGroupId);
   const queryClient = useQueryClient();
   const context = useAuthStore((s) => s.context);
@@ -49,6 +55,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
   const [listQuery, setListQuery] = React.useState('');
   const [memberMaxSensitivity, setMemberMaxSensitivity] =
     React.useState<DocumentSensitivityLevel>('INTERNAL_USE');
+  const [inviteRole, setInviteRole] = React.useState<'GROUP_ADMIN' | 'SEARCH_USER'>('SEARCH_USER');
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
@@ -59,6 +66,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
       setSelectedIds(new Set());
       setListQuery('');
       setMemberMaxSensitivity('INTERNAL_USE');
+      setInviteRole('SEARCH_USER');
       setError('');
     }
   }, [isOpen, fixedGroupId]);
@@ -101,11 +109,15 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
   }, [inviterMaxKey, groupEnabledLevels]);
 
   React.useEffect(() => {
+    if (inviteRole === 'GROUP_ADMIN') {
+      setMemberMaxSensitivity('RESTRICTED');
+      return;
+    }
     const allowed = uploadAssignableLevelsForGroup(inviterMaxKey, groupEnabledLevels);
     setMemberMaxSensitivity((prev) =>
       allowed.includes(prev) ? prev : allowed[allowed.length - 1] || 'INTERNAL_USE'
     );
-  }, [inviterMaxKey, groupEnabledLevels]);
+  }, [inviterMaxKey, groupEnabledLevels, inviteRole]);
 
   const mutation = useMutation({
     mutationFn: userService.inviteUsersToGroup,
@@ -118,7 +130,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
 
   const toggleUser = (id: string) => {
     const u = users.find((x) => x._id === id);
-    if (groupId && u && u.groupID === groupId) return;
+    if (groupId && u && isAlreadyInGroup(u, groupId)) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -133,7 +145,13 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
       setError('Select a group.');
       return;
     }
-    const hasNew = inviteName.trim() || inviteEmail.trim();
+    const hasName = inviteName.trim().length > 0;
+    const hasEmail = inviteEmail.trim().length > 0;
+    if (hasName !== hasEmail) {
+      setError('For a new invite, both name and email are required.');
+      return;
+    }
+    const hasNew = hasName && hasEmail;
     const nu = hasNew ? { name: inviteName, email: inviteEmail } : null;
 
     setError('');
@@ -142,6 +160,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
         groupId,
         existingUserIds: Array.from(selectedIds),
         newUser: nu,
+        role: inviteRole,
         maxDocumentSensitivity: memberMaxSensitivity,
       });
       if (!res.ok) {
@@ -170,8 +189,8 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
 
   const selectableCount = React.useMemo(() => {
     if (!groupId) return 0;
-    return directoryUsers.filter((u) => u.groupID !== groupId).length;
-  }, [directoryUsers, groupId]);
+    return directoryUsers.filter((u) => !isAlreadyInGroup(u, groupId)).length;
+  }, [directoryUsers, groupId, isAlreadyInGroup]);
 
   const lockedGroupLabel =
     fixedGroupName ||
@@ -251,17 +270,42 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
 
         <div className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
+            Invite role
+          </span>
+          <div className="relative">
+            <select
+              id="invite-role"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as 'GROUP_ADMIN' | 'SEARCH_USER')}
+              className="w-full appearance-none rounded-2xl border border-border/10 bg-surface-highest/5 py-3.5 pl-4 pr-10 text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="SEARCH_USER">Search user (default)</option>
+              <option value="GROUP_ADMIN">Group admin</option>
+            </select>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 text-[10px]">
+              ▼
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground/35 leading-relaxed">
+            Company admin is an organization-level role and is managed from organization user settings.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
             Document access for new members
           </span>
           <ThemedSelect
             value={memberMaxSensitivity}
             onChange={(v) => setMemberMaxSensitivity(v as DocumentSensitivityLevel)}
             options={memberSensitivityOptions}
-            disabled={!groupId || memberSensitivityOptions.length === 0}
+            disabled={!groupId || memberSensitivityOptions.length === 0 || inviteRole === 'GROUP_ADMIN'}
             aria-label="Maximum document sensitivity for added members"
           />
           <p className="text-[10px] text-muted-foreground/35 leading-relaxed">
-            Members can view and upload documents at this level and below (less sensitive tiers).
+            {inviteRole === 'GROUP_ADMIN'
+              ? 'Group admins always get RESTRICTED document access.'
+              : 'Members can view and upload documents at this level and below (less sensitive tiers).'}
           </p>
         </div>
 
@@ -299,7 +343,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
             </div>
           </div>
           <p className="text-[10px] text-muted-foreground/35">
-            If you fill this section, both name and email are required. Creates a pending search user in the selected group.
+            If you fill this section, both name and email are required. Creates a pending invite in the selected group with the chosen role.
           </p>
         </div>
 
@@ -337,7 +381,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
             ) : (
               <ul className="divide-y divide-border/10">
                 {directoryUsers.map((u) => {
-                  const inThisGroup = Boolean(groupId && u.groupID === groupId);
+                  const inThisGroup = Boolean(groupId && isAlreadyInGroup(u, groupId));
                   const checked = selectedIds.has(u._id);
                   return (
                     <li key={u._id}>
