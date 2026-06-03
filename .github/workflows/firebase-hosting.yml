@@ -105,7 +105,6 @@ jobs:
             exit 0
           fi
           echo "send=true" >> "$GITHUB_OUTPUT"
-          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           SHA_SHORT="${GITHUB_SHA:0:7}"
 
           case "${JOB_RESULT}" in
@@ -143,9 +142,6 @@ jobs:
             TEXT="${TEXT}
           *Why:* ${FAIL_HINT}"
           fi
-
-          TEXT="${TEXT}
-          <${RUN_URL}|View workflow run>"
 
           jq -n --arg text "$TEXT" '{text: $text}' > slack-payload.json
 
