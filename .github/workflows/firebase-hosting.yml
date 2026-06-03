@@ -92,13 +92,19 @@ jobs:
       JOB_RESULT: ${{ needs.live.result }}
     steps:
       - name: Build Slack message
-        if: secrets.SLACK_WEBHOOK_URL != ''
         id: slack
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "send=false" >> "$GITHUB_OUTPUT"
+            echo "SLACK_WEBHOOK_URL not set, skipping notification."
+            exit 0
+          fi
+          echo "send=true" >> "$GITHUB_OUTPUT"
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           SHA_SHORT="${GITHUB_SHA:0:7}"
 
@@ -144,7 +150,7 @@ jobs:
           jq -n --arg text "$TEXT" '{text: $text}' > slack-payload.json
 
       - name: Notify Slack
-        if: secrets.SLACK_WEBHOOK_URL != ''
+        if: steps.slack.outputs.send == 'true'
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
