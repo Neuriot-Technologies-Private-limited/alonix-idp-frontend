@@ -82,3 +82,71 @@ jobs:
             --non-interactive
           echo "Live URL: https://${TARGET_SITE}.web.app"
           echo "Live URL (fallback): https://${TARGET_SITE}.firebaseapp.com"
+
+  notify-slack:
+    needs: live
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_NAME: Findout Frontend (Firebase Hosting)
+      JOB_RESULT: ${{ needs.live.result }}
+    steps:
+      - name: Build Slack message
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        id: slack
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          SHA_SHORT="${GITHUB_SHA:0:7}"
+
+          case "${JOB_RESULT}" in
+            success)   STATUS="✅ SUCCESS" ;;
+            cancelled) STATUS="🚫 CANCELLED" ;;
+            skipped)   STATUS="⏭️ SKIPPED" ;;
+            *)         STATUS="❌ FAILED" ;;
+          esac
+
+          if [ -n "${COMMIT_MESSAGE:-}" ]; then
+            COMMIT_LINE="$(printf '%s' "$COMMIT_MESSAGE" | head -1 | cut -c1-100)"
+          else
+            COMMIT_LINE="(manual run — no commit message)"
+          fi
+
+          FAIL_HINT=""
+          if [ "${JOB_RESULT}" != "success" ]; then
+            FAILED_JOB="$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --json jobs -q '.jobs[] | select(.conclusion=="failure") | .name' 2>/dev/null | head -1 || true)"
+            if [ -n "$FAILED_JOB" ]; then
+              FAIL_HINT="Failed job: *${FAILED_JOB}*. Check that job's logs in the workflow run."
+            else
+              FAIL_HINT="Deploy did not finish successfully. Open the workflow run for step logs."
+            fi
+          fi
+
+          TEXT="${STATUS}
+          *Project:* ${PROJECT_NAME}
+          *Repo:* \`${GITHUB_REPOSITORY}\`
+          *Branch:* \`${GITHUB_REF_NAME}\`
+          *Commit:* \`${SHA_SHORT}\` — ${COMMIT_LINE}
+          *Triggered by:* ${GITHUB_ACTOR}"
+
+          if [ -n "$FAIL_HINT" ]; then
+            TEXT="${TEXT}
+          *Why:* ${FAIL_HINT}"
+          fi
+
+          TEXT="${TEXT}
+          <${RUN_URL}|View workflow run>"
+
+          jq -n --arg text "$TEXT" '{text: $text}' > slack-payload.json
+
+      - name: Notify Slack
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: slack-payload.json
