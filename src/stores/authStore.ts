@@ -9,10 +9,31 @@ import type {
 import { defaultUserPreferences } from '../types/auth';
 import { applyActiveGroupToContext } from '../core/rbac/capabilities';
 
+let authContextSyncInflight: Promise<boolean> | null = null;
+
+function mergeAuthContext(
+  incoming: AuthContextPayload,
+  current: AuthContextPayload | null
+): AuthContextPayload {
+  const hasIncomingGroups = Array.isArray(incoming.groups) && incoming.groups.length > 0;
+  const hasCurrentGroups =
+    Array.isArray(current?.groups) && (current?.groups?.length ?? 0) > 0;
+  if (!hasIncomingGroups && hasCurrentGroups && current) {
+    return current;
+  }
+  const selectedId = current?.activeGroupId;
+  if (selectedId && incoming.groups?.some((g) => g.groupId === selectedId)) {
+    return applyActiveGroupToContext(incoming, selectedId);
+  }
+  return incoming;
+}
+
 interface AuthActions {
   setAuth: (user: UserDetails, context: AuthContextPayload) => void;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
+  /** Fetch latest RBAC context once (deduped); keeps profile from store. */
+  syncAuthContext: () => Promise<boolean>;
   setActiveGroup: (groupId: string) => void;
   updateContext: (context: AuthContextPayload) => void;
   updateUser: (
@@ -24,7 +45,7 @@ interface AuthActions {
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       context: null,
@@ -43,9 +64,30 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({ token: null, user: null, context: null, isInitialized: true });
       },
 
+      syncAuthContext: async () => {
+        if (authContextSyncInflight) return authContextSyncInflight;
+        authContextSyncInflight = (async () => {
+          const { authApi } = await import('../services/authApi');
+          const incoming = await authApi.fetchAuthContext();
+          if (!incoming) return false;
+          set((state) => ({
+            context: mergeAuthContext(incoming, state.context),
+          }));
+          return true;
+        })().finally(() => {
+          authContextSyncInflight = null;
+        });
+        return authContextSyncInflight;
+      },
+
       refreshSession: async () => {
+        const state = get();
+        if (!state.user?.email) {
+          set({ token: null, user: null, context: null, isInitialized: true });
+          return false;
+        }
         const { authApi } = await import('../services/authApi');
-        const session = await authApi.fetchSession();
+        const session = await authApi.fetchSession(state.user);
         if (!session) {
           set({ token: null, user: null, context: null, isInitialized: true });
           return false;

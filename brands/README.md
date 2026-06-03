@@ -66,7 +66,7 @@ brands/
 |---|---|---|
 | App name | `brand.env` | `VITE_BRAND_NAME` |
 | Logo image | `assets/logo.png` | (file) |
-| Favicon | `assets/favicon.svg` | (file) |
+| Favicon | `assets/favicon.svg` (or `.png`) | `VITE_BRAND_FAVICON_URL` in `brand.env` |
 | Primary colour | `brand.env` | `VITE_BRAND_PRIMARY_LIGHT/DARK` |
 | Landing page text | `i18n/en/landing.json` | (strings) |
 | Footer links | `brand.env` | `VITE_BRAND_PRIVACY_URL` etc. |

@@ -561,7 +561,7 @@ export const GroupDetails: React.FC = () => {
                           </td>
                           <td className="px-6 py-3.5 text-right">
                             {canManage ? (
-                            member.membershipState === 'expired' && member.inviteId && isCompanyAdmin ? (
+                            member.membershipState === 'expired' && member.inviteId && canManage ? (
                               <button
                                 type="button"
                                 onClick={() => resendInviteMutation.mutate(member.inviteId as string)}

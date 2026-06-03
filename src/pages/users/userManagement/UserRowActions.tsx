@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, UserPlus, UserX } from 'lucide-react';
+import { Edit2, Mail, Trash2, UserPlus, UserX } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import type { User } from '../../../services/userService';
 import { isPendingInviteUser } from '../../../services/userService';
@@ -11,7 +11,8 @@ export type UserRowActionKey =
   | 'activate'
   | 'remove'
   | 'add'
-  | 'removeGroup';
+  | 'removeGroup'
+  | 'reinvite';
 
 export interface UserRowActionsProps {
   user: User;
@@ -22,6 +23,8 @@ export interface UserRowActionsProps {
   onRemove: (u: User) => void;
   onAddToGroup: (u: User) => void;
   onRemoveFromGroup: (u: User) => void;
+  canResendInvite?: boolean;
+  onResendInvite?: (u: User) => void;
 }
 
 type ActionItem = {
@@ -41,6 +44,8 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
   onRemove,
   onAddToGroup,
   onRemoveFromGroup,
+  canResendInvite = false,
+  onResendInvite,
 }) => {
   const selfEmail = useAuthStore((s) => s.user?.email?.toLowerCase().trim() ?? '');
   const activeGroupId = useAuthStore((s) => s.context?.activeGroupId ?? '');
@@ -48,6 +53,23 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
   const isSelf = Boolean(selfEmail && user.email.toLowerCase().trim() === selfEmail);
 
   if (pendingInvite) {
+    if (canResendInvite && onResendInvite) {
+      return (
+        <button
+          type="button"
+          aria-label="Reinvite user"
+          title="Resend expired invitation email"
+          onClick={(e) => {
+            e.stopPropagation();
+            onResendInvite(user);
+          }}
+          className="inline-flex items-center gap-1 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-warning transition-all hover:bg-warning/20"
+        >
+          <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Reinvite
+        </button>
+      );
+    }
     return (
       <span
         className="text-[9px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-400/75"

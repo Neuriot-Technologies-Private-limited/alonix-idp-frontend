@@ -6,13 +6,12 @@ import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
-import { getMyContext } from '../services/chatApi';
 import { useBrand } from '../brand/useBrand';
 
 const TopNavBar: React.FC = () => {
   const navigate = useNavigate();
   const brand = useBrand();
-  const { user, context, setActiveGroup, updateContext, logout } = useAuthStore();
+  const { user, context, setActiveGroup, syncAuthContext, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const toggleMobileNav = useUIStore((s) => s.toggleMobileNav);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
@@ -40,24 +39,8 @@ const TopNavBar: React.FC = () => {
 
   // Close dropdowns on click outside
   useEffect(() => {
-    const syncContext = async () => {
-      try {
-        const { data } = await getMyContext();
-        if (data?.context) {
-          const incoming = data.context;
-          const hasIncomingGroups = Array.isArray(incoming?.groups) && incoming.groups.length > 0;
-          const currentGroups = useAuthStore.getState().context?.groups;
-          const hasCurrentGroups = Array.isArray(currentGroups) && currentGroups.length > 0;
-          // Avoid replacing a valid in-memory context with an empty payload.
-          if (!hasIncomingGroups && hasCurrentGroups) return;
-          updateContext(incoming);
-        }
-      } catch {
-        // ignore; existing context remains usable
-      }
-    };
-    void syncContext();
-  }, [updateContext]);
+    void syncAuthContext();
+  }, [syncAuthContext]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

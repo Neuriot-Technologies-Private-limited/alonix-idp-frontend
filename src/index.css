@@ -22,6 +22,13 @@
   --color-violet: #7c3aed;
   --color-violet-foreground: #f5f3ff;
 
+  /* Document sensitivity badges (alias semantic tokens; override per brand in theme.css) */
+  --color-sensitivity-public: var(--color-success);
+  --color-sensitivity-internal: var(--color-info);
+  --color-sensitivity-confidential: var(--color-warning);
+  --color-sensitivity-high: var(--color-violet);
+  --color-sensitivity-restricted: var(--color-destructive);
+
   --color-surface-lowest: #ffffff;
   --color-surface-low: #f2f3f7;
   --color-surface-high: #e2e2e6;
@@ -68,6 +75,12 @@
   --color-violet: #c4b5fd;
   --color-violet-foreground: #2a164f;
 
+  --color-sensitivity-public: var(--color-success);
+  --color-sensitivity-internal: var(--color-info);
+  --color-sensitivity-confidential: var(--color-warning);
+  --color-sensitivity-high: var(--color-violet);
+  --color-sensitivity-restricted: var(--color-destructive);
+
   --color-surface-lowest: #0A0C10;
   --color-surface-low: #12151A;
   --color-surface-high: #1B1F26;
@@ -106,6 +119,11 @@
   --color-info-foreground: var(--color-info-foreground);
   --color-violet: var(--color-violet);
   --color-violet-foreground: var(--color-violet-foreground);
+  --color-sensitivity-public: var(--color-sensitivity-public);
+  --color-sensitivity-internal: var(--color-sensitivity-internal);
+  --color-sensitivity-confidential: var(--color-sensitivity-confidential);
+  --color-sensitivity-high: var(--color-sensitivity-high);
+  --color-sensitivity-restricted: var(--color-sensitivity-restricted);
   --color-surface-lowest: var(--color-surface-lowest);
   --color-surface-low: var(--color-surface-low);
   --color-surface-high: var(--color-surface-high);

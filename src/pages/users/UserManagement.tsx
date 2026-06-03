@@ -16,6 +16,10 @@ import { StatusBadge, RoleBadge } from './userManagement/UserManagementBadges';
 import { UserRowActions } from './userManagement/UserRowActions';
 import { EditUserModal } from './userManagement/EditUserModal';
 import { pickManagedGroupId } from './userManagement/pickManagedGroupId';
+import {
+  canResendExpiredInvite,
+  getExpiredInviteTargets,
+} from './userManagement/pendingInviteActions';
 import { MetricStateCard } from '../../components/ui/MetricStateCard';
 
 export const UserManagement: React.FC = () => {
@@ -188,6 +192,43 @@ export const UserManagement: React.FC = () => {
     setInviteFixedGroupId(gid || undefined);
     setInviteFixedGroupName(g?.name);
     setInviteOpen(true);
+  };
+
+  const handleResendInvite = async (u: User) => {
+    const targets = getExpiredInviteTargets(u);
+    if (!targets.length) {
+      await appAlert({
+        title: t('actions.reinvite.noTargetsTitle'),
+        description: t('actions.reinvite.noTargetsDescription'),
+        variant: 'warning',
+      });
+      return;
+    }
+    const ok = await confirm({
+      title: t('actions.reinvite.title'),
+      description: t('actions.reinvite.description', { email: u.email }),
+      confirmLabel: t('actions.reinvite.confirmLabel'),
+      variant: 'default',
+    });
+    if (!ok) return;
+    try {
+      for (const target of targets) {
+        await userService.resendGroupInvite(target.groupId, target.inviteId);
+      }
+      await invalidateUsers();
+      await appAlert({
+        title: t('actions.reinvite.success'),
+        description: u.email,
+        variant: 'success',
+      });
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } }; message?: string };
+      await appAlert({
+        title: t('actions.reinvite.errorTitle'),
+        description: ax.response?.data?.message || ax.message || 'Request failed',
+        variant: 'danger',
+      });
+    }
   };
 
   const handleRemoveFromGroup = async (u: User) => {
@@ -420,6 +461,12 @@ export const UserManagement: React.FC = () => {
                       <UserRowActions
                         user={user}
                         canManageCompany={isCompanyAdmin}
+                        canResendInvite={canResendExpiredInvite(
+                          user,
+                          isCompanyAdmin,
+                          adminGroupIds ?? []
+                        )}
+                        onResendInvite={handleResendInvite}
                         onEdit={setEditUser}
                         onSuspend={handleSuspend}
                         onActivate={handleActivate}

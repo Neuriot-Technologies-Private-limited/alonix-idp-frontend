@@ -1,11 +1,10 @@
 /**
  * Chat + document helpers aligned with alonix-idp-node-backend:
- * - `/api/users/me/context`
  * - `/api/chats/...` or `/api/groups/:groupId/chats/...` (group-scoped preferred)
  * - `/api/documents/...` or `/api/groups/:groupId/documents/...`
+ * Auth context refresh: `authApi.fetchAuthContext()` / `useAuthStore.syncAuthContext()`.
  */
 import apiClient from './api/client';
-import type { AuthContextPayload } from '../types/auth';
 
 function chatsBase(groupId?: string | null) {
   const g = groupId?.trim();
@@ -15,10 +14,6 @@ function chatsBase(groupId?: string | null) {
 function documentsBase(groupId?: string | null) {
   const g = groupId?.trim();
   return g ? `/groups/${encodeURIComponent(g)}/documents` : '/documents';
-}
-
-export async function getMyContext() {
-  return apiClient.get<{ user: unknown; context: AuthContextPayload }>('/users/me/context');
 }
 
 /** Sessions for the authenticated user (JWT); no email in URL. */
@@ -184,8 +179,16 @@ export interface ChatSessionDto {
   last_updated: string;
 }
 
+export type ChatResponseKind = 'answer' | 'clarification';
+
 export interface AskResponseDto {
   session_id?: string;
+  /** Mongo ChatMessages _id (sent to Python as query_id). */
+  query_id?: string;
   answer?: string;
+  response_kind?: ChatResponseKind;
   sources?: unknown[] | Record<string, unknown>;
+  classification?: unknown;
+  is_valid?: boolean;
+  source_files?: unknown;
 }

@@ -19,6 +19,9 @@ export interface User {
   workspaces?: UserWorkspace[];
   /** Synthetic row from pending email invite (not yet onboarded) */
   isPendingInvite?: boolean;
+  inviteExpired?: boolean;
+  inviteId?: string;
+  pendingInvites?: { inviteId: string; groupId: string; expired: boolean }[];
 }
 
 export function isPendingInviteUser(u: Pick<User, '_id' | 'isPendingInvite'>): boolean {
@@ -105,6 +108,15 @@ function mapApiUser(u: Record<string, unknown>): User {
     lastActive,
     workspaces: workspaces.length ? workspaces : undefined,
     isPendingInvite: pendingInvite || undefined,
+    inviteExpired: u.inviteExpired === true ? true : undefined,
+    inviteId: typeof u.inviteId === 'string' ? u.inviteId : undefined,
+    pendingInvites: Array.isArray(u.pendingInvites)
+      ? (u.pendingInvites as Record<string, unknown>[]).map((p) => ({
+          inviteId: String(p.inviteId ?? ''),
+          groupId: String(p.groupId ?? ''),
+          expired: p.expired === true,
+        }))
+      : undefined,
   };
 }
 
@@ -207,6 +219,16 @@ export const userService = {
   removeUserFromGroup: async (groupId: string, userEmail: string): Promise<void> => {
     const enc = encodeURIComponent(userEmail.toLowerCase().trim());
     await apiClient.delete(`/admin/groups/${encodeURIComponent(groupId)}/members/${enc}`);
+  },
+
+  resendGroupInvite: async (
+    groupId: string,
+    inviteId: string
+  ): Promise<{ message: string; emailSent?: boolean }> => {
+    const { data } = await apiClient.post<{ message: string; emailSent?: boolean }>(
+      `/admin/groups/${encodeURIComponent(groupId)}/invites/${encodeURIComponent(inviteId)}/resend`
+    );
+    return data;
   },
 };
 

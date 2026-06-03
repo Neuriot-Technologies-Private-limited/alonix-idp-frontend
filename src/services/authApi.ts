@@ -5,7 +5,7 @@ function mapApiUser(u: Record<string, unknown>): UserDetails {
   const email = String(u.email ?? '').trim();
   const username = String((u.username as string) || email || '').trim();
   return {
-    _id: u._id as string,
+    _id: (u._id as string) || (u.id as string),
     id: (u.id as string) || (u._id as string),
     email,
     username: username || email,
@@ -38,17 +38,25 @@ export const authApi = {
     await apiClient.post('/users/logout');
   },
 
-  async fetchSession(): Promise<{ user: UserDetails; context: AuthContextPayload } | null> {
+  /** Server RBAC/workspace context only (see POST /users/login for profile). */
+  async fetchAuthContext(): Promise<AuthContextPayload | null> {
     try {
       const { data } = await apiClient.get('/users/me/context');
-      if (!data?.user || !data?.context) return null;
-      return {
-        user: mapApiUser(data.user),
-        context: data.context as AuthContextPayload,
-      };
+      if (!data?.context) return null;
+      return data.context as AuthContextPayload;
     } catch {
       return null;
     }
+  },
+
+  /** Rehydrate after reload: requires persisted user; refreshes context from server. */
+  async fetchSession(
+    persistedUser: UserDetails | null
+  ): Promise<{ user: UserDetails; context: AuthContextPayload } | null> {
+    if (!persistedUser?.email) return null;
+    const context = await this.fetchAuthContext();
+    if (!context) return null;
+    return { user: persistedUser, context };
   },
 
   async onboardCompany(payload: {

@@ -55,6 +55,15 @@
       "success": "User removed",
       "errorTitle": "Could not remove"
     },
+    "reinvite": {
+      "title": "Resend invitation",
+      "description": "Send a new invitation email to {{email}}? The previous link has expired.",
+      "confirmLabel": "Resend",
+      "success": "Invitation resent",
+      "errorTitle": "Could not resend invitation",
+      "noTargetsTitle": "Nothing to resend",
+      "noTargetsDescription": "This invite is still active or has already been accepted."
+    },
     "removeFromGroup": {
       "noWorkspace": {
         "title": "No workspace",
