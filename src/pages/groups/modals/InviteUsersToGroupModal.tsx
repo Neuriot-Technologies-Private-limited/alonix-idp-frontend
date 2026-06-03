@@ -168,6 +168,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ['users'] });
+      await queryClient.invalidateQueries({ queryKey: ['directory-users'] });
       await queryClient.invalidateQueries({ queryKey: ['group-health'] });
       await queryClient.invalidateQueries({ queryKey: ['group-detail'] });
       await queryClient.invalidateQueries({ queryKey: ['admin-stats'] });

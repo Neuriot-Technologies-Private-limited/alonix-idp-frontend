@@ -51,6 +51,13 @@ import {
   type DocumentSensitivityLevel,
 } from '../../constants/documentSensitivity';
 import { quotaErrorMessage } from '../../utils/billingQuota';
+import {
+  markPipelineStageFailed,
+  optimisticAppendUploadedDocument,
+  optimisticSetPipelineStage,
+  pipelineActionToStage,
+  refreshPipelineDocuments,
+} from '../../utils/pipelineDocumentsCache';
 
 function getConnectorDialogFocusables(root: HTMLElement): HTMLElement[] {
   const sel =
@@ -286,7 +293,7 @@ export const DocumentsPage: React.FC = () => {
           next.delete(docItem.id);
           return next;
         });
-        await queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+        await refreshPipelineDocuments(queryClient);
         await queryClient.invalidateQueries({ queryKey: ['documents'] });
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { error?: string } }; message?: string };
@@ -347,6 +354,8 @@ export const DocumentsPage: React.FC = () => {
     const gid = docRow?.groupId ? String(docRow.groupId) : undefined;
     const collectionName = (docRow?.group && String(docRow.group)) || gid || docId;
     const k = bustKey(docId, action);
+    const stage = pipelineActionToStage(action);
+    optimisticSetPipelineStage(queryClient, docId, stage);
     setActionBusyKey(k);
     try {
       if (action === 'ingest') {
@@ -356,8 +365,9 @@ export const DocumentsPage: React.FC = () => {
       } else {
         await triggerClassify(docId, gid || null);
       }
-      await queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+      await refreshPipelineDocuments(queryClient);
     } catch (err: unknown) {
+      markPipelineStageFailed(queryClient, docId, stage);
       const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
       const msg =
         ax.response?.data?.detail ||
@@ -392,6 +402,9 @@ export const DocumentsPage: React.FC = () => {
   const runBulkPipeline = async (action: 'ingest' | 'extract' | 'classify') => {
     if (selectedIds.size === 0) return;
     setBulkBusy(action);
+    const stage = pipelineActionToStage(action);
+    const failures: string[] = [];
+    const failedIds: string[] = [];
     try {
       for (const id of selectedIds) {
         const docItem = documents?.find((d: any) => d.id === id);
@@ -403,15 +416,38 @@ export const DocumentsPage: React.FC = () => {
         const docRow = documents?.find((d: any) => d.id === id);
         const gid = docRow?.groupId ? String(docRow.groupId) : undefined;
         const collectionName = (docRow?.group && String(docRow.group)) || gid || id;
-        if (action === 'ingest') {
-          await triggerIngest(id, { collectionName }, gid || null);
-        } else if (action === 'extract') {
-          await triggerExtract(id, gid || null);
-        } else {
-          await triggerClassify(id, gid || null);
+        optimisticSetPipelineStage(queryClient, id, stage);
+        try {
+          if (action === 'ingest') {
+            await triggerIngest(id, { collectionName }, gid || null);
+          } else if (action === 'extract') {
+            await triggerExtract(id, gid || null);
+          } else {
+            await triggerClassify(id, gid || null);
+          }
+        } catch (err: unknown) {
+          markPipelineStageFailed(queryClient, id, stage);
+          failedIds.push(id);
+          const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
+          const msg =
+            ax.response?.data?.detail ||
+            ax.response?.data?.error ||
+            ax.message ||
+            `Could not start ${action}.`;
+          failures.push(`${docItem.fileName || id}: ${msg}`);
         }
       }
-      await queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+      await refreshPipelineDocuments(queryClient);
+      for (const id of failedIds) {
+        markPipelineStageFailed(queryClient, id, stage);
+      }
+      if (failures.length) {
+        await appAlert({
+          title: `Some ${action} actions failed`,
+          description: failures.slice(0, 5).join('\n'),
+          variant: 'danger',
+        });
+      }
     } finally {
       setBulkBusy(null);
     }
@@ -484,7 +520,7 @@ export const DocumentsPage: React.FC = () => {
     if (!socket) return;
 
     const onJobUpdate = () => {
-      void queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+      void refreshPipelineDocuments(queryClient);
       void queryClient.invalidateQueries({ queryKey: ['documents'] });
     };
 
@@ -1254,24 +1290,41 @@ export const DocumentsPage: React.FC = () => {
               });
             }
             // Upload each file and update job status
+            const uploadGroupName =
+              uploadGroupChoices.find((g) => String(g.groupId) === String(gid))?.groupName || '';
+            const uploaderLabel =
+              (user?.displayName || user?.name || user?.username || user?.email || '').trim() ||
+              user?.email ||
+              '';
+
             for (let i = 0; i < filesToUpload.length; i++) {
               const file = filesToUpload[i];
               const jobId = jobIds[i];
               try {
-                await uploadDocument(file, {
+                const { data: uploadBody } = await uploadDocument(file, {
                   userId,
                   groupId: gid || null,
                   orgId,
                   sensitivityLevel: uploadSensitivityLevel,
                 });
                 updateJob(jobId, { status: 'done', finishedAt: Date.now() });
+                const newId = uploadBody?.id ? String(uploadBody.id) : '';
+                if (newId) {
+                  optimisticAppendUploadedDocument(queryClient, {
+                    id: newId,
+                    fileName: file.name,
+                    groupId: gid,
+                    groupName: uploadGroupName,
+                    uploader: uploaderLabel,
+                    sensitivityLevel: uploadSensitivityLevel,
+                  });
+                }
               } catch (err: unknown) {
                 const errMsg = quotaErrorMessage(err, 'Upload failed');
                 updateJob(jobId, { status: 'error', error: errMsg, finishedAt: Date.now() });
               }
             }
-            // Refresh document list after all uploads complete
-            await queryClient.invalidateQueries({ queryKey: ['pipeline-documents'] });
+            await refreshPipelineDocuments(queryClient);
             await queryClient.invalidateQueries({ queryKey: ['documents'] });
           })();
         }}

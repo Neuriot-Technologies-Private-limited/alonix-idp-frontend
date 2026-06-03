@@ -2,6 +2,7 @@ import React from 'react';
 import { Edit2, Trash2, UserPlus, UserX } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import type { User } from '../../../services/userService';
+import { isPendingInviteUser } from '../../../services/userService';
 import { rowActionVariants } from './userRowStyles';
 
 export type UserRowActionKey =
@@ -43,7 +44,19 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
 }) => {
   const selfEmail = useAuthStore((s) => s.user?.email?.toLowerCase().trim() ?? '');
   const activeGroupId = useAuthStore((s) => s.context?.activeGroupId ?? '');
+  const pendingInvite = isPendingInviteUser(user);
   const isSelf = Boolean(selfEmail && user.email.toLowerCase().trim() === selfEmail);
+
+  if (pendingInvite) {
+    return (
+      <span
+        className="text-[9px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-400/75"
+        title="Awaiting invite acceptance"
+      >
+        Invited
+      </span>
+    );
+  }
   const isInActiveGroup = React.useMemo(() => {
     const gid = String(activeGroupId || '').trim();
     if (!gid) return false;

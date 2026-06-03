@@ -1,0 +1,88 @@
+import { describe, expect, it } from 'vitest';
+import { QueryClient } from '@tanstack/react-query';
+import {
+  hasProcessingPipelineDocuments,
+  optimisticAppendUploadedDocument,
+  optimisticSetPipelineStage,
+  pipelineActionToStage,
+  markPipelineStageFailed,
+  readPipelineStageStatus,
+} from '../utils/pipelineDocumentsCache';
+
+describe('pipelineDocumentsCache', () => {
+  it('maps pipeline actions to stage keys', () => {
+    expect(pipelineActionToStage('ingest')).toBe('ingestion');
+    expect(pipelineActionToStage('extract')).toBe('extraction');
+    expect(pipelineActionToStage('classify')).toBe('classification');
+  });
+
+  it('optimisticSetPipelineStage updates ingestion to processing', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['pipeline-documents', 'org-1'], [
+      {
+        id: 'doc-1',
+        fileName: 'a.pdf',
+        pipeline: { ingestion: { status: 'idle' } },
+      },
+    ]);
+
+    optimisticSetPipelineStage(qc, 'doc-1', 'ingestion', 'processing', 'org-1');
+
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1']);
+    expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
+  });
+
+  it('optimisticAppendUploadedDocument prepends a new row', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['pipeline-documents', 'org-1'], [
+      { id: 'existing', fileName: 'old.pdf', pipeline: {} },
+    ]);
+
+    optimisticAppendUploadedDocument(
+      qc,
+      {
+        id: 'new-doc',
+        fileName: 'new.pdf',
+        groupId: 'g1',
+        groupName: 'Ops',
+      },
+      'org-1'
+    );
+
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1']);
+    expect(rows).toHaveLength(2);
+    expect(rows?.[0].id).toBe('new-doc');
+    expect(rows?.[0].group).toBe('Ops');
+  });
+
+  it('markPipelineStageFailed sets error on the stage after API failure', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['pipeline-documents', 'org-1'], [
+      {
+        id: 'doc-1',
+        fileName: 'a.pdf',
+        pipeline: { ingestion: { status: 'idle' } },
+      },
+    ]);
+
+    expect(readPipelineStageStatus({ ingestion: { status: 'idle' } }, 'ingestion')).toBe('idle');
+    optimisticSetPipelineStage(qc, 'doc-1', 'ingestion', 'processing', 'org-1');
+    markPipelineStageFailed(qc, 'doc-1', 'ingestion', 'org-1');
+
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1']);
+    expect(rows?.[0].pipeline.ingestion.status).toBe('error');
+  });
+
+  it('hasProcessingPipelineDocuments detects in-flight stages', () => {
+    expect(
+      hasProcessingPipelineDocuments([
+        { pipeline: { ingestion: { status: 'idle' }, extraction: { status: 'idle' } } },
+      ])
+    ).toBe(false);
+    expect(
+      hasProcessingPipelineDocuments([
+        { pipeline: { ingestion: { status: 'processing' }, extraction: { status: 'idle' } } },
+      ])
+    ).toBe(true);
+  });
+});

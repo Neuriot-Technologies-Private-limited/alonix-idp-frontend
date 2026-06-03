@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus, Mail, Users, UserCheck, ChevronDown, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUsers, userService, type User } from '../../services/userService';
+import { useUsers, userService, isPendingInviteUser, type User } from '../../services/userService';
 import { useGroupHealth } from '../../services/adminService';
 import { InviteUsersToGroupModal } from '../groups/modals/InviteUsersToGroupModal';
 import { Loader } from '../../components/ui/Loader';
@@ -62,7 +62,10 @@ export const UserManagement: React.FC = () => {
 
   const groups = React.useMemo(() => {
     if (!baseUsers.length) return ['All'];
-    return ['All', ...Array.from(new Set(baseUsers.map((u: User) => u.group)))];
+    const labels = baseUsers
+      .map((u: User) => u.group)
+      .filter((g) => g && g !== '—');
+    return ['All', ...Array.from(new Set(labels))];
   }, [baseUsers]);
 
   React.useEffect(() => {
@@ -364,11 +367,26 @@ export const UserManagement: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedUsers.map((user: User) => (
-                  <tr key={user._id} className="group/row transition-all hover:bg-surface-highest/8">
+                paginatedUsers.map((user: User) => {
+                  const invited = isPendingInviteUser(user);
+                  return (
+                  <tr
+                    key={user._id}
+                    className={cn(
+                      'group/row transition-all hover:bg-surface-highest/8',
+                      invited && 'bg-amber-500/[0.03]'
+                    )}
+                  >
                     <td className="px-4 py-4 sm:px-6">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-gradient-to-br from-primary/25 to-primary/8 text-sm font-black text-primary shadow-[0_0_0_1px_hsl(var(--foreground)/0.03)]">
+                        <div
+                          className={cn(
+                            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-black shadow-[0_0_0_1px_hsl(var(--foreground)/0.03)]',
+                            invited
+                              ? 'border-dashed border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                              : 'border-primary/25 bg-gradient-to-br from-primary/25 to-primary/8 text-primary'
+                          )}
+                        >
                           {user.name.charAt(0)}
                         </div>
                         <div className="min-w-0">
@@ -411,7 +429,8 @@ export const UserManagement: React.FC = () => {
                       />
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

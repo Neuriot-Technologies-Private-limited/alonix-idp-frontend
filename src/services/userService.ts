@@ -17,6 +17,12 @@ export interface User {
   lastActive: string;
   /** Populated from admin users API for group-scoped actions */
   workspaces?: UserWorkspace[];
+  /** Synthetic row from pending email invite (not yet onboarded) */
+  isPendingInvite?: boolean;
+}
+
+export function isPendingInviteUser(u: Pick<User, '_id' | 'isPendingInvite'>): boolean {
+  return u.isPendingInvite === true || String(u._id || '').startsWith('invite:');
 }
 
 export type InviteUsersToGroupPayload = {
@@ -63,9 +69,14 @@ function mapApiUser(u: Record<string, unknown>): User {
     (fromWorkspaces.length ? [...new Set(fromWorkspaces)].join(', ') : '') ||
     '—';
 
+  const pendingInvite =
+    u.isPendingInvite === true || String(u._id || '').startsWith('invite:');
+
   /** Org role for badge; workspace role from memberships when not company admin. */
   let role: User['role'] = 'SEARCH_USER';
-  if (orgRole === 'COMPANY_ADMIN') role = 'COMPANY_ADMIN';
+  if (pendingInvite) {
+    role = u.inviteRole === 'GROUP_ADMIN' ? 'GROUP_ADMIN' : 'SEARCH_USER';
+  } else if (orgRole === 'COMPANY_ADMIN') role = 'COMPANY_ADMIN';
   else {
     const ws = workspaces as { role?: string }[];
     const hasGroupAdmin = ws.some((x) => x.role === 'GROUP_ADMIN');
@@ -75,8 +86,13 @@ function mapApiUser(u: Record<string, unknown>): User {
   const dbStatus = String(u.status || '').toUpperCase();
   let status: User['status'] = 'Pending';
   if (dbStatus === 'INACTIVE') status = 'Inactive';
-  else if (u.emailVerified === true) status = 'Active';
+  else if (!pendingInvite && u.emailVerified === true) status = 'Active';
   else status = 'Pending';
+
+  const lastActive =
+    pendingInvite && typeof u.lastActive === 'string' && u.lastActive.trim()
+      ? String(u.lastActive).trim()
+      : formatLastActiveFromRecord(u);
 
   return {
     _id: String(u._id),
@@ -86,8 +102,9 @@ function mapApiUser(u: Record<string, unknown>): User {
     status,
     group: displayGroup,
     groupID,
-    lastActive: formatLastActiveFromRecord(u),
+    lastActive,
     workspaces: workspaces.length ? workspaces : undefined,
+    isPendingInvite: pendingInvite || undefined,
   };
 }
 

@@ -78,7 +78,13 @@ export async function uploadDocument(file: File, options: UploadDocumentOptions)
   if (orgId) fd.append('orgId', orgId);
   fd.append('sensitivityLevel', (sensitivityLevel && String(sensitivityLevel).trim()) || 'INTERNAL_USE');
   const base = documentsBase(groupId);
-  return apiClient.post<{ id?: string; status?: string; jobId?: string; message?: string }>(
+  return apiClient.post<{
+    id?: string;
+    fileName?: string;
+    status?: string;
+    jobId?: string;
+    message?: string;
+  }>(
     `${base}/upload`,
     fd,
     {
