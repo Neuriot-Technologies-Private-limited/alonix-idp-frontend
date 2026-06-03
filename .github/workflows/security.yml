@@ -17,10 +17,16 @@ jobs:
         env:
           GITLEAKS_VERSION: 8.24.2
         run: |
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            | tar -xz -C "$RUNNER_TEMP" gitleaks
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
-          gitleaks version
+          set -euo pipefail
+          GITLEAKS_DIR="${RUNNER_TEMP}/gitleaks"
+          mkdir -p "$GITLEAKS_DIR"
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$GITLEAKS_DIR" gitleaks
+          chmod +x "${GITLEAKS_DIR}/gitleaks"
+          echo "${GITLEAKS_DIR}" >> "$GITHUB_PATH"
 
       - name: Scan for secrets
-        run: gitleaks detect --source . --verbose
+        run: |
+          gitleaks version
+          gitleaks detect --source . --verbose
