@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  actions: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -120,27 +121,45 @@ jobs:
             COMMIT_LINE="(manual run — no commit message)"
           fi
 
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           FAIL_HINT=""
           if [ "${JOB_RESULT}" != "success" ]; then
-            FAILED_JOB="$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
-              --json jobs -q '.jobs[] | select(.conclusion=="failure") | .name' 2>/dev/null | head -1 || true)"
-            if [ -n "$FAILED_JOB" ]; then
-              FAIL_HINT="Failed job: *${FAILED_JOB}*. Check that job's logs in the workflow run."
+            FAILED_JOBS="$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --json jobs -q '.jobs[] | select(.conclusion=="failure") | .name' 2>/dev/null || true)"
+            FAILED_STEPS="$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --json jobs -q '.jobs[] | select(.conclusion=="failure") | .steps[] | select(.conclusion=="failure") | "\(.number). \(.name)"' 2>/dev/null || true)"
+
+            WHY_LINES=""
+            if [ -n "$FAILED_STEPS" ]; then
+              STEP_BULLETS="$(printf '%s\n' "$FAILED_STEPS" | sed '/^$/d' | sed 's/^/• /')"
+              WHY_LINES="$(printf 'Failed step(s):\n%s' "$STEP_BULLETS")"
+            elif [ -n "$FAILED_JOBS" ]; then
+              JOB_BULLETS="$(printf '%s\n' "$FAILED_JOBS" | sed '/^$/d' | sed 's/^/• /')"
+              WHY_LINES="$(printf 'Failed job(s):\n%s' "$JOB_BULLETS")"
             else
-              FAIL_HINT="Deploy did not finish successfully. Open the workflow run for step logs."
+              WHY_LINES="Deploy did not finish successfully (result: ${JOB_RESULT})."
             fi
+
+            LOG_SNIPPET=""
+            if [ "${JOB_RESULT}" = "failure" ] && command -v gh >/dev/null 2>&1; then
+              LOG_SNIPPET="$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed 2>/dev/null \
+                | tail -n 12 | sed 's/\r$//' || true)"
+              if [ -n "$LOG_SNIPPET" ]; then
+                LOG_SNIPPET="$(printf '%s' "$LOG_SNIPPET" | head -c 1200)"
+                WHY_LINES="$(printf '%s\nLast log lines:\n```\n%s\n```' "$WHY_LINES" "$LOG_SNIPPET")"
+              fi
+            fi
+
+            FAIL_HINT="$(printf '%s\n<%s|Open workflow run>' "$WHY_LINES" "$RUN_URL")"
           fi
 
-          TEXT="${STATUS}
-          *Project:* ${PROJECT_NAME}
-          *Repo:* \`${GITHUB_REPOSITORY}\`
-          *Branch:* \`${GITHUB_REF_NAME}\`
-          *Commit:* \`${SHA_SHORT}\` — ${COMMIT_LINE}
-          *Triggered by:* ${GITHUB_ACTOR}"
+          TEXT="$(printf '%s\n*Project:* %s\n*Repo:* `%s`\n*Branch:* `%s`\n*Commit:* `%s` — %s\n*Triggered by:* %s' \
+            "$STATUS" "$PROJECT_NAME" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$SHA_SHORT" "$COMMIT_LINE" "$GITHUB_ACTOR")"
 
           if [ -n "$FAIL_HINT" ]; then
-            TEXT="${TEXT}
-          *Why:* ${FAIL_HINT}"
+            TEXT="$(printf '%s\n\n*Why it failed:*\n%s' "$TEXT" "$FAIL_HINT")"
+          else
+            TEXT="$(printf '%s\n<%s|View workflow run>' "$TEXT" "$RUN_URL")"
           fi
 
           jq -n --arg text "$TEXT" '{text: $text}' > slack-payload.json
