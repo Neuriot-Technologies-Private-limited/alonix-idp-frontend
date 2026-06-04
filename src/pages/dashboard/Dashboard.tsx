@@ -46,6 +46,9 @@ export const Dashboard: React.FC = () => {
   const activeGroupId = useAuthStore((s) => s.context?.activeGroupId);
 
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
+  const previewScopedGroup = dash?.previewScopedGroupId
+    ? groupRows.find((g) => String(g.id) === String(dash.previewScopedGroupId))
+    : undefined;
   const memberContext = useAuthStore((s) => s.context?.groups ?? []);
   const isPureSearchUser =
     !isCompanyAdmin &&
@@ -105,6 +108,11 @@ export const Dashboard: React.FC = () => {
               {dash.activeGroupRole
                 ? ` · Active workspace role: ${dash.activeGroupRole.replace(/_/g, ' ')}`
                 : ''}
+            </p>
+          )}
+          {isCompanyAdmin && previewScopedGroup && (
+            <p className="mt-1 max-w-md text-[10px] font-medium leading-snug text-muted-foreground/55">
+              Recent activity preview scoped to {previewScopedGroup.name}. Use View All for the full org list.
             </p>
           )}
         </div>
@@ -279,7 +287,7 @@ export const Dashboard: React.FC = () => {
                   No documents in your accessible workspaces yet. Open Documents to upload or ingest files.
                 </p>
               ) : (
-                docRows.slice(-4).reverse().map((d: any) => (
+                docRows.slice(0, 5).map((d: any) => (
                   <div
                     key={d.id}
                     onClick={() => navigate('/documents')}
@@ -336,7 +344,7 @@ export const Dashboard: React.FC = () => {
                     : 'Organization user list is visible to company admins. Use chat and documents in your assigned workspaces.'}
                 </p>
               ) : (
-                userRows.slice(-4).reverse().map((u: any) => (
+                userRows.slice(0, 5).map((u: any) => (
                   <div
                     key={u._id}
                     onClick={() => hasAnyGroupAdmin && navigate('/users')}

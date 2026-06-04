@@ -84,6 +84,10 @@ export interface DashboardState {
   hasGroupAdminMembership: boolean;
   /** Org-wide totals vs only workspaces the user can access. */
   statsScope: 'organization' | 'workspaces';
+  /** Max rows per preview list (documents, users, audit). */
+  previewLimit?: number;
+  /** Active workspace id when previews are scoped to navbar selection. */
+  previewScopedGroupId?: string | null;
   stats: AdminStats;
   groups: GroupHealth[];
   usersPreview: User[];
@@ -547,8 +551,9 @@ export const adminService = {
 
 export const useDashboardState = () => {
   const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
+  const activeGroupId = useAuthStore((s) => s.context?.activeGroupId ?? '');
   return useQuery({
-    queryKey: ['dashboard-state', orgId],
+    queryKey: ['dashboard-state', orgId, activeGroupId],
     queryFn: adminService.getDashboardState,
     enabled: !!orgId,
     staleTime: 60 * 1000,
