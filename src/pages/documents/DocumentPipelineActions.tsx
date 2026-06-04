@@ -14,6 +14,8 @@ export interface DocumentPipelineActionsProps {
   onDeleteDocument?: (docItem: any) => void;
   /** When this equals docItem.id, delete control shows a spinner. */
   deleteBusyId?: string | null;
+  /** When this equals docItem.id, Results button shows a spinner. */
+  resultsLoadingDocId?: string | null;
   variant?: 'table' | 'card';
   readOnly?: boolean;
 }
@@ -28,9 +30,11 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   onOpenResults,
   onDeleteDocument,
   deleteBusyId,
+  resultsLoadingDocId,
   variant = 'table',
   readOnly = false,
 }) => {
+  const resultsLoading = resultsLoadingDocId === String(docItem?.id ?? '');
   const p = docItem?.pipeline ?? {};
   const ingestionStatus = p?.ingestion?.status ?? 'idle';
   const extractionStatus = p?.extraction?.status ?? 'idle';
@@ -104,9 +108,14 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
               e.stopPropagation();
               onOpenResults(docItem);
             }}
-            className="shrink-0 h-9 w-9 p-0 rounded-lg bg-primary text-primary-foreground shadow-md flex items-center justify-center border border-primary/30 transition-all touch-manipulation hover:brightness-110 active:scale-95"
+            disabled={resultsLoading}
+            className="shrink-0 h-9 w-9 p-0 rounded-lg bg-primary text-primary-foreground shadow-md flex items-center justify-center border border-primary/30 transition-all touch-manipulation hover:brightness-110 active:scale-95 disabled:opacity-80"
           >
-            <ScrollText className="w-4 h-4" aria-hidden />
+            {resultsLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+            ) : (
+              <ScrollText className="w-4 h-4" aria-hidden />
+            )}
           </button>
         </div>
       );
@@ -201,9 +210,14 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
             e.stopPropagation();
             onOpenResults(docItem);
           }}
-          className="shrink-0 h-9 w-9 p-0 rounded-lg bg-primary text-primary-foreground shadow-md flex items-center justify-center border border-primary/30 transition-all touch-manipulation hover:brightness-110 active:scale-95"
+          disabled={resultsLoading}
+          className="shrink-0 h-9 w-9 p-0 rounded-lg bg-primary text-primary-foreground shadow-md flex items-center justify-center border border-primary/30 transition-all touch-manipulation hover:brightness-110 active:scale-95 disabled:opacity-80"
         >
-          <ScrollText className="w-4 h-4" aria-hidden />
+          {resultsLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+          ) : (
+            <ScrollText className="w-4 h-4" aria-hidden />
+          )}
         </button>
       )}
       <button

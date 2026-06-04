@@ -25,9 +25,10 @@ import {
   triggerClassify,
   uploadDocument,
   deleteDocument,
-  getDocumentResults,
   getDocumentAccessUrl,
 } from '../../services/chatApi';
+import { getDocumentReviewResults } from '../../services/documentReviewApi';
+import type { DocumentReviewPayload } from '../../types/documentReview';
 import { connectSocket, getSocket } from '../../services/chatSocket';
 import { Pagination } from '../../components/ui/Pagination';
 import { mergePipeline, useGroupHealth } from '../../services/adminService';
@@ -39,7 +40,7 @@ import { DocumentAssetIdentity } from './DocumentAssetIdentity';
 import { DocumentCustodian } from './DocumentCustodian';
 import { DocumentPipelineLifecycle } from './DocumentPipelineLifecycle';
 import { DocumentPipelineActions } from './DocumentPipelineActions';
-import { DocumentResultModal } from './DocumentResultModal';
+import { DocumentReviewDrawer } from '../../components/documents/DocumentReviewDrawer';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { useAlert } from '../../components/alert';
 import { useUploadStore } from '../../stores/uploadStore';
@@ -169,6 +170,7 @@ export const DocumentsPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'All' | 'Ingest' | 'Extract' | 'Classify'>('All');
   const [resultModal, setResultModal] = useState<any | null>(null);
+  const [reviewData, setReviewData] = useState<DocumentReviewPayload | null>(null);
   const [resultLoadingDocId, setResultLoadingDocId] = useState<string | null>(null);
   const [extractFormat, setExtractFormat] = useState<'json' | 'csv' | 'md'>('json');
   const [search, setSearch] = useState('');
@@ -189,6 +191,10 @@ export const DocumentsPage: React.FC = () => {
 
   const context = useAuthStore((s) => s.context);
   const user = useAuthStore((s) => s.user);
+
+  /** Human review edit: company admin or group admin (matches GROUP_DOC_INGEST on PATCH). */
+  const docCanReviewEdit = docCanManage;
+
   const activeGroupIdForScope = context?.activeGroupId ?? null;
   const activeGroup = groups.find((g) => g.groupId === activeGroupIdForScope);
   const activeGroupNameNorm = activeGroup?.groupName?.trim().toLowerCase() ?? '';
@@ -761,27 +767,73 @@ export const DocumentsPage: React.FC = () => {
   const handleOpenResults = React.useCallback(
     async (docItem: any) => {
       if (!docItem?.id) return;
+      const docId = String(docItem.id);
       const gid = docItem?.groupId ? String(docItem.groupId) : undefined;
-      setResultLoadingDocId(String(docItem.id));
+      setResultModal({ ...docItem });
+      setReviewData(null);
+      setResultLoadingDocId(docId);
       try {
-        const { data } = await getDocumentResults(String(docItem.id), gid || null);
+        const parsed = await getDocumentReviewResults(docId, gid || null);
+        setReviewData(parsed);
         setResultModal({
           ...docItem,
-          ...data,
-          extractionResult: (data as any).extractionResult ?? (data as any).extractedData ?? docItem.extractionResult,
-          classificationData: (data as any).classificationData ?? docItem.classificationData,
-          jobs: Array.isArray((data as any).jobs) ? (data as any).jobs : docItem.jobs,
+          extractionResult:
+            parsed.extractionResult ??
+            docItem.extractionResult ??
+            (parsed.extractionView.pages.length ? { pages: parsed.extractionView.pages } : null),
+          classificationData:
+            parsed.classificationData ??
+            docItem.classificationData ??
+            parsed.classificationView,
         });
       } catch (err: unknown) {
-        const ax = err as { response?: { data?: { error?: string } }; message?: string };
+        setResultModal(null);
+        setReviewData(null);
+        const ax = err as { response?: { status?: number; data?: { error?: string; message?: string } }; message?: string };
+        const isQuota = ax.response?.status === 402;
         await appAlert({
           title: 'Could not fetch results',
-          description: ax.response?.data?.error || ax.message || 'Please try again.',
+          description: isQuota
+            ? quotaErrorMessage(err, 'Plan limit reached.')
+            : ax.response?.data?.message || ax.response?.data?.error || ax.message || 'Please try again.',
           variant: 'danger',
         });
       } finally {
         setResultLoadingDocId(null);
       }
+    },
+    [appAlert]
+  );
+
+  const handleReviewSaved = React.useCallback(async () => {
+    await refreshPipelineDocuments(queryClient);
+    if (resultModal?.id) {
+      const gid = resultModal.groupId ? String(resultModal.groupId) : undefined;
+      try {
+        const parsed = await getDocumentReviewResults(String(resultModal.id), gid || null);
+        setReviewData(parsed);
+      } catch {
+        /* keep local draft cleared in drawer */
+      }
+    }
+    await appAlert({
+      title: 'Review saved',
+      description: 'Extraction and classification updates were applied.',
+      variant: 'success',
+    });
+  }, [appAlert, queryClient, resultModal]);
+
+  const handleReviewError = React.useCallback(
+    async (title: string, err: unknown) => {
+      const ax = err as { response?: { status?: number; data?: { error?: string; message?: string } }; message?: string };
+      const isQuota = ax.response?.status === 402;
+      await appAlert({
+        title,
+        description: isQuota
+          ? quotaErrorMessage(err, 'Plan limit reached.')
+          : ax.response?.data?.message || ax.response?.data?.error || ax.message || 'Please try again.',
+        variant: 'danger',
+      });
     },
     [appAlert]
   );
@@ -1108,6 +1160,7 @@ export const DocumentsPage: React.FC = () => {
                         }}
                         onDeleteDocument={handleDeleteDocument}
                         deleteBusyId={deleteBusyId}
+                        resultsLoadingDocId={resultLoadingDocId}
                         variant="table"
                         readOnly={!docCanManage(docItem)}
                       />
@@ -1189,6 +1242,7 @@ export const DocumentsPage: React.FC = () => {
                           }}
                           onDeleteDocument={handleDeleteDocument}
                           deleteBusyId={deleteBusyId}
+                          resultsLoadingDocId={resultLoadingDocId}
                           variant="card"
                           readOnly={!docCanManage(docItem)}
                         />
@@ -1239,22 +1293,24 @@ export const DocumentsPage: React.FC = () => {
         </div>
       ) : null}
 
-      <DocumentResultModal
+      <DocumentReviewDrawer
         documentItem={resultModal}
+        reviewData={reviewData}
         isOpen={!!resultModal}
-        onClose={() => setResultModal(null)}
+        onClose={() => {
+          setResultModal(null);
+          setReviewData(null);
+          setResultLoadingDocId(null);
+        }}
+        isLoading={Boolean(resultLoadingDocId)}
+        allowEdit={resultModal ? docCanReviewEdit(resultModal) : false}
+        allowExport={isCompanyAdmin || hasCapability('GROUP_DOC_VIEW')}
         extractFormat={extractFormat}
         onFormatChange={setExtractFormat}
         onExport={handleExport}
-        getExtractionText={getExtractionText}
-        allowExport={hasCapability('GROUP_DOC_VIEW')}
+        onSaved={handleReviewSaved}
+        onError={handleReviewError}
       />
-      {resultLoadingDocId ? (
-        <div className="fixed bottom-6 right-6 z-50 rounded-xl border border-border/35 bg-surface-highest/80 backdrop-blur-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 shadow-xl">
-          Loading results...
-        </div>
-      ) : null}
-
       <DocumentUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
