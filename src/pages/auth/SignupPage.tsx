@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2, Building2 } from 'lucide-react';
 import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
+import { buildAuthHashUrl } from '../../utils/authUrlParams';
+import { useAuthUrlParams } from '../../hooks/useAuthUrlParams';
 
 const SignupPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -13,12 +15,11 @@ const SignupPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const inviteToken = searchParams.get('inviteToken') || '';
+  const { inviteToken } = useAuthUrlParams(['inviteToken']);
 
   React.useEffect(() => {
     if (inviteToken) {
-      navigate(`/setup-password?inviteToken=${encodeURIComponent(inviteToken)}`, { replace: true });
+      navigate(buildAuthHashUrl('/setup-password', { inviteToken }), { replace: true });
     }
   }, [inviteToken, navigate]);
 
@@ -51,7 +52,6 @@ const SignupPage: React.FC = () => {
         if (res.emailVerificationSent === false) emailVerificationSent = false;
       }
       const q = new URLSearchParams({ email: email.trim() });
-      if (inviteToken) q.set('inviteToken', inviteToken);
       if (orgIdFromSignup) q.set('orgId', orgIdFromSignup);
       if (!emailVerificationSent) q.set('devMail', '1');
       navigate(`/verify?${q.toString()}`);

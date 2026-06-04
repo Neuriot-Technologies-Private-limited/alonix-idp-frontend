@@ -174,19 +174,17 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
 
   const reviewHintBanner =
     !isLoading && readOnlyBanner ? (
-      <span className="inline-flex max-w-[min(100%,16rem)] items-center gap-1.5 rounded-lg border border-border/25 bg-surface-highest/20 px-2 py-1 text-[9px] leading-snug text-muted-foreground/75 sm:max-w-xs">
-        <Eye className="h-3 w-3 shrink-0 text-primary/70" aria-hidden />
-        <span className="truncate">
-          View-only — edit requires admin or uploader access.
-        </span>
-      </span>
+      <p className="inline-flex w-fit max-w-full items-start gap-2 rounded-lg border border-border/25 bg-surface-highest/20 px-3 py-2 text-[10px] leading-snug text-muted-foreground/80">
+        <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
+        <span>View-only — edit requires admin or uploader access.</span>
+      </p>
     ) : !isLoading ? (
-      <span className="inline-flex max-w-[min(100%,16rem)] items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/[0.08] px-2 py-1 text-[9px] leading-snug text-primary/90 sm:max-w-xs">
-        <ClipboardCheck className="h-3 w-3 shrink-0" aria-hidden />
-        <span className="truncate">
-          Edit below {Math.round(threshold * 100)}% (amber), then save.
+      <p className="inline-flex w-fit max-w-full items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.08] px-3 py-2 text-[10px] leading-snug text-primary/90">
+        <ClipboardCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span>
+          Edit highlighted fields, then click Save — changes are not sent until you save.
         </span>
-      </span>
+      </p>
     ) : null;
 
   return createPortal(
@@ -262,7 +260,7 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
                 <Database className="h-3 w-3" />
                 Extraction
                 {extBadge > 0 ? (
-                  <span className="rounded bg-amber-500/20 px-1 py-px text-[8px] text-amber-400 tabular-nums">
+                  <span className="rounded bg-primary/15 px-1 py-px text-[8px] text-primary tabular-nums">
                     {extBadge}
                   </span>
                 ) : null}
@@ -280,7 +278,7 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
                 <Sparkles className="h-3 w-3" />
                 Classification
                 {clsBadge > 0 ? (
-                  <span className="rounded bg-amber-500/20 px-1 py-px text-[8px] text-amber-400 tabular-nums">
+                  <span className="rounded bg-violet/15 px-1 py-px text-[8px] text-violet tabular-nums">
                     {clsBadge}
                   </span>
                 ) : null}
@@ -363,10 +361,10 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
             ) : null}
           </div>
 
-          {/* Footer — left: hint + meta · right: actions */}
-          <div className="shrink-0 border-t border-border/40 bg-surface-high/30 px-3 py-2 sm:px-4 sm:py-2">
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+          {/* Footer — hint + actions on one row */}
+          <div className="shrink-0 border-t border-border/40 bg-surface-high/30 px-3 py-2 sm:px-4 sm:py-2.5">
+            <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2">
+              <div className="min-w-0 flex-1 flex items-center">
                 {isLoading ? (
                   <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary">
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden />

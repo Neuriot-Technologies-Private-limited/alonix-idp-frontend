@@ -170,7 +170,7 @@ function normalizeSourcesPayload(rawSources: unknown): {
 function parseHtmlWithSources(html: string, sourcesMap: Record<string, NormSource>): string {
   const sourceGroupPattern = /\[(?:Source\s+\d+\s*(?:,\s*)?)+\]/gi;
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
+  tempDiv.innerHTML = sanitizeChatHtml(html);
   const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
   let current: Node | null;

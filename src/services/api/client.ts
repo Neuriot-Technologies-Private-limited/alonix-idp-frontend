@@ -24,9 +24,26 @@ const apiClient = axios.create({
 
 const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete']);
 
-apiClient.interceptors.request.use((config) => {
+let csrfBootstrapInflight: Promise<void> | null = null;
+
+async function ensureCsrfCookieBeforeMutate(): Promise<void> {
+  if (getCsrfTokenFromCookie()) return;
+  if (!csrfBootstrapInflight) {
+    csrfBootstrapInflight = apiClient
+      .get('/users/me/context')
+      .then(() => undefined)
+      .catch(() => undefined)
+      .finally(() => {
+        csrfBootstrapInflight = null;
+      });
+  }
+  await csrfBootstrapInflight;
+}
+
+apiClient.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toLowerCase();
   if (MUTATING_METHODS.has(method)) {
+    await ensureCsrfCookieBeforeMutate();
     const csrf = getCsrfTokenFromCookie();
     if (csrf) {
       config.headers['X-CSRF-Token'] = csrf;
@@ -66,7 +83,26 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const csrfMsg = String(error.response?.data?.message || '');
+    if (
+      error.response?.status === 403 &&
+      csrfMsg.toLowerCase().includes('csrf') &&
+      !(error.config as { _csrfRetried?: boolean })?._csrfRetried
+    ) {
+      try {
+        await apiClient.get('/users/me/context');
+        const csrf = getCsrfTokenFromCookie();
+        if (csrf && error.config) {
+          const retryConfig = { ...error.config, _csrfRetried: true };
+          retryConfig.headers = { ...(retryConfig.headers || {}), 'X-CSRF-Token': csrf };
+          return apiClient.request(retryConfig);
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
       const reqUrl = String((error.config as { url?: string })?.url || '');

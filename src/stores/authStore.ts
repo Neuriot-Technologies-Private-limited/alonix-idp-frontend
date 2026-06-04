@@ -122,10 +122,25 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }),
     }),
     {
-      name: 'alonix-auth-storage',
-      partialize: (state) => ({ user: state.user, context: state.context }),
+      name: 'alonix-auth-storage-v2',
+      partialize: (state) => ({
+        sessionEmail: state.user?.email ?? null,
+      }),
+      merge: (persisted, current) => {
+        const p = persisted as { sessionEmail?: string | null };
+        const email = p?.sessionEmail;
+        if (!email) {
+          return { ...current, isInitialized: true };
+        }
+        return {
+          ...current,
+          user: { email, username: email },
+          context: null,
+          isInitialized: false,
+        };
+      },
       onRehydrateStorage: () => (state) => {
-        if (state?.user && state?.context) {
+        if (state?.user?.email) {
           void state.refreshSession();
         } else if (state) {
           state.isInitialized = true;

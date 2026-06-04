@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { AuthPageLogo } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
+import { useAuthUrlParams } from '../../hooks/useAuthUrlParams';
 
 const EXPIRED_INVITE_COPY = 'Your invitation is expired. Please request a new invite.';
 
@@ -26,8 +27,7 @@ const getInviteErrorMessage = (err: unknown): string => {
 };
 
 const SetupPasswordPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const inviteToken = searchParams.get('inviteToken') || '';
+  const { inviteToken } = useAuthUrlParams(['inviteToken']);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

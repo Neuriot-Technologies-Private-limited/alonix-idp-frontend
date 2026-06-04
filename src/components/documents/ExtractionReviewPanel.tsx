@@ -3,6 +3,11 @@ import { Database, AlertCircle, Lock } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import type { ExtractionReviewPage, ReviewField } from '../../types/documentReview';
 
+const REVIEW_FIELD_INPUT =
+  'mt-0.5 w-full rounded-lg border border-border/50 bg-surface-high/70 px-2.5 py-1.5 text-[11px] text-foreground shadow-inner outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary/45 focus:bg-surface-high focus:ring-1 focus:ring-primary/20';
+
+const REVIEW_ROW_HIGHLIGHT = 'bg-primary/[0.08] ring-1 ring-inset ring-primary/15';
+
 function confidencePill(confidence: number | null, threshold: number) {
   if (confidence == null) {
     return (
@@ -18,7 +23,7 @@ function confidencePill(confidence: number | null, threshold: number) {
       className={cn(
         'rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest',
         low
-          ? 'border-amber-500/35 bg-amber-500/15 text-amber-400'
+          ? 'border-orange-400/30 bg-orange-400/10 text-orange-300'
           : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
       )}
     >
@@ -52,7 +57,7 @@ export const ExtractionReviewPanel: React.FC<ExtractionReviewPanelProps> = ({
           : {
               ...p,
               fields: p.fields.map((f, fi) =>
-                fi !== fieldIdx ? f : { ...f, ...patch, needsReview: false }
+                fi !== fieldIdx ? f : { ...f, ...patch }
               ),
             }
       )
@@ -99,7 +104,7 @@ export const ExtractionReviewPanel: React.FC<ExtractionReviewPanelProps> = ({
                 Page {page.pageNumber}
               </span>
               {page.fields.some((f) => f.needsReview) ? (
-                <span className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-400">
+                <span className="inline-flex items-center gap-1 rounded-lg border border-primary/25 bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-primary/90">
                   <AlertCircle className="h-3 w-3" />
                   Needs review
                 </span>
@@ -120,7 +125,7 @@ export const ExtractionReviewPanel: React.FC<ExtractionReviewPanelProps> = ({
                   key={`${field.key}-${fieldIdx}`}
                   className={cn(
                     'grid grid-cols-1 gap-1.5 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]',
-                    field.needsReview && 'bg-amber-500/[0.07] ring-1 ring-inset ring-amber-500/20'
+                    field.needsReview && REVIEW_ROW_HIGHLIGHT
                   )}
                 >
                   <div className="min-w-0">
@@ -140,7 +145,7 @@ export const ExtractionReviewPanel: React.FC<ExtractionReviewPanelProps> = ({
                         onChange={(e) =>
                           updateField(pageIdx, fieldIdx, { value: e.target.value })
                         }
-                        className="mt-0.5 w-full rounded-lg border border-amber-500/30 bg-surface-lowest/80 px-2.5 py-1.5 text-[11px] text-foreground outline-none focus:border-primary/40"
+                        className={REVIEW_FIELD_INPUT}
                         aria-label={`Edit ${field.key}`}
                       />
                     ) : (

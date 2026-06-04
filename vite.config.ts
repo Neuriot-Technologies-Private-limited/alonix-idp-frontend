@@ -204,7 +204,7 @@ export default defineConfig(({ mode }) => {
       ),
     },
     server: {
-      allowedHosts: true,
+      allowedHosts: ['localhost', '127.0.0.1', '.localhost'],
       proxy: {
         '/api': {
           target: proxyTarget,

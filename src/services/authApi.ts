@@ -91,8 +91,8 @@ export const authApi = {
   },
 
   async getInviteDetails(inviteToken: string) {
-    const { data } = await apiClient.get('/users/invite-details', {
-      params: { inviteToken: inviteToken.trim() },
+    const { data } = await apiClient.post('/users/invite-details', {
+      inviteToken: inviteToken.trim(),
     });
     return data as {
       email: string;

@@ -1,1412 +1,156 @@
-import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../services/api/client';
-import {
-  Upload,
-  Loader2,
-  Files,
-  DatabaseZap,
-  ScanSearch,
-  Tags,
-  AlertTriangle,
-  Network,
-} from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
-import { cn } from '../../utils/cn';
-import { formatDiscoveryUploadedAt } from '../../utils/formatDateTime';
-import { usePipelineDocuments } from '../../hooks/useDocuments';
-import { Loader } from '../../components/ui/Loader';
-import { useAuthStore } from '../../stores/authStore';
-import { useRbac } from '../../hooks/useRbac';
-import { membershipForGroup } from '../../core/rbac/capabilities';
-import {
-  triggerIngest,
-  triggerExtract,
-  triggerClassify,
-  uploadDocument,
-  deleteDocument,
-  getDocumentAccessUrl,
-} from '../../services/chatApi';
-import { getDocumentReviewResults } from '../../services/documentReviewApi';
-import type { DocumentReviewPayload } from '../../types/documentReview';
-import { connectSocket, getSocket } from '../../services/chatSocket';
-import { Pagination } from '../../components/ui/Pagination';
-import { mergePipeline, useGroupHealth } from '../../services/adminService';
-import { useUsers } from '../../services/userService';
-import { resolveCustodianDisplay } from '../../utils/custodianDisplay';
-import { MetricStateCard, MetricStateGrid } from '../../components/ui/MetricStateCard';
-import { SearchToolbarRow } from '../../components/ui/SearchToolbarRow';
-import { DocumentAssetIdentity } from './DocumentAssetIdentity';
-import { DocumentCustodian } from './DocumentCustodian';
-import { DocumentPipelineLifecycle } from './DocumentPipelineLifecycle';
-import { DocumentPipelineActions } from './DocumentPipelineActions';
+import React from 'react';
+import { useOrgQuota } from '../../hooks/useOrgQuota';
 import { DocumentReviewDrawer } from '../../components/documents/DocumentReviewDrawer';
 import { DocumentUploadModal } from './DocumentUploadModal';
-import { useAlert } from '../../components/alert';
-import { useUploadStore } from '../../stores/uploadStore';
-import ConnectorBrowserContent from '../../components/connectors/ConnectorBrowserContent';
+import { DocumentsConnectorModal } from './DocumentsConnectorModal';
+import { DocumentsPageHeader } from './DocumentsPageHeader';
+import { DocumentsVaultSection } from './DocumentsVaultSection';
 import {
-  DOCUMENT_SENSITIVITY_HINTS,
-  DOCUMENT_SENSITIVITY_LABELS,
-  uploadAssignableLevelsForGroup,
-  type DocumentSensitivityLevel,
-} from '../../constants/documentSensitivity';
-import { quotaErrorMessage } from '../../utils/billingQuota';
-import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
-import {
-  markPipelineStageFailed,
-  optimisticAppendUploadedDocument,
-  optimisticSetPipelineStage,
-  pipelineActionToStage,
-  refreshPipelineDocuments,
-} from '../../utils/pipelineDocumentsCache';
-
-function getConnectorDialogFocusables(root: HTMLElement): HTMLElement[] {
-  const sel =
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-  return Array.from(root.querySelectorAll<HTMLElement>(sel)).filter((el) => {
-    if (el.closest('[inert]')) return false;
-    if (el.getAttribute('aria-hidden') === 'true') return false;
-    return true;
-  });
-}
+  useConnectorBrowserModal,
+  useDocumentsList,
+  useDocumentPipeline,
+  useDocumentActions,
+  useDocumentReview,
+  useDocumentUpload,
+  usePipelineDocuments,
+} from './hooks';
 
 export const DocumentsPage: React.FC = () => {
   const { atCap } = useOrgQuota();
   const ingestQuotaBlocked = atCap('documentsMonth');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const connectorBrowserOpen = searchParams.get('connectors') === '1';
-  const connectorBrowserLinkId = searchParams.get('connectorId');
-  const connectorDialogRef = React.useRef<HTMLDivElement>(null);
-  const connectorFocusReturnRef = React.useRef<HTMLElement | null>(null);
-
-  const closeConnectorBrowserModal = React.useCallback(() => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('connectors');
-    next.delete('connectorId');
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
-
-  const openConnectorBrowserModal = React.useCallback(() => {
-    const next = new URLSearchParams(searchParams);
-    next.set('connectors', '1');
-    setSearchParams(next, { replace: false });
-  }, [searchParams, setSearchParams]);
-
-  React.useEffect(() => {
-    if (!connectorBrowserOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeConnectorBrowserModal();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [connectorBrowserOpen, closeConnectorBrowserModal]);
-
-  React.useEffect(() => {
-    if (!connectorBrowserOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [connectorBrowserOpen]);
-
-  React.useLayoutEffect(() => {
-    if (!connectorBrowserOpen) return;
-    connectorFocusReturnRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    let raf = 0;
-    raf = requestAnimationFrame(() => {
-      const root = connectorDialogRef.current;
-      if (!root) return;
-      const nodes = getConnectorDialogFocusables(root);
-      (nodes[0] ?? root).focus();
-    });
-
-    const onDocKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !connectorDialogRef.current) return;
-      const root = connectorDialogRef.current;
-      const nodes = getConnectorDialogFocusables(root);
-      if (nodes.length < 2) return;
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const active = document.activeElement;
-      if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      } else if (e.shiftKey && active === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    };
-    document.addEventListener('keydown', onDocKeyDown, true);
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener('keydown', onDocKeyDown, true);
-      connectorFocusReturnRef.current?.focus?.();
-    };
-  }, [connectorBrowserOpen]);
-
-  const { confirm, alert: appAlert } = useAlert();
-  const queryClient = useQueryClient();
   const { data: documents, isLoading } = usePipelineDocuments();
-  const { hasCapability, orgRole, groups, adminGroupIds } = useRbac();
-  const { data: groupHealthList = [] } = useGroupHealth();
-  const { data: directoryUsers = [] } = useUsers();
-  const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
-  const hasBulkActions = isCompanyAdmin || (adminGroupIds?.length ?? 0) > 0;
-  const canUploadDocs = isCompanyAdmin || (adminGroupIds?.length ?? 0) > 0;
-  const isPureViewOnly = !canUploadDocs;
 
-  const docCanManage = React.useCallback(
-    (d: any) => {
-      if (isCompanyAdmin) return true;
-      const m = membershipForGroup(groups, d.groupId, d.group);
-      return m?.role === 'GROUP_ADMIN';
-    },
-    [isCompanyAdmin, groups]
+  const list = useDocumentsList(documents, isLoading);
+  const {
+    connectorBrowserOpen,
+    connectorBrowserLinkId,
+    connectorDialogRef,
+    openConnectorBrowserModal,
+    closeConnectorBrowserModal,
+  } = useConnectorBrowserModal();
+
+  const pipeline = useDocumentPipeline(
+    documents,
+    list.docCanManage,
+    list.context?.orgId,
+    list.user?.email,
+    list.context?.activeGroupId ?? list.user?.groupID ?? list.user?.groupId
   );
 
-  const [activeTab, setActiveTab] = useState<'All' | 'Ingest' | 'Extract' | 'Classify'>('All');
-  const [resultModal, setResultModal] = useState<any | null>(null);
-  const [reviewData, setReviewData] = useState<DocumentReviewPayload | null>(null);
-  const [resultLoadingDocId, setResultLoadingDocId] = useState<string | null>(null);
-  const [extractFormat, setExtractFormat] = useState<'json' | 'csv' | 'md'>('json');
-  const [search, setSearch] = useState('');
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [targetGroupId, setTargetGroupId] = useState<string>('');
-  const [uploadSensitivityLevel, setUploadSensitivityLevel] = useState<string>('INTERNAL_USE');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [bulkBusy, setBulkBusy] = useState<'ingest' | 'extract' | 'classify' | null>(null);
-  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
-  const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
-  const headerCheckboxRef = React.useRef<HTMLInputElement>(null);
-  const itemsPerPage = 8;
+  const actions = useDocumentActions(list.docCanManage);
+  const review = useDocumentReview();
 
-  const { addJob, updateJob } = useUploadStore();
-
-  const context = useAuthStore((s) => s.context);
-  const user = useAuthStore((s) => s.user);
-
-  /** Human review edit: company admin or group admin (matches GROUP_DOC_INGEST on PATCH). */
-  const docCanReviewEdit = docCanManage;
-
-  const activeGroupIdForScope = context?.activeGroupId ?? null;
-  const activeGroup = groups.find((g) => g.groupId === activeGroupIdForScope);
-  const activeGroupNameNorm = activeGroup?.groupName?.trim().toLowerCase() ?? '';
-
-  const custodianNameByEmail = React.useMemo(() => {
-    const m = new Map<string, string>();
-    if (user?.email) {
-      const label = (user.displayName || user.name || user.username || '').trim();
-      if (label) m.set(user.email.toLowerCase(), label);
-    }
-    for (const row of directoryUsers) {
-      if (row.email && row.name) m.set(row.email.toLowerCase(), row.name);
-    }
-    return m;
-  }, [user, directoryUsers]);
-
-  const uploadGroupChoices = React.useMemo(() => {
-    if (isCompanyAdmin) {
-      return groupHealthList.map((h) => ({ groupId: h.id, groupName: h.name }));
-    }
-    return groups.filter((g) => g.role === 'GROUP_ADMIN');
-  }, [isCompanyAdmin, groupHealthList, groups]);
-
-  const uploadTargetGroupId = React.useMemo(() => {
-    if (isCompanyAdmin) return String(targetGroupId || '').trim();
-    return String(targetGroupId || adminGroupIds?.[0] || '').trim();
-  }, [isCompanyAdmin, targetGroupId, adminGroupIds]);
-
-  const { data: uploadGroupEnabledLevels = null } = useQuery({
-    queryKey: ['group-sensitivity-policy', uploadTargetGroupId],
-    enabled: Boolean(uploadTargetGroupId),
-    queryFn: async () => {
-      const { data } = await apiClient.get<{ enabledDocumentSensitivityLevels?: string[] | null }>(
-        `/groups/${encodeURIComponent(uploadTargetGroupId)}`
-      );
-      return Array.isArray(data.enabledDocumentSensitivityLevels)
-        ? data.enabledDocumentSensitivityLevels
-        : null;
+  const upload = useDocumentUpload({
+    isCompanyAdmin: list.isCompanyAdmin,
+    groups: list.groups,
+    adminGroupIds: list.adminGroupIds,
+    orgRole: list.context?.orgRole,
+    orgId: list.context?.orgId ?? list.user?.orgId ?? null,
+    user: list.user,
+    onUploadStarted: () => {
+      list.setActiveTab('All');
+      list.setCurrentPage(1);
     },
-    staleTime: 60_000,
   });
 
-  const uploadMaxKey = React.useMemo(() => {
-    if (context?.orgRole === 'COMPANY_ADMIN') return 'RESTRICTED';
-    const g = groups.find((x) => String(x.groupId) === uploadTargetGroupId);
-    if (!g) return 'INTERNAL_USE';
-    if (g.role === 'GROUP_ADMIN') return 'RESTRICTED';
-    return String(g.maxDocumentSensitivity || 'INTERNAL_USE')
-      .toUpperCase()
-      .replace(/-/g, '_');
-  }, [context?.orgRole, uploadTargetGroupId, groups]);
-
-  const uploadSensitivityOptions = React.useMemo(() => {
-    const allowed = uploadAssignableLevelsForGroup(uploadMaxKey, uploadGroupEnabledLevels);
-    return allowed.map((value) => ({
-      value,
-      label: DOCUMENT_SENSITIVITY_LABELS[value],
-      hint: DOCUMENT_SENSITIVITY_HINTS[value],
-    }));
-  }, [uploadMaxKey, uploadGroupEnabledLevels]);
-
-  React.useEffect(() => {
-    const allowed = uploadAssignableLevelsForGroup(uploadMaxKey, uploadGroupEnabledLevels);
-    setUploadSensitivityLevel((prev) =>
-      allowed.includes(prev as DocumentSensitivityLevel)
-        ? prev
-        : allowed[allowed.length - 1] || 'INTERNAL_USE'
-    );
-  }, [uploadMaxKey, uploadGroupEnabledLevels]);
-
-  const groupIdSet = React.useMemo(
-    () => new Set(groups.map((g) => g.groupId.toLowerCase())),
-    [groups]
-  );
-  const groupNameSet = React.useMemo(
-    () => new Set(groups.map((g) => g.groupName.trim().toLowerCase())),
-    [groups]
-  );
-
-  const bustKey = (docId: string, action: string) => `${docId}:${action}`;
-
-  const handleDeleteDocument = React.useCallback(
-    async (docItem: any) => {
-      if (!docCanManage(docItem)) return;
-      const name = docItem.fileName || 'this document';
-      const ok = await confirm({
-        title: 'Remove document?',
-        description: (
-          <>
-            Remove <span className="font-semibold text-foreground/95">“{name}”</span>? This cannot be
-            undone.
-          </>
-        ),
-        variant: 'danger',
-        confirmLabel: 'Remove',
-        cancelLabel: 'Cancel',
+  const handleDeleteDocument = (docItem: Parameters<typeof actions.handleDeleteDocument>[0]) => {
+    void actions.handleDeleteDocument(docItem, (id) => {
+      list.setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
       });
-      if (!ok) return;
-      setDeleteBusyId(docItem.id);
-      try {
-        const gid = docItem.groupId ? String(docItem.groupId) : undefined;
-        await deleteDocument(docItem.id, gid || null);
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(docItem.id);
-          return next;
-        });
-        await refreshPipelineDocuments(queryClient);
-        await queryClient.invalidateQueries({ queryKey: ['documents'] });
-      } catch (err: unknown) {
-        const ax = err as { response?: { data?: { error?: string } }; message?: string };
-        const msg = ax.response?.data?.error || ax.message || 'Could not delete document.';
-        await appAlert({ title: 'Could not delete', description: msg, variant: 'danger' });
-      } finally {
-        setDeleteBusyId(null);
-      }
-    },
-    [appAlert, confirm, docCanManage, queryClient]
-  );
-
-  const handleOpenDocument = React.useCallback(
-    async (docItem: any) => {
-      setOpenDocBusyId(String(docItem.id));
-      try {
-        const gid = docItem.groupId ? String(docItem.groupId) : undefined;
-        const access = await getDocumentAccessUrl(String(docItem.id), gid || null);
-        const url = String(access?.data?.url || '').trim();
-        if (!url) throw new Error('Document URL is unavailable');
-
-        const fileName = String(docItem.fileName || 'document');
-        const lower = fileName.toLowerCase();
-        const isPdf = lower.endsWith('.pdf') || String(docItem.type || '').toUpperCase() === 'PDF';
-
-        const a = document.createElement('a');
-        a.href = url;
-        if (isPdf) {
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-        } else {
-          a.download = fileName;
-        }
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (e: unknown) {
-        const ax = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
-        await appAlert({
-          title: 'Could not open document',
-          description:
-            ax.response?.data?.message ||
-            ax.response?.data?.error ||
-            ax.message ||
-            'Unable to load this document right now.',
-          variant: 'danger',
-        });
-      } finally {
-        setOpenDocBusyId(null);
-      }
-    },
-    [appAlert]
-  );
-
-  const runPipeline = async (docId: string, action: 'ingest' | 'extract' | 'classify') => {
-    const docRow = documents?.find((d: any) => d.id === docId);
-    if (docRow && !docCanManage(docRow)) return;
-    const gid = docRow?.groupId ? String(docRow.groupId) : undefined;
-    const collectionName = (docRow?.group && String(docRow.group)) || gid || docId;
-    const k = bustKey(docId, action);
-    const stage = pipelineActionToStage(action);
-    optimisticSetPipelineStage(queryClient, docId, stage);
-    setActionBusyKey(k);
-    try {
-      if (action === 'ingest') {
-        await triggerIngest(docId, { collectionName }, gid || null);
-      } else if (action === 'extract') {
-        await triggerExtract(docId, gid || null);
-      } else {
-        await triggerClassify(docId, gid || null);
-      }
-      await refreshPipelineDocuments(queryClient);
-      if (action === 'ingest') {
-        void queryClient.invalidateQueries({
-          queryKey: billingSubscriptionQueryKey(context?.orgId),
-        });
-      }
-    } catch (err: unknown) {
-      markPipelineStageFailed(queryClient, docId, stage);
-      const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
-      const msg =
-        action === 'ingest'
-          ? quotaErrorMessage(err, `Could not start ${action}.`)
-          : ax.response?.data?.detail ||
-            ax.response?.data?.error ||
-            ax.message ||
-            `Could not start ${action}.`;
-      await appAlert({
-        title: `Could not start ${action}`,
-        description: msg,
-        variant: 'danger',
-      });
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const bulkBusyActive = bulkBusy !== null;
-
-  const toggleSelected = (id: string) => {
-    const row = documents?.find((d: any) => d.id === id);
-    if (row && !docCanManage(row)) return;
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
     });
   };
-
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const runBulkPipeline = async (action: 'ingest' | 'extract' | 'classify') => {
-    if (selectedIds.size === 0) return;
-    setBulkBusy(action);
-    const stage = pipelineActionToStage(action);
-    const failures: string[] = [];
-    const failedIds: string[] = [];
-    try {
-      for (const id of selectedIds) {
-        const docItem = documents?.find((d: any) => d.id === id);
-        if (!docItem?.pipeline || !docCanManage(docItem)) continue;
-        const p = docItem.pipeline;
-        if (action === 'ingest' && (p.ingestion.status === 'processing' || p.ingestion.status === 'done')) continue;
-        if (action === 'extract' && (p.extraction.status === 'processing' || p.extraction.status === 'done')) continue;
-        if (action === 'classify' && (p.classification.status === 'processing' || p.classification.status === 'done')) continue;
-        const docRow = documents?.find((d: any) => d.id === id);
-        const gid = docRow?.groupId ? String(docRow.groupId) : undefined;
-        const collectionName = (docRow?.group && String(docRow.group)) || gid || id;
-        optimisticSetPipelineStage(queryClient, id, stage);
-        try {
-          if (action === 'ingest') {
-            await triggerIngest(id, { collectionName }, gid || null);
-          } else if (action === 'extract') {
-            await triggerExtract(id, gid || null);
-          } else {
-            await triggerClassify(id, gid || null);
-          }
-        } catch (err: unknown) {
-          markPipelineStageFailed(queryClient, id, stage);
-          failedIds.push(id);
-          const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
-          const msg =
-            action === 'ingest'
-              ? quotaErrorMessage(err, `Could not start ${action}.`)
-              : ax.response?.data?.detail ||
-                ax.response?.data?.error ||
-                ax.message ||
-                `Could not start ${action}.`;
-          failures.push(`${docItem.fileName || id}: ${msg}`);
-        }
-      }
-      await refreshPipelineDocuments(queryClient);
-      if (action === 'ingest' && selectedIds.size > failedIds.length) {
-        void queryClient.invalidateQueries({
-          queryKey: billingSubscriptionQueryKey(context?.orgId),
-        });
-      }
-      for (const id of failedIds) {
-        markPipelineStageFailed(queryClient, id, stage);
-      }
-      if (failures.length) {
-        await appAlert({
-          title: `Some ${action} actions failed`,
-          description: failures.slice(0, 5).join('\n'),
-          variant: 'danger',
-        });
-      }
-    } finally {
-      setBulkBusy(null);
-    }
-  };
-
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [search, activeTab, activeGroupIdForScope]);
-
-  React.useEffect(() => {
-    setSelectedIds(new Set());
-  }, [activeGroupIdForScope]);
-
-  React.useEffect(() => {
-    if (isUploadModalOpen && !isCompanyAdmin && adminGroupIds?.length) {
-      setTargetGroupId((prev) =>
-        prev && adminGroupIds.includes(prev) ? prev : adminGroupIds[0]
-      );
-    }
-  }, [isUploadModalOpen, isCompanyAdmin, adminGroupIds]);
-
-  const documentsInScope = React.useMemo(() => {
-    if (!documents) return [];
-
-    const matchesActiveWorkspace = (d: any) => {
-      if (!activeGroupIdForScope) return true;
-      const gid = String(d.groupId || '').trim();
-      if (gid && gid === activeGroupIdForScope) return true;
-      const gname = String(d.group || '').trim().toLowerCase();
-      if (activeGroupNameNorm && gname === activeGroupNameNorm) return true;
-      return false;
-    };
-
-    if (isCompanyAdmin) {
-      return documents.filter(matchesActiveWorkspace);
-    }
-    return documents.filter((d: any) => {
-      const docGroupId = String(d.groupId || '').toLowerCase();
-      const docGroupName = String(d.group || '').trim().toLowerCase();
-      const inMembership =
-        (docGroupId && groupIdSet.has(docGroupId)) ||
-        (docGroupName && groupNameSet.has(docGroupName));
-      if (!inMembership) return false;
-      return matchesActiveWorkspace(d);
-    });
-  }, [
-    documents,
-    isCompanyAdmin,
-    groupIdSet,
-    groupNameSet,
-    activeGroupIdForScope,
-    activeGroupNameNorm,
-  ]);
-
-  React.useEffect(() => {
-    if (isPureViewOnly && activeTab !== 'All') setActiveTab('All');
-  }, [isPureViewOnly, activeTab]);
-
-  React.useEffect(() => {
-    if (!hasBulkActions) setSelectedIds(new Set());
-  }, [hasBulkActions]);
-
-  React.useEffect(() => {
-    const email = String(user?.email || '').trim();
-    const gid = String(context?.activeGroupId || user?.groupID || user?.groupId || '').trim();
-    if (!email) return;
-
-    connectSocket(email, gid);
-    const socket = getSocket();
-    if (!socket) return;
-
-    const onJobUpdate = () => {
-      void refreshPipelineDocuments(queryClient);
-      void queryClient.invalidateQueries({ queryKey: ['documents'] });
-    };
-
-    socket.on('job.update', onJobUpdate);
-    return () => {
-      socket.off('job.update', onJobUpdate);
-    };
-  }, [context?.activeGroupId, queryClient, user?.email, user?.groupID, user?.groupId]);
-
-  const filtered = React.useMemo(() => {
-    if (!documents) return [];
-    let list = documentsInScope.slice();
-
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((d: any) => {
-        const { label } = resolveCustodianDisplay(d.uploader, custodianNameByEmail);
-        return (
-          d.fileName.toLowerCase().includes(q) ||
-          String(d.uploader ?? '').toLowerCase().includes(q) ||
-          label.toLowerCase().includes(q)
-        );
-      });
-    }
-
-    if (activeTab === 'All') return list;
-
-    return list.filter((d: any) => {
-      const p = mergePipeline(d.pipeline);
-      if (activeTab === 'Ingest') return p.ingestion.status === 'processing' || p.ingestion.status === 'idle';
-      if (activeTab === 'Extract')
-        return p.ingestion.status === 'done' && (p.extraction.status === 'processing' || p.extraction.status === 'idle');
-      if (activeTab === 'Classify')
-        return p.extraction.status === 'done' && (p.classification.status === 'processing' || p.classification.status === 'idle');
-      return true;
-    });
-  }, [documentsInScope, activeTab, search, documents, custodianNameByEmail]);
-
-  const paginatedDocuments = React.useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(start, start + itemsPerPage);
-  }, [filtered, currentPage, itemsPerPage]);
-
-  const manageableOnPage = React.useMemo(
-    () => paginatedDocuments.filter((d: any) => docCanManage(d)),
-    [paginatedDocuments, docCanManage]
-  );
-
-  const selectedDocs = React.useMemo(
-    () => filtered.filter((d: any) => selectedIds.has(d.id) && docCanManage(d)),
-    [filtered, selectedIds, docCanManage]
-  );
-
-  const bulkIngestCount = selectedDocs.filter((d: any) => {
-    const p = mergePipeline(d.pipeline);
-    return p.ingestion.status !== 'processing' && p.ingestion.status !== 'done';
-  }).length;
-  const bulkExtractCount = selectedDocs.filter((d: any) => {
-    const p = mergePipeline(d.pipeline);
-    return p.extraction.status !== 'processing' && p.extraction.status !== 'done';
-  }).length;
-  const bulkClassifyCount = selectedDocs.filter((d: any) => {
-    const p = mergePipeline(d.pipeline);
-    return p.classification.status !== 'processing' && p.classification.status !== 'done';
-  }).length;
-
-  const allPageSelected =
-    manageableOnPage.length > 0 && manageableOnPage.every((d: any) => selectedIds.has(d.id));
-  const somePageSelected = manageableOnPage.some((d: any) => selectedIds.has(d.id));
-
-  const toggleSelectPage = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allPageSelected) {
-        manageableOnPage.forEach((d: any) => next.delete(d.id));
-      } else {
-        manageableOnPage.forEach((d: any) => next.add(d.id));
-      }
-      return next;
-    });
-  };
-
-  const selectAllFiltered = () => {
-    setSelectedIds(new Set(filtered.filter((d: any) => docCanManage(d)).map((d: any) => d.id)));
-  };
-
-  React.useEffect(() => {
-    const el = headerCheckboxRef.current;
-    if (el) el.indeterminate = somePageSelected && !allPageSelected;
-  }, [somePageSelected, allPageSelected]);
-
-  const counts = React.useMemo(() => {
-    const scope = documentsInScope;
-    if (!scope.length && !documents?.length)
-      return { all: 0, ingested: 0, extracted: 0, classified: 0, failed: 0 };
-    return {
-      all: scope.length,
-      ingested: scope.filter((d: any) => mergePipeline(d.pipeline).ingestion.status === 'done').length,
-      extracted: scope.filter((d: any) => mergePipeline(d.pipeline).extraction.status === 'done').length,
-      classified: scope.filter((d: any) => mergePipeline(d.pipeline).classification.status === 'done').length,
-      failed: scope.filter((d: any) => {
-        const p = mergePipeline(d.pipeline);
-        return (
-          p.ingestion.status === 'error' ||
-          p.extraction.status === 'error' ||
-          p.classification.status === 'error'
-        );
-      }).length,
-    };
-  }, [documentsInScope, documents?.length]);
-
-  const getExtractionText = (res: any, fmt: string) => {
-    if (!res) return '';
-
-    const formats = res?.formats && typeof res.formats === 'object' ? res.formats : null;
-    if (formats && typeof formats[fmt] === 'string') {
-      return formats[fmt] as string;
-    }
-    if (formats && formats[fmt] && fmt === 'json') {
-      return JSON.stringify(formats[fmt], null, 2);
-    }
-
-    if (fmt === 'json') return JSON.stringify(res, null, 2);
-
-    const pages = Array.isArray(res?.pages) ? res.pages : [];
-    const toCellString = (value: unknown) => {
-      if (value == null) return '';
-      if (typeof value === 'string') return value;
-      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-      return JSON.stringify(value);
-    };
-    const getPageNumber = (page: any, idx: number) => {
-      const candidate =
-        page?.page_number ??
-        page?.page ??
-        page?.pageIndex ??
-        page?.index ??
-        page?.page_content?.page_number;
-      const n = Number(candidate);
-      return Number.isFinite(n) && n > 0 ? n : idx + 1;
-    };
-    const getPageKeyValues = (page: any): Record<string, unknown> | null => {
-      const kv =
-        page?.key_value_pairs ??
-        page?.page_content?.key_value_pairs ??
-        page?.fields;
-      if (!kv || typeof kv !== 'object' || Array.isArray(kv)) return null;
-      return kv as Record<string, unknown>;
-    };
-    const kvRows: Array<{ page: number; key: string; value: unknown }> = [];
-    const pageChunks: Array<{ page: number; keyValues: Record<string, unknown> }> = [];
-    pages.forEach((p: any, idx: number) => {
-      const pageNum = getPageNumber(p, idx);
-      const keyValues = getPageKeyValues(p);
-      if (keyValues) {
-        pageChunks.push({ page: pageNum, keyValues });
-        for (const [k, v] of Object.entries(keyValues)) {
-          kvRows.push({ page: pageNum, key: String(k), value: v });
-        }
-      }
-    });
-
-    if (fmt === 'csv') {
-      if (kvRows.length > 0) {
-        return [
-          'page,key,value',
-          ...kvRows.map((r) => `${r.page},"${r.key.replace(/"/g, '""')}","${toCellString(r.value).replace(/"/g, '""')}"`),
-        ].join('\n');
-      }
-      if (res && typeof res === 'object' && !Array.isArray(res)) {
-        return (
-          Object.keys(res).join(',') +
-          '\n' +
-          Object.values(res)
-            .map((v) => (Array.isArray(v) ? `"${v.join(';')}"` : `"${v}"`))
-            .join(',')
-        );
-      }
-      return String(res);
-    }
-
-    if (fmt === 'md') {
-      if (pageChunks.length > 0) {
-        return pageChunks
-          .map(({ page, keyValues }) =>
-            [`### Page ${page}`, ...Object.entries(keyValues).map(([k, v]) => `- **${k}**: ${toCellString(v)}`)].join('\n')
-          )
-          .join('\n\n');
-      }
-      if (pages.length > 0) {
-        return pages
-          .map((p: any, idx: number) => {
-            const pageNum = getPageNumber(p, idx);
-            return `### Page ${pageNum}\n\`\`\`json\n${JSON.stringify(p, null, 2)}\n\`\`\``;
-          })
-          .join('\n\n');
-      }
-      if (res && typeof res === 'object' && !Array.isArray(res)) {
-        return Object.entries(res)
-          .map(([k, v]) => `**${k}**: ${Array.isArray(v) ? v.map(toCellString).join(', ') : toCellString(v)}`)
-          .join('\n\n');
-      }
-      return String(res);
-    }
-    return '';
-  };
-
-  const handleExport = (data: any, fmt: string, filename: string) => {
-    const text = getExtractionText(data, fmt);
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}_extracted.${fmt}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleOpenResults = React.useCallback(
-    async (docItem: any) => {
-      if (!docItem?.id) return;
-      const docId = String(docItem.id);
-      const gid = docItem?.groupId ? String(docItem.groupId) : undefined;
-      setResultModal({ ...docItem });
-      setReviewData(null);
-      setResultLoadingDocId(docId);
-      try {
-        const parsed = await getDocumentReviewResults(docId, gid || null);
-        setReviewData(parsed);
-        setResultModal({
-          ...docItem,
-          extractionResult:
-            parsed.extractionResult ??
-            docItem.extractionResult ??
-            (parsed.extractionView.pages.length ? { pages: parsed.extractionView.pages } : null),
-          classificationData:
-            parsed.classificationData ??
-            docItem.classificationData ??
-            parsed.classificationView,
-        });
-      } catch (err: unknown) {
-        setResultModal(null);
-        setReviewData(null);
-        const ax = err as { response?: { status?: number; data?: { error?: string; message?: string } }; message?: string };
-        const isQuota = ax.response?.status === 402;
-        await appAlert({
-          title: 'Could not fetch results',
-          description: isQuota
-            ? quotaErrorMessage(err, 'Plan limit reached.')
-            : ax.response?.data?.message || ax.response?.data?.error || ax.message || 'Please try again.',
-          variant: 'danger',
-        });
-      } finally {
-        setResultLoadingDocId(null);
-      }
-    },
-    [appAlert]
-  );
-
-  const handleReviewSaved = React.useCallback(async () => {
-    await refreshPipelineDocuments(queryClient);
-    if (resultModal?.id) {
-      const gid = resultModal.groupId ? String(resultModal.groupId) : undefined;
-      try {
-        const parsed = await getDocumentReviewResults(String(resultModal.id), gid || null);
-        setReviewData(parsed);
-      } catch {
-        /* keep local draft cleared in drawer */
-      }
-    }
-    await appAlert({
-      title: 'Review saved',
-      description: 'Extraction and classification updates were applied.',
-      variant: 'success',
-    });
-  }, [appAlert, queryClient, resultModal]);
-
-  const handleReviewError = React.useCallback(
-    async (title: string, err: unknown) => {
-      const ax = err as { response?: { status?: number; data?: { error?: string; message?: string } }; message?: string };
-      const isQuota = ax.response?.status === 402;
-      await appAlert({
-        title,
-        description: isQuota
-          ? quotaErrorMessage(err, 'Plan limit reached.')
-          : ax.response?.data?.message || ax.response?.data?.error || ax.message || 'Please try again.',
-        variant: 'danger',
-      });
-    },
-    [appAlert]
-  );
-
-  const headerSubtitle = isCompanyAdmin
-    ? 'Organization-wide vault: ingest, run pipeline stages, and review AI outputs across all workspaces.'
-    : isPureViewOnly
-      ? 'View documents and AI extraction or classification results for workspaces assigned to you. Pipeline actions are limited to administrators.'
-      : 'Manage the document pipeline for workspaces where you are a group admin; other assigned workspaces are view-only.';
-
-  const pipelineTabs = isPureViewOnly
-    ? [{ id: 'All' as const, label: 'All', count: counts.all }]
-    : [
-        { id: 'All' as const, label: 'All', count: counts.all },
-        { id: 'Ingest' as const, label: 'Ingest', count: counts.ingested },
-        { id: 'Extract' as const, label: 'Extract', count: counts.extracted },
-        { id: 'Classify' as const, label: 'Classify', count: counts.classified },
-      ];
 
   return (
     <div className="w-full min-w-0 space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-[max(5rem,env(safe-area-inset-bottom))]">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="w-full min-w-0 flex-1 basis-0 space-y-2 sm:pr-4">
-          <h1 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent flex flex-wrap items-center gap-2.5">
-            Documents
-            {isPureViewOnly ? (
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-lg bg-surface-highest/5 border border-border/10 text-muted-foreground/80 shrink-0">
-                View only
-              </span>
-            ) : null}
-          </h1>
-          <p className="text-muted-foreground font-medium text-[11px] sm:text-[13px] tracking-wide leading-relaxed text-pretty max-w-none sm:max-w-[min(42rem,100%)]">
-            {headerSubtitle}
-          </p>
-        </div>
-        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end sm:gap-3">
-          {canUploadDocs ? (
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="bg-primary hover:opacity-90 transition-all text-primary-foreground font-bold text-[11px] uppercase tracking-widest px-5 py-3 rounded-xl flex items-center justify-center gap-2 border border-border/10 active:scale-95 shrink-0 group shadow-lg shadow-primary/10 w-full sm:w-auto sm:min-w-[11rem] sm:order-2"
-            >
-              <Upload className="w-4 h-4 shrink-0 group-hover:-translate-y-0.5 transition-transform" />
-              <span className="whitespace-nowrap">Upload Assets</span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={openConnectorBrowserModal}
-            className="border border-border/25 bg-surface-highest/15 hover:bg-primary/10 hover:border-primary/35 text-foreground font-bold text-[11px] uppercase tracking-widest px-4 py-3 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full sm:w-auto sm:max-w-[16rem] sm:px-5 group sm:order-1"
-          >
-            <Network className="w-4 h-4 shrink-0 text-primary/90 group-hover:scale-105 transition-transform" />
-            <span className="text-center leading-snug sm:text-left">
-              <span className="hidden sm:inline">Ingest from connectors</span>
-              <span className="sm:hidden">Upload or ingest from connectors</span>
-            </span>
-          </button>
-        </div>
-      </section>
-
-      <MetricStateGrid>
-        <MetricStateCard label="Total Documents" value={counts.all} tone="primary" icon={Files} />
-        <MetricStateCard label="Ingested" value={counts.ingested} tone="emerald" icon={DatabaseZap} />
-        <MetricStateCard label="Extracted" value={counts.extracted} tone="violet" icon={ScanSearch} />
-        <MetricStateCard label="Classified" value={counts.classified} tone="amber" icon={Tags} />
-        <MetricStateCard label="Failed" value={counts.failed} tone="rose" icon={AlertTriangle} />
-      </MetricStateGrid>
-
-      <SearchToolbarRow
-        search={{
-          value: search,
-          onChange: setSearch,
-          placeholder: 'Search by file name, email, or custodian name…',
-        }}
-        end={
-          <div className="flex min-w-max items-center gap-1 bg-surface-highest/30 dark:bg-surface-highest/20 p-1 rounded-xl border border-border/35 dark:border-border/50 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05)] shrink-0">
-            {pipelineTabs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveTab(t.id as 'All' | 'Ingest' | 'Extract' | 'Classify')}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all relative flex items-center gap-2',
-                  activeTab === t.id
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                    : 'text-muted-foreground/65 dark:text-muted-foreground/55 hover:text-foreground'
-                )}
-              >
-                {t.label}
-                {t.count > 0 && (
-                  <span
-                    className={cn(
-                      'px-1.5 py-0.5 rounded-md text-[8px] font-black',
-                      activeTab === t.id
-                        ? 'bg-primary-foreground/20 text-primary-foreground'
-                        : 'bg-surface-highest/50 text-muted-foreground/55 dark:text-muted-foreground/45'
-                    )}
-                  >
-                    {t.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        }
+      <DocumentsPageHeader
+        isPureViewOnly={list.isPureViewOnly}
+        headerSubtitle={list.headerSubtitle}
+        canUploadDocs={list.canUploadDocs}
+        onOpenUpload={() => upload.setIsUploadModalOpen(true)}
+        onOpenConnectors={openConnectorBrowserModal}
+        counts={list.counts}
+        search={list.search}
+        onSearchChange={list.setSearch}
+        pipelineTabs={list.pipelineTabs}
+        activeTab={list.activeTab}
+        onTabChange={list.setActiveTab}
       />
 
-      <section
-        id="documents-vault-table"
-        className={cn(
-          'bg-gradient-to-b from-surface-highest/25 via-surface-highest/12 to-transparent rounded-2xl overflow-hidden border border-border/35 dark:border-border/50 backdrop-blur-xl shadow-xl relative scroll-mt-24',
-          isLoading && 'min-h-[min(420px,52vh)]'
-        )}
-      >
-        {isLoading ? (
-          <div
-            className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 rounded-2xl bg-background/70 backdrop-blur-md"
-            aria-busy="true"
-            aria-label="Loading documents"
-          >
-            <Loader variant="section" label="Syncing assets..." />
-          </div>
-        ) : null}
-        <div className={cn(isLoading && 'pointer-events-none select-none opacity-[0.38]')}>
-        <div className="px-3 sm:px-6 py-3 border-b border-border/30 dark:border-border/45 bg-gradient-to-r from-primary/14 via-primary/6 to-transparent flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/65 dark:text-muted-foreground/55 tabular-nums order-2 sm:order-1">
-            {filtered.length} document{filtered.length !== 1 ? 's' : ''}
-            {filtered.length > 0 ? (
-              <span className="text-muted-foreground/35">
-                {' · '}page {currentPage} of {Math.max(1, Math.ceil(filtered.length / itemsPerPage))}
-              </span>
-            ) : null}
-          </p>
+      <DocumentsVaultSection
+        isLoading={list.isLoading}
+        filtered={list.filtered}
+        paginatedDocuments={list.paginatedDocuments}
+        currentPage={list.currentPage}
+        onPageChange={list.setCurrentPage}
+        hasBulkActions={list.hasBulkActions}
+        selectedIds={list.selectedIds}
+        bulkBusyActive={pipeline.bulkBusyActive}
+        bulkBusy={pipeline.bulkBusy}
+        bulkIngestCount={list.bulkIngestCount}
+        bulkExtractCount={list.bulkExtractCount}
+        bulkClassifyCount={list.bulkClassifyCount}
+        ingestQuotaBlocked={ingestQuotaBlocked}
+        onBulkIngest={() => void pipeline.runBulkPipeline('ingest', list.selectedIds)}
+        onBulkExtract={() => void pipeline.runBulkPipeline('extract', list.selectedIds)}
+        onBulkClassify={() => void pipeline.runBulkPipeline('classify', list.selectedIds)}
+        onSelectAllFiltered={list.selectAllFiltered}
+        onClearSelection={list.clearSelection}
+        headerCheckboxRef={list.headerCheckboxRef}
+        allPageSelected={list.allPageSelected}
+        manageableOnPage={list.manageableOnPage}
+        onToggleSelectPage={list.toggleSelectPage}
+        docCanManage={list.docCanManage}
+        custodianNameByEmail={list.custodianNameByEmail}
+        toggleSelected={list.toggleSelected}
+        openDocBusyId={actions.openDocBusyId}
+        onOpenDocument={(doc) => void actions.handleOpenDocument(doc)}
+        actionBusyKey={pipeline.actionBusyKey}
+        bustKey={pipeline.bustKey}
+        runPipeline={(docId, action) => void pipeline.runPipeline(docId, action)}
+        onOpenResults={(doc) => void review.handleOpenResults(doc)}
+        onDeleteDocument={handleDeleteDocument}
+        deleteBusyId={actions.deleteBusyId}
+        resultLoadingDocId={review.resultLoadingDocId}
+      />
 
-          {hasBulkActions && selectedIds.size > 0 && (
-            <div className="flex flex-wrap items-center justify-end gap-2 order-1 sm:order-2 w-full sm:w-auto">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary tabular-nums shrink-0">
-                {selectedIds.size} selected
-              </span>
-              <button
-                type="button"
-                title={
-                  ingestQuotaBlocked
-                    ? 'Document quota reached for this month'
-                    : bulkIngestCount
-                      ? `Run ingest on ${bulkIngestCount} document(s)`
-                      : 'No selected documents need ingest'
-                }
-                disabled={bulkBusyActive || bulkIngestCount === 0 || ingestQuotaBlocked}
-                onClick={() => void runBulkPipeline('ingest')}
-                className={cn(
-                  'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                  bulkBusyActive || bulkIngestCount === 0
-                    ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
-                    : 'bg-success/10 text-success border-success/20 hover:bg-success/20'
-                )}
-              >
-                {bulkBusy === 'ingest' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                Bulk ingest{bulkIngestCount ? ` (${bulkIngestCount})` : ''}
-              </button>
-              <button
-                type="button"
-                title={bulkExtractCount ? `Run extract on ${bulkExtractCount} document(s)` : 'No selected documents need extract'}
-                disabled={bulkBusyActive || bulkExtractCount === 0}
-                onClick={() => void runBulkPipeline('extract')}
-                className={cn(
-                  'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                  bulkBusyActive || bulkExtractCount === 0
-                    ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
-                    : 'bg-violet/10 text-violet border-violet/20 hover:bg-violet/20'
-                )}
-              >
-                {bulkBusy === 'extract' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                Bulk extract{bulkExtractCount ? ` (${bulkExtractCount})` : ''}
-              </button>
-              <button
-                type="button"
-                title={bulkClassifyCount ? `Run classify on ${bulkClassifyCount} document(s)` : 'No selected documents need classify'}
-                disabled={bulkBusyActive || bulkClassifyCount === 0}
-                onClick={() => void runBulkPipeline('classify')}
-                className={cn(
-                  'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                  bulkBusyActive || bulkClassifyCount === 0
-                    ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
-                    : 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20'
-                )}
-              >
-                {bulkBusy === 'classify' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                Bulk classify{bulkClassifyCount ? ` (${bulkClassifyCount})` : ''}
-              </button>
-              {filtered.length > paginatedDocuments.length && (
-                <button
-                  type="button"
-                  onClick={selectAllFiltered}
-                  className="px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-primary border border-transparent hover:border-border/10 transition-all"
-                >
-                  Select all {filtered.length}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-muted-foreground/50 hover:text-destructive transition-all"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="hidden xl:block overflow-x-auto relative z-10">
-          <table
-            className={cn(
-              'w-full table-fixed text-left border-collapse',
-              hasBulkActions ? 'min-w-[1080px]' : 'min-w-[1040px]'
-            )}
-          >
-            <colgroup>
-              {hasBulkActions ? <col style={{ width: '44px' }} /> : null}
-              <col style={{ width: '280px' }} />
-              <col style={{ width: '180px' }} />
-              <col style={{ width: '160px' }} />
-              <col style={{ width: '110px' }} />
-              <col style={{ width: '260px' }} />
-            </colgroup>
-            <thead className="bg-muted/5">
-              <tr>
-                {hasBulkActions ? (
-                      <th className="w-10 px-3 py-3">
-                    <input
-                      ref={headerCheckboxRef}
-                      type="checkbox"
-                      checked={allPageSelected}
-                      onChange={toggleSelectPage}
-                      disabled={manageableOnPage.length === 0}
-                      className="h-3.5 w-3.5 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 cursor-pointer accent-primary disabled:opacity-40"
-                      title="Select this page"
-                    />
-                  </th>
-                ) : null}
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em]">
-                  Asset Identity
-                </th>
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em] text-center">
-                  Pipeline Lifecycle
-                </th>
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em]">
-                  Custodian
-                </th>
-                <th className="px-2 py-2 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em]">
-                  Discovery
-                </th>
-                <th className="w-[260px] px-3 py-3 text-[9px] font-black text-muted-foreground/45 dark:text-muted-foreground/35 uppercase tracking-[0.2em] text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/20 dark:divide-border/30">
-              {paginatedDocuments.map((docItem: any) => {
-                const docBusy = Boolean(actionBusyKey?.startsWith(`${docItem.id}:`));
-                const isSelected = selectedIds.has(docItem.id);
-                return (
-                  <tr
-                    key={docItem.id}
-                    className={cn(
-                      'hover:bg-surface-highest/8 transition-all group/row',
-                      isSelected && 'bg-primary/[0.04]'
-                    )}
-                  >
-                    {hasBulkActions ? (
-                      <td className="w-5 px-2 py-4 align-middle">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          disabled={!docCanManage(docItem)}
-                          onChange={() => toggleSelected(docItem.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className={cn(
-                            'h-3.5 w-3.5 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 accent-primary',
-                            docCanManage(docItem) ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
-                          )}
-                        />
-                      </td>
-                    ) : null}
-                    <td className="px-2 py-4">
-                      <DocumentAssetIdentity
-                        fileName={docItem.fileName}
-                        type={docItem.type}
-                        size={docItem.size}
-                        density="table"
-                        sensitivityLevel={docItem.sensitivityLevel}
-                        canOpenFile={Boolean(docItem?.id)}
-                        isOpening={openDocBusyId === String(docItem?.id)}
-                        onFileNameClick={() => {
-                          void handleOpenDocument(docItem);
-                        }}
-                      />
-                    </td>
-                    <td className="px-2 py-4">
-                      <DocumentPipelineLifecycle pipeline={docItem.pipeline} />
-                    </td>
-                    <td className="px-2 py-4">
-                      <DocumentCustodian
-                        uploader={docItem.uploader}
-                        nameByEmail={custodianNameByEmail}
-                        variant="table"
-                      />
-                    </td>
-                    <td className="px-2 py-4 whitespace-nowrap">
-                      <span className="text-[10px] font-bold text-muted-foreground/60 dark:text-muted-foreground/50 tabular-nums tracking-wide">
-                        {formatDiscoveryUploadedAt(docItem.uploadedAt)}
-                      </span>
-                    </td>
-                    <td className="px-2 py-4 text-left align-top">
-                      <DocumentPipelineActions
-                        docItem={docItem}
-                        bulkBusyActive={bulkBusyActive}
-                        docBusy={docBusy}
-                        actionBusyKey={actionBusyKey}
-                        bustKey={bustKey}
-                        runPipeline={runPipeline}
-                        onOpenResults={(doc) => {
-                          void handleOpenResults(doc);
-                        }}
-                        onDeleteDocument={handleDeleteDocument}
-                        deleteBusyId={deleteBusyId}
-                        resultsLoadingDocId={resultLoadingDocId}
-                        variant="table"
-                        readOnly={!docCanManage(docItem)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="xl:hidden px-3 sm:px-4 py-4 space-y-3 border-t border-border/20 dark:border-border/35">
-          {paginatedDocuments.length === 0 ? (
-            <p className="text-center text-[12px] text-muted-foreground/50 py-12 font-medium">
-              No documents match your filters.
-            </p>
-          ) : (
-            paginatedDocuments.map((docItem: any) => {
-              const docBusy = Boolean(actionBusyKey?.startsWith(`${docItem.id}:`));
-              const isSelected = selectedIds.has(docItem.id);
-              return (
-                <article
-                  key={docItem.id}
-                  className={cn(
-                    'rounded-2xl border border-border/35 dark:border-border/50 bg-gradient-to-br from-surface-highest/26 to-transparent p-4 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all',
-                    isSelected && 'ring-1 ring-primary/35 bg-primary/[0.05]'
-                  )}
-                >
-                  <div className={cn('flex gap-3', !hasBulkActions && 'gap-0')}>
-                    {hasBulkActions ? (
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={!docCanManage(docItem)}
-                        onChange={() => toggleSelected(docItem.id)}
-                        className={cn(
-                          'mt-1 h-4 w-4 shrink-0 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 accent-primary',
-                          docCanManage(docItem) ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
-                        )}
-                      />
-                    ) : null}
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <DocumentAssetIdentity
-                        fileName={docItem.fileName}
-                        type={docItem.type}
-                        size={docItem.size}
-                        density="card"
-                        sensitivityLevel={docItem.sensitivityLevel}
-                        canOpenFile={Boolean(docItem?.id)}
-                        isOpening={openDocBusyId === String(docItem?.id)}
-                        onFileNameClick={() => {
-                          void handleOpenDocument(docItem);
-                        }}
-                      />
-                      <DocumentPipelineLifecycle
-                        pipeline={docItem.pipeline}
-                        className="flex flex-col items-center justify-center gap-2 py-1"
-                      />
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground/70">
-                        <DocumentCustodian
-                          uploader={docItem.uploader}
-                          nameByEmail={custodianNameByEmail}
-                          variant="card"
-                        />
-                        <span className="text-[10px] font-bold tracking-wide text-muted-foreground/60 dark:text-muted-foreground/50 tabular-nums">
-                          {formatDiscoveryUploadedAt(docItem.uploadedAt)}
-                        </span>
-                      </div>
-                      <div className="pt-1 border-t border-border/20 dark:border-border/35">
-                        <DocumentPipelineActions
-                          docItem={docItem}
-                          bulkBusyActive={bulkBusyActive}
-                          docBusy={docBusy}
-                          actionBusyKey={actionBusyKey}
-                          bustKey={bustKey}
-                          runPipeline={runPipeline}
-                          onOpenResults={(doc) => {
-                            void handleOpenResults(doc);
-                          }}
-                          onDeleteDocument={handleDeleteDocument}
-                          deleteBusyId={deleteBusyId}
-                          resultsLoadingDocId={resultLoadingDocId}
-                          variant="card"
-                          readOnly={!docCanManage(docItem)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })
-          )}
-        </div>
-
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(filtered.length / itemsPerPage)}
-          onPageChange={setCurrentPage}
-          totalItems={filtered.length}
-          itemsPerPage={itemsPerPage}
-        />
-        </div>
-      </section>
-
-      {connectorBrowserOpen ? (
-        <div className="fixed inset-0 z-[200] isolate flex min-h-[100dvh] items-center justify-center overflow-y-auto overflow-x-hidden overscroll-contain p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] animate-in fade-in duration-300">
-          <button
-            type="button"
-            tabIndex={-1}
-            className="absolute inset-0 bg-scrim backdrop-blur-md"
-            onClick={closeConnectorBrowserModal}
-            aria-label="Close connector browser"
-          />
-          <div
-            ref={connectorDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="connector-browser-title"
-            aria-describedby="connector-browser-description"
-            tabIndex={-1}
-            className="relative z-10 my-auto flex w-[min(96rem,calc(100vw-1.25rem))] max-h-[min(92vh,900px)] min-h-0 min-w-0 flex-col overflow-hidden rounded-[32px] border border-border/25 bg-surface-lowest p-4 shadow-2xl shadow-black/[0.08] ring-1 ring-black/[0.04] outline-none animate-in zoom-in-95 duration-300 dark:border-border/35 dark:shadow-black/40 dark:ring-white/[0.06] sm:p-5 md:p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ConnectorBrowserContent
-              variant="modal"
-              onClose={closeConnectorBrowserModal}
-              initialConnectorId={connectorBrowserLinkId}
-            />
-          </div>
-        </div>
-      ) : null}
+      <DocumentsConnectorModal
+        open={connectorBrowserOpen}
+        connectorDialogRef={connectorDialogRef}
+        initialConnectorId={connectorBrowserLinkId}
+        onClose={closeConnectorBrowserModal}
+      />
 
       <DocumentReviewDrawer
-        documentItem={resultModal}
-        reviewData={reviewData}
-        isOpen={!!resultModal}
-        onClose={() => {
-          setResultModal(null);
-          setReviewData(null);
-          setResultLoadingDocId(null);
-        }}
-        isLoading={Boolean(resultLoadingDocId)}
-        allowEdit={resultModal ? docCanReviewEdit(resultModal) : false}
-        allowExport={isCompanyAdmin || hasCapability('GROUP_DOC_VIEW')}
-        extractFormat={extractFormat}
-        onFormatChange={setExtractFormat}
-        onExport={handleExport}
-        onSaved={handleReviewSaved}
-        onError={handleReviewError}
+        documentItem={review.resultModal}
+        reviewData={review.reviewData}
+        isOpen={!!review.resultModal}
+        onClose={review.closeReview}
+        isLoading={Boolean(review.resultLoadingDocId)}
+        allowEdit={review.resultModal ? list.docCanReviewEdit(review.resultModal) : false}
+        allowExport={list.isCompanyAdmin || list.hasCapability('GROUP_DOC_VIEW')}
+        extractFormat={review.extractFormat}
+        onFormatChange={review.setExtractFormat}
+        onExport={review.handleExport}
+        onSaved={review.handleReviewSaved}
+        onError={review.handleReviewError}
       />
+
       <DocumentUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        orgWideUpload={isCompanyAdmin}
-        groups={uploadGroupChoices}
-        targetGroupId={targetGroupId}
-        setTargetGroupId={setTargetGroupId}
-        selectedFiles={selectedFiles}
-        setSelectedFiles={setSelectedFiles}
-        uploadSensitivityLevel={uploadSensitivityLevel}
-        onUploadSensitivityChange={setUploadSensitivityLevel}
-        uploadSensitivityOptions={uploadSensitivityOptions}
-        onUpload={() => {
-          const gid = isCompanyAdmin ? targetGroupId : targetGroupId || '';
-          if (!gid) {
-            void appAlert({
-              title: 'Choose a workspace',
-              description: isCompanyAdmin
-                ? 'Select a target group before uploading.'
-                : 'Pick an admin workspace to upload into.',
-              variant: 'warning',
-            });
-            return;
-          }
-          const userId = String(user?._id || user?.id || '').trim();
-          if (!userId) {
-            void appAlert({
-              title: 'Session issue',
-              description: 'Missing user id. Please sign in again.',
-              variant: 'danger',
-            });
-            return;
-          }
-          const orgId = context?.orgId ?? user?.orgId ?? null;
-          // ── Close modal immediately — upload runs in background ──
-          setIsUploadModalOpen(false);
-          setActiveTab('All');
-          setCurrentPage(1);
-          const filesToUpload = [...selectedFiles];
-          setSelectedFiles([]);
-          if (isCompanyAdmin) setTargetGroupId('');
-
-          // Fire-and-forget background upload
-          void (async () => {
-            const jobIds: string[] = [];
-            // Register all jobs upfront so the toast panel shows them immediately
-            for (const file of filesToUpload) {
-              const jobId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-              jobIds.push(jobId);
-              addJob({
-                id: jobId,
-                fileName: file.name,
-                fileSize: file.size,
-                status: 'uploading',
-                startedAt: Date.now(),
-              });
-            }
-            // Upload each file and update job status
-            const uploadGroupName =
-              uploadGroupChoices.find((g) => String(g.groupId) === String(gid))?.groupName || '';
-            const uploaderLabel =
-              (user?.displayName || user?.name || user?.username || user?.email || '').trim() ||
-              user?.email ||
-              '';
-
-            for (let i = 0; i < filesToUpload.length; i++) {
-              const file = filesToUpload[i];
-              const jobId = jobIds[i];
-              try {
-                const { data: uploadBody } = await uploadDocument(file, {
-                  userId,
-                  groupId: gid || null,
-                  orgId,
-                  sensitivityLevel: uploadSensitivityLevel,
-                });
-                updateJob(jobId, { status: 'done', finishedAt: Date.now() });
-                const newId = uploadBody?.id ? String(uploadBody.id) : '';
-                if (newId) {
-                  optimisticAppendUploadedDocument(queryClient, {
-                    id: newId,
-                    fileName: file.name,
-                    groupId: gid,
-                    groupName: uploadGroupName,
-                    uploader: uploaderLabel,
-                    sensitivityLevel: uploadSensitivityLevel,
-                  });
-                }
-              } catch (err: unknown) {
-                const errMsg = quotaErrorMessage(err, 'Upload failed');
-                updateJob(jobId, { status: 'error', error: errMsg, finishedAt: Date.now() });
-              }
-            }
-            await refreshPipelineDocuments(queryClient);
-            await queryClient.invalidateQueries({ queryKey: ['documents'] });
-          })();
-        }}
+        isOpen={upload.isUploadModalOpen}
+        onClose={() => upload.setIsUploadModalOpen(false)}
+        orgWideUpload={list.isCompanyAdmin}
+        groups={upload.uploadGroupChoices}
+        targetGroupId={upload.targetGroupId}
+        setTargetGroupId={upload.setTargetGroupId}
+        selectedFiles={upload.selectedFiles}
+        setSelectedFiles={upload.setSelectedFiles}
+        uploadSensitivityLevel={upload.uploadSensitivityLevel}
+        onUploadSensitivityChange={upload.setUploadSensitivityLevel}
+        uploadSensitivityOptions={upload.uploadSensitivityOptions}
+        onUpload={upload.runUpload}
       />
     </div>
   );

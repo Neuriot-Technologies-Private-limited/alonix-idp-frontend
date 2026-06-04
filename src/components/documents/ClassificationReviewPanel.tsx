@@ -8,6 +8,15 @@ import type {
 } from '../../types/documentReview';
 import { formatExtraLabelValue, formatPageNumberList, humanizeLabelKey } from '../../types/documentReview';
 
+const REVIEW_FIELD_INPUT =
+  'w-full rounded-lg border border-border/50 bg-surface-high/70 px-2.5 py-1.5 text-foreground shadow-inner outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary/45 focus:bg-surface-high focus:ring-1 focus:ring-primary/20';
+
+const REVIEW_ROW_HIGHLIGHT =
+  'border-primary/30 bg-primary/[0.08] ring-1 ring-primary/15';
+
+const REVIEW_LABEL =
+  'inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/90';
+
 function confidencePill(confidence: number | null, threshold: number) {
   if (confidence == null) {
     return (
@@ -23,7 +32,7 @@ function confidencePill(confidence: number | null, threshold: number) {
       className={cn(
         'rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest',
         low
-          ? 'border-amber-500/35 bg-amber-500/15 text-amber-400'
+          ? 'border-orange-400/30 bg-orange-400/10 text-orange-300'
           : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
       )}
     >
@@ -48,8 +57,8 @@ function DocumentGroupCard({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/30 bg-surface-highest/20 px-4 py-3',
-        group.needsReview && 'border-amber-500/35 bg-amber-500/[0.07] ring-1 ring-amber-500/20'
+        'rounded-xl border border-border/35 bg-surface-high/25 px-4 py-3',
+        group.needsReview && REVIEW_ROW_HIGHLIGHT
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -66,7 +75,7 @@ function DocumentGroupCard({
                 type="text"
                 value={group.category}
                 onChange={(e) => onCategoryChange(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-amber-500/30 bg-surface-lowest/80 px-2.5 py-1.5 text-sm font-bold text-foreground outline-none focus:border-primary/40"
+                className={cn('mt-1 text-sm font-bold', REVIEW_FIELD_INPUT)}
                 placeholder="e.g. Invoice, Contract"
               />
             ) : (
@@ -84,7 +93,7 @@ function DocumentGroupCard({
         </div>
         <div className="flex flex-col items-end gap-1">
           {group.needsReview ? (
-            <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-400">
+            <span className={REVIEW_LABEL}>
               <AlertCircle className="h-3 w-3" />
               Review
             </span>
@@ -113,7 +122,7 @@ export const ClassificationReviewPanel: React.FC<ClassificationReviewPanelProps>
     onStateChange({
       ...state,
       pageClassifications: state.pageClassifications.map((r, i) =>
-        i !== idx ? r : { ...r, ...patch, needsReview: false }
+        i !== idx ? r : { ...r, ...patch }
       ),
     });
   };
@@ -122,7 +131,7 @@ export const ClassificationReviewPanel: React.FC<ClassificationReviewPanelProps>
     onStateChange({
       ...state,
       documentGroups: state.documentGroups.map((g, i) =>
-        i !== idx ? g : { ...g, category, needsReview: false }
+        i !== idx ? g : { ...g, category }
       ),
     });
   };
@@ -202,8 +211,8 @@ export const ClassificationReviewPanel: React.FC<ClassificationReviewPanelProps>
                 <div
                   key={`${row.pageNum}-${i}`}
                   className={cn(
-                    'rounded-xl border border-border/30 bg-surface-highest/20 px-3 py-2.5',
-                    row.needsReview && 'border-amber-500/35 bg-amber-500/[0.07] ring-1 ring-amber-500/20'
+                    'rounded-xl border border-border/35 bg-surface-high/25 px-3 py-2.5',
+                    row.needsReview && REVIEW_ROW_HIGHLIGHT
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -213,7 +222,7 @@ export const ClassificationReviewPanel: React.FC<ClassificationReviewPanelProps>
                           Page {row.pageNum}
                         </span>
                         {row.needsReview ? (
-                          <AlertCircle className="h-3 w-3 text-amber-400" aria-hidden />
+                          <AlertCircle className="h-3 w-3 text-primary/80" aria-hidden />
                         ) : null}
                       </div>
                       <p className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
@@ -226,7 +235,7 @@ export const ClassificationReviewPanel: React.FC<ClassificationReviewPanelProps>
                           onChange={(e) =>
                             updateRow(i, { categoryName: e.target.value })
                           }
-                          className="mt-0.5 w-full rounded-lg border border-amber-500/30 bg-surface-lowest/80 px-2 py-1 text-[11px] font-semibold text-foreground outline-none focus:border-primary/40"
+                          className={cn('mt-0.5 text-[11px] font-semibold', REVIEW_FIELD_INPUT)}
                           placeholder="Category name"
                         />
                       ) : (

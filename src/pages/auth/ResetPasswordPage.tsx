@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Loader2, ArrowRight, ChevronLeft, KeyRound } from 'lucide-react';
 import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';
 import { authApi } from '../../services/authApi';
+import { useAuthUrlParams } from '../../hooks/useAuthUrlParams';
 
 const ResetPasswordPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token') || '';
-  const email = searchParams.get('email') || '';
-  const orgId = searchParams.get('orgId') || '';
+  const { token, email, orgId } = useAuthUrlParams(['token', 'email', 'orgId']);
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
