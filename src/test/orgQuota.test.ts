@@ -39,6 +39,7 @@ describe('orgQuota helpers', () => {
   it('isAtQuotaCap detects cap', () => {
     expect(isAtQuotaCap(50, 50)).toBe(true);
     expect(isAtQuotaCap(49, 50)).toBe(false);
+    expect(isAtQuotaCap(0, 0)).toBe(true);
   });
 
   it('wouldExceedUserQuota respects additional headcount', () => {

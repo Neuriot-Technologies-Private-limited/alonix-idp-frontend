@@ -21,7 +21,7 @@ import {
   upgradePitch,
   type BillingSubscriptionResponse,
 } from '../../services/billingService';
-import { useOrgQuota } from '../../hooks/useOrgQuota';
+import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
 
 function usagePercent(used: number, limit: number): number {
   if (limit === -1) return 0;
@@ -133,7 +133,7 @@ export const BillingPage: React.FC = () => {
     : null;
 
   const { data, isLoading, error } = useQuery<BillingSubscriptionResponse>({
-    queryKey: ['billing-subscription', orgId],
+    queryKey: billingSubscriptionQueryKey(orgId),
     queryFn: fetchBillingSubscription,
     enabled: !!orgId,
     staleTime: 30_000,

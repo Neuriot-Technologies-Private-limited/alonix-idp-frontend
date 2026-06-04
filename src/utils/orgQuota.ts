@@ -35,7 +35,7 @@ export function computeRemaining(used: number, limit: number): number | null {
 
 export function isAtQuotaCap(used: number, limit: number): boolean {
   if (limit === -1) return false;
-  if (limit === 0) return used > 0 || used >= 0;
+  if (limit === 0) return true;
   return used >= limit;
 }
 
@@ -95,7 +95,7 @@ export function buildOrgQuotaSnapshot(data: BillingSubscriptionResponse): OrgQuo
     storageBytes: metric(
       'storageBytes',
       usage.storageBytes ?? 0,
-      limits.maxStorageBytes ?? 0,
+      limits.maxStorageBytes ?? -1,
       false
     ),
   };
