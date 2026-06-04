@@ -30,7 +30,10 @@ export const UserManagement: React.FC = () => {
   const { data: groupHealthList = [] } = useGroupHealth();
   const { orgRole, hasAnyGroupAdmin, adminGroupIds } = useRbac();
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
-  const activeGroupId = useAuthStore((s) => s.context?.activeGroupId);
+  const context = useAuthStore((s) => s.context);
+  const activeGroupId = context?.activeGroupId ?? null;
+  const activeGroupNameNorm =
+    context?.groups?.find((g) => g.groupId === activeGroupId)?.groupName?.trim().toLowerCase() ?? '';
   const adminIdSet = React.useMemo(
     () => (!isCompanyAdmin && adminGroupIds?.length ? new Set(adminGroupIds.map(String)) : null),
     [isCompanyAdmin, adminGroupIds]
@@ -64,13 +67,33 @@ export const UserManagement: React.FC = () => {
     );
   }, [users, isCompanyAdmin, hasAnyGroupAdmin, adminIdSet]);
 
+  const usersInScope = React.useMemo(() => {
+    if (!baseUsers.length) return [];
+    const matchesActiveWorkspace = (u: User) => {
+      if (!activeGroupId) return true;
+      const gid = String(activeGroupId);
+      if (String(u.groupID) === gid) return true;
+      if (u.workspaces?.some((w) => String(w.groupId) === gid)) return true;
+      if (u.pendingInvites?.some((p) => String(p.groupId) === gid)) return true;
+      const gname = String(u.group || '').trim().toLowerCase();
+      if (activeGroupNameNorm && gname === activeGroupNameNorm) return true;
+      return false;
+    };
+    return baseUsers.filter(matchesActiveWorkspace);
+  }, [baseUsers, activeGroupId, activeGroupNameNorm]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+    setGroupFilter('All');
+  }, [activeGroupId]);
+
   const groups = React.useMemo(() => {
-    if (!baseUsers.length) return ['All'];
-    const labels = baseUsers
+    if (!usersInScope.length) return ['All'];
+    const labels = usersInScope
       .map((u: User) => u.group)
       .filter((g) => g && g !== '—');
     return ['All', ...Array.from(new Set(labels))];
-  }, [baseUsers]);
+  }, [usersInScope]);
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -79,8 +102,8 @@ export const UserManagement: React.FC = () => {
   const statuses = ['All', 'Active', 'Inactive', 'Pending'];
 
   const filtered = React.useMemo(() => {
-    if (!baseUsers.length) return [];
-    return baseUsers.filter((u: User) => {
+    if (!usersInScope.length) return [];
+    return usersInScope.filter((u: User) => {
       const q = search.toLowerCase();
       const matchSearch =
         !q ||
@@ -91,16 +114,16 @@ export const UserManagement: React.FC = () => {
       const matchStatus = statusFilter === 'All' || u.status === statusFilter;
       return matchSearch && matchGroup && matchStatus;
     });
-  }, [baseUsers, search, groupFilter, statusFilter]);
+  }, [usersInScope, search, groupFilter, statusFilter]);
 
   const paginatedUsers = React.useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filtered.slice(start, start + itemsPerPage);
   }, [filtered, currentPage, itemsPerPage]);
 
-  const totalUsers = baseUsers.length;
-  const activeCount = baseUsers.filter((u: User) => u.status === 'Active').length;
-  const pendingCount = baseUsers.filter((u: User) => u.status === 'Pending').length;
+  const totalUsers = usersInScope.length;
+  const activeCount = usersInScope.filter((u: User) => u.status === 'Active').length;
+  const pendingCount = usersInScope.filter((u: User) => u.status === 'Pending').length;
   const hasFilters = search || groupFilter !== 'All' || statusFilter !== 'All';
 
   const inviteGroups = React.useMemo(() => {
