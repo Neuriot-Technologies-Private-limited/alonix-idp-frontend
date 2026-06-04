@@ -11,7 +11,7 @@ import { useDashboardState } from '../../services/adminService';
 import { StatCard } from '../../components/ui/StatCard';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../brand/useBrand';
-import { isEnterpriseBuild } from '../../brand/deploymentProfile';
+import { isSelfServeBillingEnabled } from '../../brand/brandConfig';
 
 const OrgSettingsPage: React.FC = () => {
   const { t } = useTranslation('orgSettings');
@@ -94,7 +94,7 @@ const OrgSettingsPage: React.FC = () => {
       {/* For COMPANY_ADMIN only (route-level gating). */}
       <ConnectorsPanel />
       <OrgAiSettingsPanel />
-      {!isEnterpriseBuild() ? <SubscriptionPanel /> : null}
+      {isSelfServeBillingEnabled() ? <SubscriptionPanel /> : null}
     </div>
   );
 };

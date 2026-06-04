@@ -34,6 +34,7 @@ import ScrollToTop from './components/routing/ScrollToTop';
 import { getDefaultAuthedPath, isSearchUserOnly } from './utils/routingAuth';
 import { hasActiveSession } from './utils/session';
 import { isEnterpriseBuild } from './brand/deploymentProfile';
+import { isSelfServeBillingEnabled } from './brand/brandConfig';
 import './index.css';
 
 /** Redirects SaaS-only public routes when built for enterprise deployment. */
@@ -42,8 +43,15 @@ function EnterpriseRouteGuard({ children }: { children: ReactNode }) {
   return <Navigate to="/login" replace />;
 }
 
-function EnterpriseBillingRedirect() {
-  return <Navigate to="/org-settings" replace />;
+function PricingRouteGuard({ children }: { children: ReactNode }) {
+  if (isEnterpriseBuild()) return <Navigate to="/login" replace />;
+  if (!isSelfServeBillingEnabled()) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function BillingSettingsRoute() {
+  if (!isSelfServeBillingEnabled()) return <Navigate to="/org-settings" replace />;
+  return <BillingPage />;
 }
 
 const ForbiddenPage = () => (
@@ -144,9 +152,9 @@ function App() {
             <Route
               path="/pricing"
               element={
-                <EnterpriseRouteGuard>
+                <PricingRouteGuard>
                   <PricingPage />
-                </EnterpriseRouteGuard>
+                </PricingRouteGuard>
               }
             />
 
@@ -160,12 +168,7 @@ function App() {
                 <Route element={<RoleProtectedRoute requiredOrgRole="COMPANY_ADMIN" />}>
                   <Route path="/org-settings" element={<OrgSettingsPage />} />
                   <Route path="/activity" element={<ActivityLogs />} />
-                  <Route
-                    path="/settings/billing"
-                    element={
-                      isEnterpriseBuild() ? <EnterpriseBillingRedirect /> : <BillingPage />
-                    }
-                  />
+                  <Route path="/settings/billing" element={<BillingSettingsRoute />} />
                 </Route>
 
                 <Route element={<RoleProtectedRoute requiredAnyGroupAdmin />}>

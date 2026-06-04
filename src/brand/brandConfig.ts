@@ -114,3 +114,8 @@ export const brandConfig: BrandConfig = {
   usersShotUrl: optional('VITE_BRAND_USERS_SHOT', '/brand/product-users.png'),
   documentsShotUrl: optional('VITE_BRAND_DOCUMENTS_SHOT', '/brand/product-documents.png'),
 };
+
+/** Landing pricing, /pricing, org subscription panel, and /settings/billing. */
+export function isSelfServeBillingEnabled(): boolean {
+  return brandConfig.showPricing;
+}

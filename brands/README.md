@@ -85,7 +85,7 @@ Enterprise builds hide public landing, pricing, signup, and billing UI.
 | Primary colour | `brand.env` | `VITE_BRAND_PRIMARY_LIGHT/DARK` |
 | Landing page text | `i18n/en/landing.json` | (strings) |
 | Footer links | `brand.env` | `VITE_BRAND_PRIVACY_URL` etc. |
-| Show/hide pricing | `brand.env` | `VITE_BRAND_SHOW_PRICING` |
+| Show/hide pricing | `brand.env` | `VITE_BRAND_SHOW_PRICING` (landing, `/pricing`, org subscription panel, `/settings/billing`) |
 | SaaS vs enterprise | `profiles/enterprise.env` or npm `*:enterprise` | `VITE_DEPLOYMENT_PROFILE` |
 
 ## Rules
