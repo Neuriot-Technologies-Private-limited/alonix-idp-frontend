@@ -5,12 +5,14 @@ import {
   Zap, CheckCircle2, Search, LayoutGrid, X,
   Box, Plug,
 } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../services/api/client';
 import { browseConnector, ingestFile } from '../../services/connectorBrowserApi';
 import type { BrowseResult, ConnectorItem } from '../../services/connectorBrowserApi';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
+import { quotaErrorMessage } from '../../utils/billingQuota';
+import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
 
 export interface ConnectorBrowserContentProps {
   /** Full page hero vs compact modal header */
@@ -84,6 +86,10 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
 }) => {
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
+  const queryClient = useQueryClient();
+  const { atCap, capMessage, blocksUsage } = useOrgQuota();
+  const ingestBlocked = blocksUsage || atCap('documentsMonth');
+  const [ingestError, setIngestError] = useState('');
 
   const [selectedConnectorId, setSelectedConnectorId] = useState<string>(initialConnectorId || '');
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -127,8 +133,13 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
       return ingestFile(selectedConnectorId, { path: item.path, itemId: item.id });
     },
     onSuccess: (_, item) => {
+      setIngestError('');
       setIngestSuccessKey(ingestItemKey(selectedConnectorId, item));
       setTimeout(() => setIngestSuccessKey(''), 4000);
+      void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
+    },
+    onError: (err: unknown) => {
+      setIngestError(quotaErrorMessage(err, 'Failed to queue ingest. Please try again.'));
     },
   });
 
@@ -501,8 +512,16 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
                   <button
                     type="button"
                     id={`ingest-file-${selectedItem.id ?? selectedItem.path ?? selectedItem.name}`}
-                    onClick={() => ingestMutation.mutate(selectedItem)}
-                    disabled={ingestMutation.isPending}
+                    title={ingestBlocked ? capMessage('documentsMonth') : undefined}
+                    onClick={() => {
+                      if (ingestBlocked) {
+                        setIngestError(capMessage('documentsMonth'));
+                        return;
+                      }
+                      setIngestError('');
+                      ingestMutation.mutate(selectedItem);
+                    }}
+                    disabled={ingestMutation.isPending || ingestBlocked}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {ingestMutation.isPending
@@ -511,8 +530,10 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
                     }
                   </button>
                 )}
-                {ingestMutation.isError && (
-                  <p className="text-xs text-destructive text-center">Failed to queue. Please try again.</p>
+                {(ingestError || ingestMutation.isError) && (
+                  <p className="text-xs text-destructive text-center">
+                    {ingestError || 'Failed to queue. Please try again.'}
+                  </p>
                 )}
                 <p className="text-[10px] text-muted-foreground text-center">
                   File will be processed through the AI ingestion pipeline

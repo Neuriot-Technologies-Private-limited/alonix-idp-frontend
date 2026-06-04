@@ -11,6 +11,7 @@ export interface BillingPlan {
   limits: {
     maxConnectors: number;
     maxDocumentsMonth: number;
+    maxQuestionsMonth: number;
     maxUsers: number;
     maxStorageBytes: number;
   };
@@ -44,11 +45,17 @@ export interface BillingSubscriptionResponse {
   };
   usage: {
     docsThisMonth: number;
+    questionsThisMonth: number;
     connectors: number;
     users: number;
     storageBytes: number;
   };
   limits: BillingPlan['limits'];
+  usagePeriod?: {
+    periodStart: string;
+    periodEnd: string;
+    periodKey: string;
+  };
 }
 
 export const PLAN_ORDER: Record<string, number> = {
@@ -88,6 +95,7 @@ export function planQuotaPills(plan: BillingPlan): string[] {
   return [
     connectorQuotaLabel(plan.limits.maxConnectors),
     `${limitLabel(plan.limits.maxDocumentsMonth)} docs/mo`,
+    `${limitLabel(plan.limits.maxQuestionsMonth)} Q&A/mo`,
     `${limitLabel(plan.limits.maxUsers)} users`,
     `${fmtBytes(plan.limits.maxStorageBytes)} storage`,
   ];

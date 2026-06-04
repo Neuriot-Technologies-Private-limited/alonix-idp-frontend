@@ -17,6 +17,7 @@ function makeAxiosError(status: number, data: Record<string, unknown>): AxiosErr
 describe('QUOTA_ERROR_CODES', () => {
   it('contains all expected billing error codes', () => {
     expect(QUOTA_ERROR_CODES.has('DOCUMENT_QUOTA_REACHED')).toBe(true);
+    expect(QUOTA_ERROR_CODES.has('QA_QUOTA_REACHED')).toBe(true);
     expect(QUOTA_ERROR_CODES.has('CONNECTOR_LIMIT_REACHED')).toBe(true);
     expect(QUOTA_ERROR_CODES.has('USER_LIMIT_REACHED')).toBe(true);
     expect(QUOTA_ERROR_CODES.has('STORAGE_QUOTA_REACHED')).toBe(true);

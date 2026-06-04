@@ -547,6 +547,7 @@ export const adminService = {
     );
     return data.settings;
   },
+
 };
 
 export const useDashboardState = () => {

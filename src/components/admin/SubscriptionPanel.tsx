@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import {
-  CreditCard, Zap, FileText, Users, HardDrive, Crown,
+  CreditCard, Zap, FileText, MessageSquare, Users, HardDrive, Crown,
   ArrowUpRight, CheckCircle2, AlertTriangle, Loader2,
   TrendingUp, Calendar, Sparkles, BarChart3, X,
 } from 'lucide-react';
@@ -23,6 +23,7 @@ import {
 } from '../../services/billingService';
 import PricingModal from './PricingModal';
 import { useAlert } from '../alert';
+import { useOrgQuota } from '../../hooks/useOrgQuota';
 
 
 function limitLabel(n: number) { return n === -1 ? '∞' : String(n); }
@@ -70,7 +71,9 @@ const planGrad: Record<string, string> = {
 const UsageBar: React.FC<{
   label: string; icon: React.ReactNode;
   used: number; limit: number; displayUsed?: string; displayLimit?: string;
-}> = ({ label, icon, used, limit, displayUsed, displayLimit }) => {
+  remaining?: number | null;
+  resetLabel?: string | null;
+}> = ({ label, icon, used, limit, displayUsed, displayLimit, remaining, resetLabel }) => {
   const overLimit = limit > 0 && limit !== -1 && used > limit;
   const pct = usagePct(used, limit);
   const barCol = overLimit ? 'bg-destructive' : pct >= 90 ? 'bg-destructive' : pct >= 70 ? 'bg-amber-500' : 'bg-primary';
@@ -94,6 +97,11 @@ const UsageBar: React.FC<{
           <div className={cn('h-full rounded-full transition-all duration-700', barCol)} style={{ width: `${overLimit ? 100 : pct}%` }} />
         )}
       </div>
+      {remaining != null && limit !== -1 && (
+        <p className="text-[10px] text-muted-foreground">
+          {remaining} remaining{resetLabel ? ` · resets ${resetLabel}` : ''}
+        </p>
+      )}
       {overLimit && (
         <p className="text-[10px] font-bold text-destructive">Over plan limit — upgrade to add capacity.</p>
       )}
@@ -105,6 +113,10 @@ const UsageBar: React.FC<{
 const SubscriptionPanel: React.FC = () => {
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
+  const { quota: orgQuota } = useOrgQuota();
+  const monthlyResetLabel = orgQuota?.usageResetAt
+    ? new Date(orgQuota.usageResetAt).toLocaleDateString()
+    : null;
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -356,13 +368,21 @@ const SubscriptionPanel: React.FC = () => {
 
         {/* ── Usage meters ─────────────────────────────────────────────── */}
         <div className="rounded-2xl border border-border/10 bg-surface-highest/5 p-4 space-y-4">
-          <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Usage This Month
-          </h3>
-          <UsageBar label="Documents Ingested" icon={<FileText className="h-3.5 w-3.5" />} used={usage.docsThisMonth} limit={limits.maxDocumentsMonth} />
-          <UsageBar label="Active Connectors"  icon={<Zap className="h-3.5 w-3.5" />}      used={usage.connectors}     limit={limits.maxConnectors} />
-          <UsageBar label="Team Members"       icon={<Users className="h-3.5 w-3.5" />}     used={usage.users}          limit={limits.maxUsers} />
-          <UsageBar label="Storage"            icon={<HardDrive className="h-3.5 w-3.5" />} used={usage.storageBytes ?? 0} limit={limits.maxStorageBytes} displayUsed={fmtBytes(usage.storageBytes ?? 0)} displayLimit={fmtBytes(limits.maxStorageBytes)} />
+          <div>
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" /> Usage This Month
+            </h3>
+            {monthlyResetLabel && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Monthly usage resets {monthlyResetLabel}
+              </p>
+            )}
+          </div>
+          <UsageBar label="Documents Ingested" icon={<FileText className="h-3.5 w-3.5" />} used={usage.docsThisMonth} limit={limits.maxDocumentsMonth} remaining={orgQuota?.metrics.documentsMonth.remaining} resetLabel={monthlyResetLabel} />
+          <UsageBar label="Q&A Requests" icon={<MessageSquare className="h-3.5 w-3.5" />} used={usage.questionsThisMonth ?? 0} limit={limits.maxQuestionsMonth ?? 50} remaining={orgQuota?.metrics.questionsMonth.remaining} resetLabel={monthlyResetLabel} />
+          <UsageBar label="Active Connectors"  icon={<Zap className="h-3.5 w-3.5" />}      used={usage.connectors}     limit={limits.maxConnectors} remaining={orgQuota?.metrics.connectors.remaining} />
+          <UsageBar label="Team Members"       icon={<Users className="h-3.5 w-3.5" />}     used={usage.users}          limit={limits.maxUsers} remaining={orgQuota?.metrics.users.remaining} />
+          <UsageBar label="Storage"            icon={<HardDrive className="h-3.5 w-3.5" />} used={usage.storageBytes ?? 0} limit={limits.maxStorageBytes} displayUsed={fmtBytes(usage.storageBytes ?? 0)} displayLimit={fmtBytes(limits.maxStorageBytes)} remaining={orgQuota?.metrics.storageBytes.remaining} />
         </div>
 
         {/* ── Quick upgrade CTA (only when not on highest paid plan) ───── */}
@@ -424,6 +444,7 @@ const SubscriptionPanel: React.FC = () => {
           {[
             { label: 'Connectors', value: pillQuota(limits.maxConnectors), icon: <Zap className="h-3.5 w-3.5 text-primary" /> },
             { label: 'Docs/Month',  value: pillQuota(limits.maxDocumentsMonth), icon: <FileText className="h-3.5 w-3.5 text-info" /> },
+            { label: 'Q&A/Month',   value: pillQuota(limits.maxQuestionsMonth), icon: <MessageSquare className="h-3.5 w-3.5 text-primary" /> },
             { label: 'Users',       value: pillQuota(limits.maxUsers), icon: <Users className="h-3.5 w-3.5 text-violet" /> },
             { label: 'Storage',     value: fmtBytes(limits.maxStorageBytes), icon: <HardDrive className="h-3.5 w-3.5 text-emerald-400" /> },
           ].map(({ label, value, icon }) => (

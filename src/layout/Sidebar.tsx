@@ -13,7 +13,6 @@ import { useUIStore } from '../stores/uiStore';
 import { useRbac } from '../hooks/useRbac';
 import { cn } from '../utils/cn';
 import { useBrand } from '../brand/useBrand';
-
 interface NavItem {
   icon: any;
   label: string;

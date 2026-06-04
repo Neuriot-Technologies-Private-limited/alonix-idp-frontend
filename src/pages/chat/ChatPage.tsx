@@ -21,6 +21,8 @@ import { ChatAlertModal } from './components/ChatAlertModal';
 import { ChatToast } from './components/ChatToast';
 import { useTranslation } from 'react-i18next';
 import { sanitizeChatHtml } from '../../utils/sanitizeChatHtml';
+import { quotaErrorMessage } from '../../utils/billingQuota';
+import { useOrgQuota } from '../../hooks/useOrgQuota';
 
 /** Referenced in DOM createElement — keep so Tailwind can scan utility strings */
 const SOURCE_PILL_CLASS =
@@ -239,6 +241,8 @@ function formatSessionMeta(iso: string): string {
 }
 
 const ChatPage: React.FC = () => {
+  const { atCap, capMessage, blocksUsage } = useOrgQuota();
+  const qaBlocked = blocksUsage || atCap('questionsMonth');
   const { t } = useTranslation('chat');
   const user = useAuthStore((s) => s.user);
   const context = useAuthStore((s) => s.context);
@@ -416,6 +420,12 @@ const ChatPage: React.FC = () => {
   const submitHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text || isResponseLoading) return;
+    if (qaBlocked) {
+      const msg = capMessage('questionsMonth');
+      setErrorText(msg);
+      showToast(msg, 'error');
+      return;
+    }
     setIsResponseLoading(true);
     setErrorText('');
     let sessionId = currentSession;
@@ -450,8 +460,8 @@ const ChatPage: React.FC = () => {
       ]);
       setText('');
       if (userEmail) void loadChatSessions();
-    } catch {
-      const msg = 'Failed to get answer.';
+    } catch (err) {
+      const msg = quotaErrorMessage(err, 'Failed to get answer.');
       setErrorText(msg);
       showToast(msg, 'error');
     } finally {
@@ -696,6 +706,8 @@ const ChatPage: React.FC = () => {
         <ChatComposer
           value={text}
           isResponseLoading={isResponseLoading}
+          submitDisabled={qaBlocked}
+          submitDisabledReason={qaBlocked ? capMessage('questionsMonth') : undefined}
           onChange={setText}
           onSubmit={submitHandler}
         />

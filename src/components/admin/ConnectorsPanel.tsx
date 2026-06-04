@@ -11,6 +11,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { updateConnector } from '../../services/connectorBrowserApi';
 import { quotaErrorMessage } from '../../utils/billingQuota';
+import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
 import { useAlert } from '../alert';
 
 interface Connector {
@@ -30,6 +31,8 @@ type ConnectorType = 'EMAIL' | 'SHAREPOINT' | 'SFTP';
 export const ConnectorsPanel: React.FC = () => {
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
+  const { atCap, capMessage, blocksUsage } = useOrgQuota();
+  const connectorBlocked = blocksUsage || atCap('connectors');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { alert: appAlert } = useAlert();
@@ -43,6 +46,14 @@ export const ConnectorsPanel: React.FC = () => {
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const openModal = () => {
+    if (connectorBlocked) {
+      appAlert({
+        variant: 'warning',
+        title: 'Connector limit reached',
+        description: capMessage('connectors'),
+      });
+      return;
+    }
     setNewType('EMAIL');
     setIngestionMode('new-only'); // reset each time
     setIsModalOpen(true);
@@ -66,6 +77,7 @@ export const ConnectorsPanel: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connectors', orgId] });
+      void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
       setIsModalOpen(false);
     },
     onError: (err: unknown) => {
@@ -169,8 +181,11 @@ export const ConnectorsPanel: React.FC = () => {
           </div>
           <button
             id="add-connector-btn"
+            type="button"
             onClick={openModal}
-            className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02]"
+            disabled={connectorBlocked}
+            title={connectorBlocked ? capMessage('connectors') : undefined}
+            className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
           >
             <Plus className="h-4 w-4" />
             Add Connector

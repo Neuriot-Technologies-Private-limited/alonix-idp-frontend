@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
-  CreditCard, Zap, TrendingUp, Users, FileText, HardDrive,
+  CreditCard, Zap, TrendingUp, Users, FileText, MessageSquare, HardDrive,
   CheckCircle2, AlertTriangle, ArrowUpRight, Loader2, Crown,
   BarChart3, Calendar, ArrowLeft,
 } from 'lucide-react';
@@ -15,11 +15,13 @@ import { fmtBytes, limitLabel, productPlanDescription, stripePriceIdForCycle, ty
 import {
   fetchBillingPlans,
   fetchBillingConfig,
+  fetchBillingSubscription,
   getNextUpgradePlan,
   planQuotaPills,
   upgradePitch,
   type BillingSubscriptionResponse,
 } from '../../services/billingService';
+import { useOrgQuota } from '../../hooks/useOrgQuota';
 
 function usagePercent(used: number, limit: number): number {
   if (limit === -1) return 0;
@@ -44,9 +46,20 @@ interface UsageBarProps {
   limit: number;
   unit?: string;
   formatValue?: (v: number) => string;
+  remaining?: number | null;
+  resetLabel?: string | null;
 }
 
-const UsageBar: React.FC<UsageBarProps> = ({ label, icon, used, limit, unit = '', formatValue }) => {
+const UsageBar: React.FC<UsageBarProps> = ({
+  label,
+  icon,
+  used,
+  limit,
+  unit = '',
+  formatValue,
+  remaining,
+  resetLabel,
+}) => {
   const pct = usagePercent(used, limit);
   const displayUsed = formatValue ? formatValue(used) : `${used}${unit ? ` ${unit}` : ''}`;
   const displayLimit = limit === -1 ? 'Unlimited' : (formatValue ? formatValue(limit) : `${limit}${unit ? ` ${unit}` : ''}`);
@@ -79,6 +92,11 @@ const UsageBar: React.FC<UsageBarProps> = ({ label, icon, used, limit, unit = ''
       {limit === -1 && (
         <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-primary/30 via-violet/30 to-info/30" />
       )}
+      {remaining != null && limit !== -1 && (
+        <p className="text-[10px] text-muted-foreground">
+          {remaining} remaining{resetLabel ? ` · resets ${resetLabel}` : ''}
+        </p>
+      )}
     </div>
   );
 };
@@ -109,12 +127,14 @@ export const BillingPage: React.FC = () => {
     navigate(`/org-settings?${params.toString()}`, { replace: true });
   }, [searchParams, navigate]);
 
+  const { quota: orgQuota } = useOrgQuota();
+  const monthlyResetLabel = orgQuota?.usageResetAt
+    ? new Date(orgQuota.usageResetAt).toLocaleDateString()
+    : null;
+
   const { data, isLoading, error } = useQuery<BillingSubscriptionResponse>({
     queryKey: ['billing-subscription', orgId],
-    queryFn: async () => {
-      const { data } = await apiClient.get<BillingSubscriptionResponse>('/billing/subscription');
-      return data;
-    },
+    queryFn: fetchBillingSubscription,
     enabled: !!orgId,
     staleTime: 30_000,
   });
@@ -269,28 +289,47 @@ export const BillingPage: React.FC = () => {
         {/* Usage */}
         <div className="xl:col-span-8 rounded-3xl border border-border/20 bg-surface-lowest shadow-xl overflow-hidden">
           <div className="p-6 sm:p-8">
-            <h3 className="text-base font-black text-foreground flex items-center gap-2 mb-6">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              Usage This Month
-            </h3>
+            <div className="mb-6">
+              <h3 className="text-base font-black text-foreground flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Usage This Month
+              </h3>
+              {monthlyResetLabel && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Monthly usage resets {monthlyResetLabel}
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-x-8">
               <UsageBar
                 label="Documents Ingested"
                 icon={<FileText className="h-4 w-4" />}
                 used={usage.docsThisMonth}
                 limit={limits.maxDocumentsMonth}
+                remaining={orgQuota?.metrics.documentsMonth.remaining}
+                resetLabel={monthlyResetLabel}
+              />
+              <UsageBar
+                label="Q&A Requests"
+                icon={<MessageSquare className="h-4 w-4" />}
+                used={usage.questionsThisMonth ?? 0}
+                limit={limits.maxQuestionsMonth ?? 50}
+                remaining={orgQuota?.metrics.questionsMonth.remaining}
+                resetLabel={monthlyResetLabel}
               />
               <UsageBar
                 label="Active Connectors"
                 icon={<Zap className="h-4 w-4" />}
                 used={usage.connectors}
                 limit={limits.maxConnectors}
+                remaining={orgQuota?.metrics.connectors.remaining}
               />
               <UsageBar
                 label="Team Members"
                 icon={<Users className="h-4 w-4" />}
                 used={usage.users}
                 limit={limits.maxUsers}
+                remaining={orgQuota?.metrics.users.remaining}
               />
               <UsageBar
                 label="Storage"
@@ -298,6 +337,7 @@ export const BillingPage: React.FC = () => {
                 used={usage.storageBytes ?? 0}
                 limit={limits.maxStorageBytes}
                 formatValue={fmtBytes}
+                remaining={orgQuota?.metrics.storageBytes.remaining}
               />
             </div>
           </div>

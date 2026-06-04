@@ -15,6 +15,7 @@ import {
   type DocumentSensitivityLevel,
 } from '../../../constants/documentSensitivity';
 import { quotaErrorMessage } from '../../../utils/billingQuota';
+import { billingSubscriptionQueryKey, useOrgQuota } from '../../../hooks/useOrgQuota';
 
 export interface InviteUsersToGroupModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
   }, []);
 
   const groupLocked = Boolean(fixedGroupId);
+  const { atCap, capMessage, blocksUsage } = useOrgQuota();
   const queryClient = useQueryClient();
   const context = useAuthStore((s) => s.context);
   const authGroups = useAuthStore((s) => s.context?.groups ?? []);
@@ -172,6 +174,9 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
       await queryClient.invalidateQueries({ queryKey: ['group-health'] });
       await queryClient.invalidateQueries({ queryKey: ['group-detail'] });
       await queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      void queryClient.invalidateQueries({
+        queryKey: billingSubscriptionQueryKey(context?.orgId),
+      });
       onClose();
     } catch (err: unknown) {
       setError(quotaErrorMessage(err, 'Something went wrong. Try again.'));
@@ -199,6 +204,11 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
     fixedGroupId ||
     '';
 
+  const pendingNewInvite =
+    inviteName.trim().length > 0 && inviteEmail.trim().length > 0;
+  const additionalUsers = pendingNewInvite ? 1 : 0;
+  const userQuotaBlocked = blocksUsage || atCap('users', { additional: additionalUsers });
+
   return (
     <Modal
       isOpen={isOpen}
@@ -220,7 +230,8 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || userQuotaBlocked}
+            title={userQuotaBlocked ? capMessage('users') : undefined}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-[11px] font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
           >
             {mutation.isPending ? (
@@ -236,6 +247,11 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
       }
     >
       <div className="max-h-[min(70vh,540px)] space-y-5 overflow-y-auto pr-1 custom-scrollbar">
+        {userQuotaBlocked ? (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            {capMessage('users')}
+          </p>
+        ) : null}
         <div className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
             Target group

@@ -3,6 +3,7 @@ import { isEnterpriseBuild } from '../brand/deploymentProfile';
 
 export const QUOTA_ERROR_CODES = new Set([
   'DOCUMENT_QUOTA_REACHED',
+  'QA_QUOTA_REACHED',
   'CONNECTOR_LIMIT_REACHED',
   'USER_LIMIT_REACHED',
   'STORAGE_QUOTA_REACHED',

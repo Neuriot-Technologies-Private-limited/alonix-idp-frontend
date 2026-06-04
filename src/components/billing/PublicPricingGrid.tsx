@@ -33,10 +33,12 @@ const PLAN_STYLES: Record<string, { gradient: string; icon: React.ReactNode; fea
 
 function planFeatures(plan: BillingPlan): string[] {
   const docs = limitLabel(plan.limits.maxDocumentsMonth);
+  const qa = limitLabel(plan.limits.maxQuestionsMonth);
   const users = limitLabel(plan.limits.maxUsers);
   const stor = fmtBytes(plan.limits.maxStorageBytes);
   return [
     `${docs} documents / month`,
+    `${qa} Q&A requests / month`,
     connectorQuotaLabel(plan.limits.maxConnectors),
     `${users} team member${plan.limits.maxUsers === 1 ? '' : 's'}`,
     `${stor} storage`,

@@ -19,6 +19,7 @@ function plan(name: string, priceMonthlyUsd: number, overrides: Partial<BillingP
     limits: {
       maxConnectors: 2,
       maxDocumentsMonth: 100,
+      maxQuestionsMonth: 50,
       maxUsers: 5,
       maxStorageBytes: 1_073_741_824,
     },
@@ -63,6 +64,7 @@ describe('billingService helpers', () => {
     expect(planQuotaPills(starter)).toEqual([
       '2 connectors',
       '100 docs/mo',
+      '50 Q&A/mo',
       '5 users',
       '1 GB storage',
     ]);

@@ -51,6 +51,7 @@ import {
   type DocumentSensitivityLevel,
 } from '../../constants/documentSensitivity';
 import { quotaErrorMessage } from '../../utils/billingQuota';
+import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
 import {
   markPipelineStageFailed,
   optimisticAppendUploadedDocument,
@@ -70,6 +71,8 @@ function getConnectorDialogFocusables(root: HTMLElement): HTMLElement[] {
 }
 
 export const DocumentsPage: React.FC = () => {
+  const { atCap } = useOrgQuota();
+  const ingestQuotaBlocked = atCap('documentsMonth');
   const [searchParams, setSearchParams] = useSearchParams();
   const connectorBrowserOpen = searchParams.get('connectors') === '1';
   const connectorBrowserLinkId = searchParams.get('connectorId');
@@ -366,14 +369,21 @@ export const DocumentsPage: React.FC = () => {
         await triggerClassify(docId, gid || null);
       }
       await refreshPipelineDocuments(queryClient);
+      if (action === 'ingest') {
+        void queryClient.invalidateQueries({
+          queryKey: billingSubscriptionQueryKey(context?.orgId),
+        });
+      }
     } catch (err: unknown) {
       markPipelineStageFailed(queryClient, docId, stage);
       const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
       const msg =
-        ax.response?.data?.detail ||
-        ax.response?.data?.error ||
-        ax.message ||
-        `Could not start ${action}.`;
+        action === 'ingest'
+          ? quotaErrorMessage(err, `Could not start ${action}.`)
+          : ax.response?.data?.detail ||
+            ax.response?.data?.error ||
+            ax.message ||
+            `Could not start ${action}.`;
       await appAlert({
         title: `Could not start ${action}`,
         description: msg,
@@ -430,14 +440,21 @@ export const DocumentsPage: React.FC = () => {
           failedIds.push(id);
           const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
           const msg =
-            ax.response?.data?.detail ||
-            ax.response?.data?.error ||
-            ax.message ||
-            `Could not start ${action}.`;
+            action === 'ingest'
+              ? quotaErrorMessage(err, `Could not start ${action}.`)
+              : ax.response?.data?.detail ||
+                ax.response?.data?.error ||
+                ax.message ||
+                `Could not start ${action}.`;
           failures.push(`${docItem.fileName || id}: ${msg}`);
         }
       }
       await refreshPipelineDocuments(queryClient);
+      if (action === 'ingest' && selectedIds.size > failedIds.length) {
+        void queryClient.invalidateQueries({
+          queryKey: billingSubscriptionQueryKey(context?.orgId),
+        });
+      }
       for (const id of failedIds) {
         markPipelineStageFailed(queryClient, id, stage);
       }
@@ -906,8 +923,14 @@ export const DocumentsPage: React.FC = () => {
               </span>
               <button
                 type="button"
-                title={bulkIngestCount ? `Run ingest on ${bulkIngestCount} document(s)` : 'No selected documents need ingest'}
-                disabled={bulkBusyActive || bulkIngestCount === 0}
+                title={
+                  ingestQuotaBlocked
+                    ? 'Document quota reached for this month'
+                    : bulkIngestCount
+                      ? `Run ingest on ${bulkIngestCount} document(s)`
+                      : 'No selected documents need ingest'
+                }
+                disabled={bulkBusyActive || bulkIngestCount === 0 || ingestQuotaBlocked}
                 onClick={() => void runBulkPipeline('ingest')}
                 className={cn(
                   'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',

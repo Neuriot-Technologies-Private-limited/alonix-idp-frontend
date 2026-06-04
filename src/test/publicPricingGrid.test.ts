@@ -12,6 +12,7 @@ function plan(name: string, fraction?: number): BillingPlan {
     limits: {
       maxConnectors: 1,
       maxDocumentsMonth: 10,
+      maxQuestionsMonth: 50,
       maxUsers: 1,
       maxStorageBytes: 1,
     },

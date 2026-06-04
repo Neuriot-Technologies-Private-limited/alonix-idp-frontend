@@ -29,7 +29,6 @@ import OrgSettingsPage from './pages/profile/OrgSettingsPage';
 import BillingPage from './pages/billing/BillingPage';
 import PricingPage from './pages/billing/PricingPage';
 import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
-
 import ScrollToTop from './components/routing/ScrollToTop';
 import { getDefaultAuthedPath, isSearchUserOnly } from './utils/routingAuth';
 import { hasActiveSession } from './utils/session';
