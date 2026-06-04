@@ -17,6 +17,7 @@ import {
   type BillingCycle,
 } from '../../utils/billingUtils';
 import { useBrand } from '../../brand/useBrand';
+import { isEnterpriseBuild } from '../../brand/deploymentProfile';
 
 const PLAN_STYLES: Record<string, { gradient: string; icon: React.ReactNode; featured?: boolean; badge?: string }> = {
   FREE: { gradient: 'from-slate-700 to-slate-900', icon: <Zap className="h-5 w-5" /> },
@@ -72,8 +73,13 @@ export const PublicPricingGrid: React.FC<PublicPricingGridProps> = ({
   if (error || !plans.length) {
     return (
       <p className="text-center text-sm text-muted-foreground py-12">
-        Pricing is temporarily unavailable.{' '}
-        <Link to="/pricing" className="text-primary font-bold hover:underline">View plans</Link>
+        Pricing is temporarily unavailable.
+        {!isEnterpriseBuild() ? (
+          <>
+            {' '}
+            <Link to="/pricing" className="text-primary font-bold hover:underline">View plans</Link>
+          </>
+        ) : null}
       </p>
     );
   }

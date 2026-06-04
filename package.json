@@ -9,15 +9,20 @@
   "scripts": {
     "dev": "vite --mode 1glance",
     "dev:1glance": "vite --mode 1glance",
+    "dev:1glance:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise vite --mode 1glance",
     "dev:findoutai": "vite --mode findoutai",
+    "dev:findoutai:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise vite --mode findoutai",
     "build": "tsc -b && vite build --mode 1glance",
     "build:1glance": "tsc -b && vite build --mode 1glance",
+    "build:1glance:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise tsc -b && vite build --mode 1glance",
     "build:findoutai": "tsc -b && vite build --mode findoutai",
+    "build:findoutai:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise tsc -b && vite build --mode findoutai",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "qa:deployment": "vitest run src/test/deploymentProfile.test.ts src/test/enterpriseBrandConfig.test.ts"
   },
   "dependencies": {
     "@sentry/react": "^9.47.1",

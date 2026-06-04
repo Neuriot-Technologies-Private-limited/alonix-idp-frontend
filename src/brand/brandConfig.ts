@@ -1,3 +1,5 @@
+import { isEnterpriseBuild } from './deploymentProfile';
+
 /**
  * BrandConfig — the single source of truth for what a brand can customise.
  *
@@ -103,8 +105,8 @@ export const brandConfig: BrandConfig = {
   privacyUrl: optional('VITE_BRAND_PRIVACY_URL', 'https://1glance.ai/privacy'),
   termsUrl: optional('VITE_BRAND_TERMS_URL', 'https://1glance.ai/terms'),
 
-  showPricing: flag('VITE_BRAND_SHOW_PRICING', true),
-  showLanding: flag('VITE_BRAND_SHOW_LANDING', true),
+  showPricing: isEnterpriseBuild() ? false : flag('VITE_BRAND_SHOW_PRICING', true),
+  showLanding: isEnterpriseBuild() ? false : flag('VITE_BRAND_SHOW_LANDING', true),
 
   dashboardShotUrl: optional('VITE_BRAND_DASHBOARD_SHOT', '/brand/product-dashboard.png'),
   chatShotUrl: optional('VITE_BRAND_CHAT_SHOT', '/brand/product-chat.png'),

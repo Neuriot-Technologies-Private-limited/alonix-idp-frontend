@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './services/queryClient';
@@ -32,7 +33,18 @@ import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
 import ScrollToTop from './components/routing/ScrollToTop';
 import { getDefaultAuthedPath, isSearchUserOnly } from './utils/routingAuth';
 import { hasActiveSession } from './utils/session';
+import { isEnterpriseBuild } from './brand/deploymentProfile';
 import './index.css';
+
+/** Redirects SaaS-only public routes when built for enterprise deployment. */
+function EnterpriseRouteGuard({ children }: { children: ReactNode }) {
+  if (!isEnterpriseBuild()) return <>{children}</>;
+  return <Navigate to="/login" replace />;
+}
+
+function EnterpriseBillingRedirect() {
+  return <Navigate to="/org-settings" replace />;
+}
 
 const ForbiddenPage = () => (
   <div className="p-8 text-destructive font-display font-black uppercase tracking-widest">
@@ -108,14 +120,35 @@ function App() {
         <Router>
           <ScrollToTop />
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route
+              path="/"
+              element={
+                <EnterpriseRouteGuard>
+                  <LandingPage />
+                </EnterpriseRouteGuard>
+              }
+            />
             <Route path="/login" element={<LoginRoute />} />
-            <Route path="/signup" element={<SignupRoute />} />
+            <Route
+              path="/signup"
+              element={
+                <EnterpriseRouteGuard>
+                  <SignupRoute />
+                </EnterpriseRouteGuard>
+              }
+            />
             <Route path="/setup-password" element={<SetupPasswordRoute />} />
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
+            <Route
+              path="/pricing"
+              element={
+                <EnterpriseRouteGuard>
+                  <PricingPage />
+                </EnterpriseRouteGuard>
+              }
+            />
 
             <Route element={<PrivateRoute />}>
               <Route element={<AppLayout />}>
@@ -127,7 +160,12 @@ function App() {
                 <Route element={<RoleProtectedRoute requiredOrgRole="COMPANY_ADMIN" />}>
                   <Route path="/org-settings" element={<OrgSettingsPage />} />
                   <Route path="/activity" element={<ActivityLogs />} />
-                  <Route path="/settings/billing" element={<BillingPage />} />
+                  <Route
+                    path="/settings/billing"
+                    element={
+                      isEnterpriseBuild() ? <EnterpriseBillingRedirect /> : <BillingPage />
+                    }
+                  />
                 </Route>
 
                 <Route element={<RoleProtectedRoute requiredAnyGroupAdmin />}>
@@ -144,7 +182,7 @@ function App() {
             </Route>
 
             <Route path="/forbidden" element={<ForbiddenPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to={isEnterpriseBuild() ? '/login' : '/'} replace />} />
           </Routes>
         </Router>
         </AlertProvider>

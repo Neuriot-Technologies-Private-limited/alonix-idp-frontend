@@ -24,6 +24,7 @@ import {
 import { fetchBillingPlans } from '../../services/billingService';
 import type { BillingCycle } from '../../utils/billingUtils';
 import { useBrand } from '../../brand/useBrand';
+import { isEnterpriseBuild } from '../../brand/deploymentProfile';
 
 const LandingPage: React.FC = () => {
   const { t } = useTranslation('landing');
@@ -60,18 +61,22 @@ const LandingPage: React.FC = () => {
             <a href="#product" className="hover:text-primary transition-colors">{t('hero.headline', { ns: 'common', defaultValue: 'Product' })}</a>
             <a href="#features" className="hover:text-primary transition-colors">{t('nav.solutions', { ns: 'common', defaultValue: 'Solutions' })}</a>
             <a href="#intelligence" className="hover:text-primary transition-colors">{t('nav.intelligence', { ns: 'common', defaultValue: 'Intelligence' })}</a>
-            <Link to="/pricing" className="hover:text-primary transition-colors">{t('nav.pricing', { ns: 'common', defaultValue: 'Pricing' })}</Link>
+            {brand.showPricing ? (
+              <Link to="/pricing" className="hover:text-primary transition-colors">{t('nav.pricing', { ns: 'common', defaultValue: 'Pricing' })}</Link>
+            ) : null}
             <a href="#about" className="hover:text-primary transition-colors">{t('nav.about', { ns: 'common', defaultValue: 'About' })}</a>
           </div>
 
           <div className="flex items-center gap-4">
             <Link to="/login" className="text-sm font-bold hover:text-primary transition-colors px-4 font-display">{t('nav.login', { ns: 'common', defaultValue: 'Login' })}</Link>
-            <Link
-              to="/signup"
-              className="btn-primary py-2.5 px-6 rounded-md text-sm font-bold shadow-lg shadow-primary/20 font-display"
-            >
-              {t('nav.signUp', { ns: 'common', defaultValue: 'Sign Up' })}
-            </Link>
+            {!isEnterpriseBuild() ? (
+              <Link
+                to="/signup"
+                className="btn-primary py-2.5 px-6 rounded-md text-sm font-bold shadow-lg shadow-primary/20 font-display"
+              >
+                {t('nav.signUp', { ns: 'common', defaultValue: 'Sign Up' })}
+              </Link>
+            ) : null}
           </div>
         </div>
       </nav>
@@ -127,9 +132,15 @@ const LandingPage: React.FC = () => {
               variants={fadeInUp}
               className="flex flex-col md:flex-row gap-6 justify-center items-center mb-20"
             >
-              <Link to="/signup" className="w-full md:w-auto btn-primary text-lg px-8 py-4 rounded-md shadow-xl shadow-primary/25">
-                {t('actions.getStartedFree', { ns: 'common', defaultValue: 'Get Started for Free' })}
-              </Link>
+              {!isEnterpriseBuild() ? (
+                <Link to="/signup" className="w-full md:w-auto btn-primary text-lg px-8 py-4 rounded-md shadow-xl shadow-primary/25">
+                  {t('actions.getStartedFree', { ns: 'common', defaultValue: 'Get Started for Free' })}
+                </Link>
+              ) : (
+                <Link to="/login" className="w-full md:w-auto btn-primary text-lg px-8 py-4 rounded-md shadow-xl shadow-primary/25">
+                  {t('nav.login', { ns: 'common', defaultValue: 'Login' })}
+                </Link>
+              )}
               <button className="w-full md:w-auto glass hover:bg-surface-highest/20 text-primary font-bold text-lg px-8 py-4 rounded-md flex items-center justify-center gap-3 transition-all active:scale-95 group">
                 <PlayCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
                 {t('actions.watchProductTour', { ns: 'common', defaultValue: 'Watch Product Tour' })}
@@ -319,6 +330,7 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Pricing Section */}
+        {brand.showPricing ? (
         <section id="pricing" className="py-32 px-6 relative text-foreground">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16 space-y-4">
@@ -347,13 +359,16 @@ const LandingPage: React.FC = () => {
               ctaLabel={t('actions.getStarted', { ns: 'common', defaultValue: 'Get started' })}
             />
 
-            <p className="text-center mt-10">
-              <Link to="/pricing" className="text-sm font-bold text-primary hover:underline">
-                {t('actions.compareAllPlans', { ns: 'common', defaultValue: 'Compare all plans →' })}
-              </Link>
-            </p>
+            {brand.showPricing ? (
+              <p className="text-center mt-10">
+                <Link to="/pricing" className="text-sm font-bold text-primary hover:underline">
+                  {t('actions.compareAllPlans', { ns: 'common', defaultValue: 'Compare all plans →' })}
+                </Link>
+              </p>
+            ) : null}
           </div>
         </section>
+        ) : null}
 
         {/* CTA Section */}
         <section className="py-40 px-6 text-center relative overflow-hidden">
@@ -369,9 +384,15 @@ const LandingPage: React.FC = () => {
               {t('cta.description', { brandName: brand.name })}
             </p>
             <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <Link to="/signup" className="btn-primary text-xl px-12 py-5 rounded-md shadow-2xl shadow-primary/30">
-                {t('actions.initializeWorkspace', { ns: 'common', defaultValue: 'Initialize Free Workspace' })}
-              </Link>
+              {!isEnterpriseBuild() ? (
+                <Link to="/signup" className="btn-primary text-xl px-12 py-5 rounded-md shadow-2xl shadow-primary/30">
+                  {t('actions.initializeWorkspace', { ns: 'common', defaultValue: 'Initialize Free Workspace' })}
+                </Link>
+              ) : (
+                <Link to="/login" className="btn-primary text-xl px-12 py-5 rounded-md shadow-2xl shadow-primary/30">
+                  {t('nav.login', { ns: 'common', defaultValue: 'Login' })}
+                </Link>
+              )}
             </div>
           </motion.div>
         </section>
@@ -430,7 +451,9 @@ const LandingPage: React.FC = () => {
                 {
                   title: t('footer.company', { ns: 'common', defaultValue: 'Company' }), links: [
                     { label: t('footer.aboutUs', { ns: 'common', defaultValue: 'About Us' }), href: '#about' },
-                    { label: t('nav.pricing', { ns: 'common', defaultValue: 'Pricing' }), href: '#pricing' },
+                    ...(brand.showPricing
+                      ? [{ label: t('nav.pricing', { ns: 'common', defaultValue: 'Pricing' }), href: '#pricing' }]
+                      : []),
                     { label: t('footer.contact', { ns: 'common', defaultValue: 'Contact' }), href: '#' }
                   ]
                 }

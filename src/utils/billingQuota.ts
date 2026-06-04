@@ -1,4 +1,5 @@
 import type { AxiosError } from 'axios';
+import { isEnterpriseBuild } from '../brand/deploymentProfile';
 
 export const QUOTA_ERROR_CODES = new Set([
   'DOCUMENT_QUOTA_REACHED',
@@ -34,6 +35,9 @@ export function quotaErrorMessage(err: unknown, fallback = 'Plan limit reached.'
     if (err == null || typeof err !== 'object') return fallback;
     const ax = err as AxiosError<{ message?: string; error?: string }>;
     return ax.response?.data?.message || ax.message || fallback;
+  }
+  if (isEnterpriseBuild()) {
+    return q.message || fallback;
   }
   if (q.error === 'SUBSCRIPTION_PAST_DUE') {
     return `${q.message || fallback} Open Organization Settings → Subscription to update billing.`;

@@ -60,6 +60,21 @@ brands/
    npm run dev:newclient
    ```
 
+## Enterprise deployment (same brand, different profile)
+
+SaaS and enterprise share the same brand folder; **deployment** is controlled separately:
+
+| Layer | Knob | Example |
+|-------|------|---------|
+| Brand | `vite --mode <brand>` | `npm run dev:findoutai` |
+| Deployment | `VITE_DEPLOYMENT_PROFILE` | `npm run dev:findoutai:enterprise` |
+
+1. Copy `brands/<brand>/brand.env.enterprise.example` values or use repo `profiles/enterprise.env` (merged by Vite automatically when `VITE_DEPLOYMENT_PROFILE=enterprise`).
+2. Pair with backend `DEPLOYMENT_PROFILE=enterprise` and bootstrap — see [docs/ENTERPRISE_INSTALL.md](../../docs/ENTERPRISE_INSTALL.md).
+3. Build for production: `npm run build:<brand>:enterprise`.
+
+Enterprise builds hide public landing, pricing, signup, and billing UI.
+
 ## What Each Brand Controls
 
 | Setting | File | Key |
@@ -71,6 +86,7 @@ brands/
 | Landing page text | `i18n/en/landing.json` | (strings) |
 | Footer links | `brand.env` | `VITE_BRAND_PRIVACY_URL` etc. |
 | Show/hide pricing | `brand.env` | `VITE_BRAND_SHOW_PRICING` |
+| SaaS vs enterprise | `profiles/enterprise.env` or npm `*:enterprise` | `VITE_DEPLOYMENT_PROFILE` |
 
 ## Rules
 

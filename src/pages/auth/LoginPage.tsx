@@ -8,6 +8,7 @@ import { AuthPageLogo } from '../../components/branding/AuthPageBranding';
 import { useAlert } from '../../components/alert';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../brand/useBrand';
+import { isEnterpriseBuild } from '../../brand/deploymentProfile';
 
 const LoginPage: React.FC = () => {
   const { alert: appAlert } = useAlert();
@@ -208,12 +209,14 @@ const LoginPage: React.FC = () => {
             ) : null}
           </form>
 
-          <p className="mt-12 text-center text-sm font-bold text-muted-foreground/60">
-            {t('login.newToApp', { brandName: brand.name })}{' '}
-            <Link to="/signup" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">
-              {t('login.establishWorkspace')}
-            </Link>
-          </p>
+          {!isEnterpriseBuild() ? (
+            <p className="mt-12 text-center text-sm font-bold text-muted-foreground/60">
+              {t('login.newToApp', { brandName: brand.name })}{' '}
+              <Link to="/signup" className="text-primary hover:text-primary-container transition-colors ml-1 border-b border-primary/20">
+                {t('login.establishWorkspace')}
+              </Link>
+            </p>
+          ) : null}
         </div>
       </motion.div>
 

@@ -129,15 +129,10 @@ function brandPlugin(mode: string, brandEnvRaw: Record<string, string>): Plugin 
   };
 }
 
-/**
- * Load brand.env for the given mode and merge into the Vite env.
- * Standard Vite .env files (`.env`, `.env.<mode>`) still apply as normal.
- */
-function loadBrandEnv(mode: string, root: string): Record<string, string> {
-  const brandEnvPath = path.join(root, 'brands', mode, 'brand.env');
-  if (!fs.existsSync(brandEnvPath)) return {};
+function parseEnvFile(filePath: string): Record<string, string> {
+  if (!fs.existsSync(filePath)) return {};
 
-  const raw = fs.readFileSync(brandEnvPath, 'utf-8');
+  const raw = fs.readFileSync(filePath, 'utf-8');
   const result: Record<string, string> = {};
 
   for (const line of raw.split('\n')) {
@@ -153,17 +148,49 @@ function loadBrandEnv(mode: string, root: string): Record<string, string> {
   return result;
 }
 
+/**
+ * Load brand.env for the given mode and merge into the Vite env.
+ * Standard Vite .env files (`.env`, `.env.<mode>`) still apply as normal.
+ */
+function loadBrandEnv(mode: string, root: string): Record<string, string> {
+  return parseEnvFile(path.join(root, 'brands', mode, 'brand.env'));
+}
+
+/**
+ * Load profiles/<profile>.env (saas | enterprise).
+ * Merged after brand.env; npm scripts set VITE_DEPLOYMENT_PROFILE before Vite starts.
+ */
+export function loadProfileEnv(profile: string, root: string): Record<string, string> {
+  const normalized = profile === 'enterprise' ? 'enterprise' : 'saas';
+  return parseEnvFile(path.join(root, 'profiles', `${normalized}.env`));
+}
+
 // https://vite.dev/config/
 /// <reference types="vitest/config" />
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-  const brandEnv = loadBrandEnv(mode, process.cwd());
+  const root = process.cwd();
+  const env = loadEnv(mode, root, '');
+  const brandEnv = loadBrandEnv(mode, root);
+
+  const deploymentProfile =
+    process.env.VITE_DEPLOYMENT_PROFILE?.trim() ||
+    env.VITE_DEPLOYMENT_PROFILE?.trim() ||
+    'saas';
+  const profileEnv = loadProfileEnv(deploymentProfile, root);
+  const profileEnvResolved: Record<string, string> = {
+    ...profileEnv,
+    VITE_DEPLOYMENT_PROFILE: profileEnv.VITE_DEPLOYMENT_PROFILE || deploymentProfile,
+  };
 
   syncBrandAssets(mode);
   const favicon = resolveBrandFavicon(brandEnv);
   const brandEnvResolved = { ...brandEnv, VITE_BRAND_FAVICON_URL: favicon.url };
+  const buildEnvResolved: Record<string, string> = {
+    ...brandEnvResolved,
+    ...profileEnvResolved,
+  };
 
-  const mergedEnv: Record<string, string> = { ...env, ...brandEnvResolved };
+  const mergedEnv: Record<string, string> = { ...env, ...buildEnvResolved };
   const proxyTarget =
     mergedEnv.VITE_DEV_PROXY_TARGET || mergedEnv.VITE_API_BASE_URL || 'http://localhost:5005';
 
@@ -171,7 +198,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), brandPlugin(mode, brandEnv)],
     define: {
       ...Object.fromEntries(
-        Object.entries(brandEnvResolved)
+        Object.entries(buildEnvResolved)
           .filter(([k]) => k.startsWith('VITE_'))
           .map(([k, v]) => [`import.meta.env.${k}`, JSON.stringify(v)])
       ),
