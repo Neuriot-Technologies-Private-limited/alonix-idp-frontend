@@ -122,7 +122,14 @@ export const ConnectorsPanel: React.FC = () => {
     let config: Record<string, unknown> = {};
 
     if (newType === 'EMAIL') {
-      config = { emailAddress: formData.get('emailAddress'), password: formData.get('password') };
+      const imapHost = String(formData.get('imapHost') || '').trim();
+      const imapPortRaw = String(formData.get('imapPort') || '').trim();
+      config = {
+        emailAddress: formData.get('emailAddress'),
+        password: formData.get('password'),
+        ...(imapHost ? { imapHost } : {}),
+        ...(imapPortRaw ? { imapPort: parseInt(imapPortRaw, 10) } : {}),
+      };
     } else if (newType === 'SHAREPOINT') {
       config = {
         tenantId: formData.get('tenantId'), clientId: formData.get('clientId'),
@@ -400,6 +407,22 @@ export const ConnectorsPanel: React.FC = () => {
                       name="password"
                       type="password"
                       placeholder="App Password"
+                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      id="connector-imap-host"
+                      name="imapHost"
+                      type="text"
+                      placeholder="IMAP host (optional — auto-detected from domain)"
+                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      id="connector-imap-port"
+                      name="imapPort"
+                      type="number"
+                      min={1}
+                      max={65535}
+                      placeholder="IMAP port (default 993)"
                       className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
                     />
                   </div>

@@ -133,6 +133,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             isInitialized: true,
           });
           return true;
+        } catch {
+          set({ token: null, user: null, context: null, isInitialized: true });
+          return false;
         } finally {
           set({ isRefreshingSession: false });
         }

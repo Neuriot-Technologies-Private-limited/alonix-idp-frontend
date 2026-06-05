@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../services/api/client';
 import { browseConnector, ingestFile } from '../../services/connectorBrowserApi';
 import type { BrowseResult, ConnectorItem } from '../../services/connectorBrowserApi';
+import EmailMailroomView from './email/EmailMailroomView';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { quotaErrorMessage } from '../../utils/billingQuota';
@@ -118,10 +119,12 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
 
   const selectedConnector = connectors.find((c) => c._id === selectedConnectorId);
 
+  const isEmailConnector = selectedConnector?.type === 'EMAIL';
+
   const { data: browseData, isLoading: loadingBrowse, error: browseError, refetch } = useQuery<BrowseResult>({
     queryKey: ['connector-browse', selectedConnectorId, currentPath],
     queryFn: () => browseConnector(selectedConnectorId, currentPath || undefined),
-    enabled: !!selectedConnectorId,
+    enabled: !!selectedConnectorId && !isEmailConnector,
     staleTime: 30000,
   });
 
@@ -299,6 +302,23 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
           </div>
         </aside>
 
+        {isEmailConnector && selectedConnectorId ? (
+          <div
+            className={cn(
+              'overflow-hidden flex flex-col min-h-0 min-w-0 flex-1',
+              isModal
+                ? 'border-0 bg-surface-high/40 dark:bg-surface-highest/[0.18]'
+                : 'rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5 lg:col-span-2'
+            )}
+          >
+            <EmailMailroomView
+              connectorId={selectedConnectorId}
+              connectorName={selectedConnector?.name || 'Email'}
+              variant={variant}
+            />
+          </div>
+        ) : (
+        <>
         <div
           className={cn(
             'overflow-hidden flex flex-col min-h-0 min-w-0',
@@ -542,6 +562,8 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
             </div>
           )}
         </aside>
+        </>
+        )}
       </div>
     </div>
   );

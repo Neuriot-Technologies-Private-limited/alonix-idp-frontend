@@ -39,6 +39,9 @@ const PUBLIC_API_PREFIXES = [
   '/setup/',
 ];
 
+/** Allowed during cookie session rehydrate (must not wait on waitForAuthInit). */
+const SESSION_BOOTSTRAP_PREFIXES = ['/users/me/context'];
+
 function requestPath(config: InternalAxiosRequestConfig): string {
   const url = String(config.url || '');
   if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -54,6 +57,11 @@ function requestPath(config: InternalAxiosRequestConfig): string {
 function isPublicApiRequest(config: InternalAxiosRequestConfig): boolean {
   const path = requestPath(config);
   return PUBLIC_API_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function isSessionBootstrapRequest(config: InternalAxiosRequestConfig): boolean {
+  const path = requestPath(config);
+  return SESSION_BOOTSTRAP_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
 let csrfBootstrapInflight: Promise<void> | null = null;
@@ -79,7 +87,8 @@ apiClient.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toLowerCase();
   const isPublic = isPublicApiRequest(config);
 
-  if (!isPublic) {
+  const isBootstrap = isSessionBootstrapRequest(config);
+  if (!isPublic && !isBootstrap) {
     await waitForAuthInit();
     const { user, context } = useAuthStore.getState();
     if (!hasActiveSession(user, context)) {
