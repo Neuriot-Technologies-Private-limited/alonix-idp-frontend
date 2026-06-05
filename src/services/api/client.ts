@@ -1,6 +1,7 @@
-import axios from 'axios';
-import { useAuthStore } from '../../stores/authStore';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { useAuthStore, waitForAuthInit } from '../../stores/authStore';
 import { getCsrfTokenFromCookie } from '../../utils/csrf';
+import { hasActiveSession } from '../../utils/session';
 
 /** Ensures REST paths hit `/api/...` (avoids 404 when env points at server root without `/api`). */
 function normalizeApiBaseUrl(raw: string | undefined): string {
@@ -24,10 +25,44 @@ const apiClient = axios.create({
 
 const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete']);
 
+const PUBLIC_API_PREFIXES = [
+  '/users/login',
+  '/users/onboard',
+  '/users/onboard-invite',
+  '/users/invite-details',
+  '/users/verify-email',
+  '/users/resend-verification',
+  '/users/forgot-password',
+  '/users/reset-password',
+  '/billing/plans',
+  '/billing/config',
+  '/setup/',
+];
+
+function requestPath(config: InternalAxiosRequestConfig): string {
+  const url = String(config.url || '');
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      return new URL(url).pathname.replace(/^\/api/, '') || '/';
+    } catch {
+      return url;
+    }
+  }
+  return url.startsWith('/') ? url : `/${url}`;
+}
+
+function isPublicApiRequest(config: InternalAxiosRequestConfig): boolean {
+  const path = requestPath(config);
+  return PUBLIC_API_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 let csrfBootstrapInflight: Promise<void> | null = null;
+let unauthorizedHandling: Promise<void> | null = null;
 
 async function ensureCsrfCookieBeforeMutate(): Promise<void> {
   if (getCsrfTokenFromCookie()) return;
+  const { user, context } = useAuthStore.getState();
+  if (!hasActiveSession(user, context)) return;
   if (!csrfBootstrapInflight) {
     csrfBootstrapInflight = apiClient
       .get('/users/me/context')
@@ -42,6 +77,16 @@ async function ensureCsrfCookieBeforeMutate(): Promise<void> {
 
 apiClient.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toLowerCase();
+  const isPublic = isPublicApiRequest(config);
+
+  if (!isPublic) {
+    await waitForAuthInit();
+    const { user, context } = useAuthStore.getState();
+    if (!hasActiveSession(user, context)) {
+      return Promise.reject(new axios.CanceledError('No active session'));
+    }
+  }
+
   if (MUTATING_METHODS.has(method)) {
     await ensureCsrfCookieBeforeMutate();
     const csrf = getCsrfTokenFromCookie();
@@ -104,7 +149,6 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
       const reqUrl = String((error.config as { url?: string })?.url || '');
       const path = typeof window !== 'undefined' ? window.location.pathname : '';
       const isAuthRoute =
@@ -116,12 +160,23 @@ apiClient.interceptors.response.use(
         reqUrl.includes('/users/change-password');
 
       const isOnLoginPage = path === '/login' || path.startsWith('/login?');
+      const { isRefreshingSession } = useAuthStore.getState();
 
-      if (isAuthRoute || isOnLoginPage) {
+      if (isAuthRoute || isOnLoginPage || isRefreshingSession) {
         return Promise.reject(error);
       }
 
-      window.location.href = '/login';
+      if (!unauthorizedHandling) {
+        unauthorizedHandling = (async () => {
+          await useAuthStore.getState().logout();
+          if (!isOnLoginPage) {
+            window.location.href = '/login';
+          }
+        })().finally(() => {
+          unauthorizedHandling = null;
+        });
+      }
+      await unauthorizedHandling;
     }
     return Promise.reject(error);
   }

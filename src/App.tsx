@@ -59,12 +59,19 @@ const ForbiddenPage = () => (
   </div>
 );
 
+const AuthBootstrapSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground text-sm">
+    Loading session…
+  </div>
+);
+
 const PrivateRoute = () => {
   const user = useAuthStore((state) => state.user);
   const context = useAuthStore((state) => state.context);
   const isInitialized = useAuthStore((state) => state.isInitialized);
-  if (!isInitialized) {
-    return null;
+  const isRefreshingSession = useAuthStore((state) => state.isRefreshingSession);
+  if (!isInitialized || isRefreshingSession) {
+    return <AuthBootstrapSpinner />;
   }
   if (!hasActiveSession(user, context)) {
     return <Navigate to="/login" replace />;
@@ -75,6 +82,11 @@ const PrivateRoute = () => {
 const LoginRoute = () => {
   const user = useAuthStore((state) => state.user);
   const context = useAuthStore((state) => state.context);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isRefreshingSession = useAuthStore((state) => state.isRefreshingSession);
+  if (!isInitialized || isRefreshingSession) {
+    return <AuthBootstrapSpinner />;
+  }
   return hasActiveSession(user, context) ? (
     <Navigate to={getDefaultAuthedPath(context)} replace />
   ) : (
@@ -85,6 +97,11 @@ const LoginRoute = () => {
 const SignupRoute = () => {
   const user = useAuthStore((state) => state.user);
   const context = useAuthStore((state) => state.context);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isRefreshingSession = useAuthStore((state) => state.isRefreshingSession);
+  if (!isInitialized || isRefreshingSession) {
+    return <AuthBootstrapSpinner />;
+  }
   return hasActiveSession(user, context) ? (
     <Navigate to={getDefaultAuthedPath(context)} replace />
   ) : (

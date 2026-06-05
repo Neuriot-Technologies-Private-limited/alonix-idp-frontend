@@ -18,7 +18,13 @@ const memberAdminContext: AuthContextPayload = {
 
 describe('useRbac', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null, context: null, isInitialized: false });
+    useAuthStore.setState({
+      token: null,
+      user: null,
+      context: null,
+      isInitialized: false,
+      isRefreshingSession: false,
+    });
   });
 
   it('exposes capability helpers from context', () => {

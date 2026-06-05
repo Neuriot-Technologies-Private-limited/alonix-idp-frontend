@@ -59,4 +59,6 @@ export interface AuthState {
   user: UserDetails | null;
   context: AuthContextPayload | null;
   isInitialized: boolean;
+  /** True while persisted session is being validated against the server. */
+  isRefreshingSession: boolean;
 }

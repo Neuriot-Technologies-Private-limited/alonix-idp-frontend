@@ -27,6 +27,7 @@ describe('authStore', () => {
       user: null,
       context: null,
       isInitialized: false,
+      isRefreshingSession: false,
     });
   });
 

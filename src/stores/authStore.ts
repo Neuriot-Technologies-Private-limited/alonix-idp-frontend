@@ -8,8 +8,25 @@ import type {
 } from '../types/auth';
 import { defaultUserPreferences } from '../types/auth';
 import { applyActiveGroupToContext } from '../core/rbac/capabilities';
+import { hasActiveSession } from '../utils/session';
 
 let authContextSyncInflight: Promise<boolean> | null = null;
+
+/** Resolves when Zustand persist + optional refreshSession have finished. */
+export function waitForAuthInit(): Promise<void> {
+  const { isInitialized, isRefreshingSession } = useAuthStore.getState();
+  if (isInitialized && !isRefreshingSession) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const unsub = useAuthStore.subscribe((state) => {
+      if (state.isInitialized && !state.isRefreshingSession) {
+        unsub();
+        resolve();
+      }
+    });
+  });
+}
 
 function mergeAuthContext(
   incoming: AuthContextPayload,
@@ -50,9 +67,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       user: null,
       context: null,
       isInitialized: false,
+      isRefreshingSession: false,
 
       setAuth: (user, context) =>
-        set({ token: null, user, context, isInitialized: true }),
+        set({
+          token: null,
+          user,
+          context,
+          isInitialized: true,
+          isRefreshingSession: false,
+        }),
 
       logout: async () => {
         try {
@@ -61,10 +85,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch {
           // Clear local state even if server call fails
         }
-        set({ token: null, user: null, context: null, isInitialized: true });
+        set({
+          token: null,
+          user: null,
+          context: null,
+          isInitialized: true,
+          isRefreshingSession: false,
+        });
       },
 
       syncAuthContext: async () => {
+        const state = get();
+        if (!hasActiveSession(state.user, state.context)) return false;
         if (authContextSyncInflight) return authContextSyncInflight;
         authContextSyncInflight = (async () => {
           const { authApi } = await import('../services/authApi');
@@ -82,23 +114,28 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       refreshSession: async () => {
         const state = get();
-        if (!state.user?.email) {
-          set({ token: null, user: null, context: null, isInitialized: true });
-          return false;
+        set({ isRefreshingSession: true });
+        try {
+          if (!state.user?.email) {
+            set({ token: null, user: null, context: null, isInitialized: true });
+            return false;
+          }
+          const { authApi } = await import('../services/authApi');
+          const session = await authApi.fetchSession(state.user);
+          if (!session) {
+            set({ token: null, user: null, context: null, isInitialized: true });
+            return false;
+          }
+          set({
+            token: null,
+            user: session.user,
+            context: session.context,
+            isInitialized: true,
+          });
+          return true;
+        } finally {
+          set({ isRefreshingSession: false });
         }
-        const { authApi } = await import('../services/authApi');
-        const session = await authApi.fetchSession(state.user);
-        if (!session) {
-          set({ token: null, user: null, context: null, isInitialized: true });
-          return false;
-        }
-        set({
-          token: null,
-          user: session.user,
-          context: session.context,
-          isInitialized: true,
-        });
-        return true;
       },
 
       setActiveGroup: (groupId) =>
@@ -107,7 +144,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           return { context: applyActiveGroupToContext(state.context, groupId) };
         }),
 
-      updateContext: (context) => set({ context, isInitialized: true }),
+      updateContext: (context) =>
+        set({ context, isInitialized: true, isRefreshingSession: false }),
 
       updateUser: (partial) =>
         set((state) => {
@@ -130,13 +168,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         const p = persisted as { sessionEmail?: string | null };
         const email = p?.sessionEmail;
         if (!email) {
-          return { ...current, isInitialized: true };
+          return { ...current, isInitialized: true, isRefreshingSession: false };
         }
         return {
           ...current,
           user: { email, username: email },
           context: null,
           isInitialized: false,
+          isRefreshingSession: true,
         };
       },
       onRehydrateStorage: () => (state) => {
@@ -144,6 +183,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           void state.refreshSession();
         } else if (state) {
           state.isInitialized = true;
+          state.isRefreshingSession = false;
         }
       },
     }

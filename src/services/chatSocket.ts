@@ -4,8 +4,15 @@ let socket: Socket | null = null;
 let socketIdentity: { groupId: string } | null = null;
 
 function socketBaseUrl(): string {
-  const base = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || '';
-  return base.replace(/\/$/, '') || window.location.origin;
+  const socketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
+  if (socketUrl) {
+    return socketUrl.replace(/\/$/, '');
+  }
+  const apiUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (apiUrl?.startsWith('http://') || apiUrl?.startsWith('https://')) {
+    return apiUrl.replace(/\/$/, '').replace(/\/api$/, '');
+  }
+  return window.location.origin;
 }
 
 /** Server joins `user:${email}` and `user:${userId}`; pass the signed-in user's email. */
