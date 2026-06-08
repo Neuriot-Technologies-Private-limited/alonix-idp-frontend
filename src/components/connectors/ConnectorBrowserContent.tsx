@@ -14,6 +14,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { quotaErrorMessage } from '../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
+import { refreshDocumentsAfterConnectorIngest } from '../../utils/connectorIngestFeedback';
 
 export interface ConnectorBrowserContentProps {
   /** Full page hero vs compact modal header */
@@ -21,6 +22,7 @@ export interface ConnectorBrowserContentProps {
   onClose?: () => void;
   /** Deep-link / admin “open in documents” — selects connector when set */
   initialConnectorId?: string | null;
+  onViewIngestedDocuments?: (connectorId: string) => void;
 }
 
 interface Connector {
@@ -84,6 +86,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
   variant,
   onClose,
   initialConnectorId,
+  onViewIngestedDocuments,
 }) => {
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
@@ -140,6 +143,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
       setIngestSuccessKey(ingestItemKey(selectedConnectorId, item));
       setTimeout(() => setIngestSuccessKey(''), 4000);
       void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
     },
     onError: (err: unknown) => {
       setIngestError(quotaErrorMessage(err, 'Failed to queue ingest. Please try again.'));
@@ -315,6 +319,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
               connectorId={selectedConnectorId}
               connectorName={selectedConnector?.name || 'Email'}
               variant={variant}
+              onViewIngestedDocuments={onViewIngestedDocuments}
             />
           </div>
         ) : (

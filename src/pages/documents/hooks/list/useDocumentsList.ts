@@ -45,6 +45,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   const [activeTab, setActiveTab] = useState<DocumentPipelineTab>('All');
   const [connectorFilterId, setConnectorFilterId] = useState<string | null>(null);
   const [connectorFilterType, setConnectorFilterType] = useState<string | null>(null);
+  const [connectorViewAllWorkspaces, setConnectorViewAllWorkspaces] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const orgId = context?.orgId ?? user?.orgId ?? null;
@@ -80,6 +81,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     if (!documents) return [];
 
     const matchesActiveWorkspace = (d: DocumentRow) => {
+      if (connectorViewAllWorkspaces) return true;
       if (!activeGroupIdForScope) return true;
       const gid = String(d.groupId || '').trim();
       if (gid && gid === activeGroupIdForScope) return true;
@@ -107,6 +109,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     groupNameSet,
     activeGroupIdForScope,
     activeGroupNameNorm,
+    connectorViewAllWorkspaces,
   ]);
 
   React.useEffect(() => {
@@ -117,6 +120,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     if (activeTab !== 'Connectors') {
       setConnectorFilterId(null);
       setConnectorFilterType(null);
+      setConnectorViewAllWorkspaces(false);
     }
   }, [activeTab]);
 
@@ -320,6 +324,17 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
 
   const showConnectorBreakdown = counts.fromConnectors > 0;
 
+  const openConnectorDocuments = React.useCallback(
+    (connectorId?: string | null) => {
+      setConnectorViewAllWorkspaces(true);
+      setActiveTab('Connectors');
+      setConnectorFilterType(null);
+      setConnectorFilterId(connectorId ? String(connectorId) : null);
+      setCurrentPage(1);
+    },
+    []
+  );
+
   return {
     isLoading,
     isCompanyAdmin,
@@ -349,6 +364,8 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     connectorFilterType,
     setConnectorFilterType,
     showConnectorBreakdown,
+    connectorViewAllWorkspaces,
+    openConnectorDocuments,
     pipelineTabs,
     headerSubtitle,
     toggleSelected,

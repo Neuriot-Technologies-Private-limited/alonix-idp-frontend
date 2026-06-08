@@ -180,7 +180,11 @@ export async function ingestEmailAttachments(
   const orgId = resolveOrgId();
   const { data } = await apiClient.post<EmailIngestResult>(
     `/admin/orgs/${orgId}/connectors/${connectorId}/emails/${encodeURIComponent(uid)}/ingest`,
-    selection
+    {
+      ...selection,
+      // Queue on the server so the mailroom UI returns immediately (no long IMAP/S3 wait).
+      async: selection.async !== false,
+    }
   );
   return data;
 }

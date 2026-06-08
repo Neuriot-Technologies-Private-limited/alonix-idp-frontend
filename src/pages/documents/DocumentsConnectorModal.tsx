@@ -6,6 +6,7 @@ type DocumentsConnectorModalProps = {
   connectorDialogRef: React.RefObject<HTMLDivElement | null>;
   initialConnectorId: string | null;
   onClose: () => void;
+  onViewIngestedDocuments?: (connectorId: string) => void;
 };
 
 export const DocumentsConnectorModal: React.FC<DocumentsConnectorModalProps> = ({
@@ -13,6 +14,7 @@ export const DocumentsConnectorModal: React.FC<DocumentsConnectorModalProps> = (
   connectorDialogRef,
   initialConnectorId,
   onClose,
+  onViewIngestedDocuments,
 }) => {
   if (!open) return null;
 
@@ -39,6 +41,7 @@ export const DocumentsConnectorModal: React.FC<DocumentsConnectorModalProps> = (
           variant="modal"
           onClose={onClose}
           initialConnectorId={initialConnectorId}
+          onViewIngestedDocuments={onViewIngestedDocuments}
         />
       </div>
     </div>

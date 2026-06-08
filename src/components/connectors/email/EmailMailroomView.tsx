@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Mail, Loader2, AlertCircle, RefreshCw, Search, ChevronRight,
   FileText, Image, Archive, File, CheckCircle2, XCircle, Clock, Presentation,
-  Zap, Inbox, Paperclip,
+  Zap, Inbox, Paperclip, ArrowRight, X,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,12 +19,22 @@ import { cn } from '../../../utils/cn';
 import { quotaErrorMessage } from '../../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../../hooks/useOrgQuota';
 import { useAuthStore } from '../../../stores/authStore';
+import { refreshDocumentsAfterConnectorIngest } from '../../../utils/connectorIngestFeedback';
+import type { EmailIngestResult } from '../../../services/connectorBrowserApi';
 
 export interface EmailMailroomViewProps {
   connectorId: string;
   connectorName: string;
   variant?: 'page' | 'modal';
+  onViewIngestedDocuments?: (connectorId: string) => void;
 }
+
+type IngestFeedback = {
+  mode: 'queued' | 'completed';
+  processed: number;
+  skipped: number;
+  selectedCount: number;
+};
 
 type BodyTab = 'text' | 'html';
 
@@ -75,6 +85,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   connectorId,
   connectorName,
   variant = 'page',
+  onViewIngestedDocuments,
 }) => {
   const orgId = useAuthStore((s) => s.context?.orgId);
   const queryClient = useQueryClient();
@@ -87,7 +98,8 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<Set<string>>(new Set());
   const [selectedArchivePaths, setSelectedArchivePaths] = useState<Set<string>>(new Set());
   const [ingestError, setIngestError] = useState('');
-  const [ingestSuccess, setIngestSuccess] = useState(false);
+  const [ingestFeedback, setIngestFeedback] = useState<IngestFeedback | null>(null);
+  const [isPollingIngest, setIsPollingIngest] = useState(false);
 
   const isModal = variant === 'modal';
 
@@ -102,8 +114,44 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     queryKey: ['email-detail', connectorId, selectedUid],
     queryFn: () => fetchEmailDetail(connectorId, selectedUid!),
     enabled: !!connectorId && !!selectedUid,
-    staleTime: 15000,
+    staleTime: 5000,
+    refetchInterval: (query) => {
+      if (!isPollingIngest) return false;
+      const detail = query.state.data as EmailDetail | undefined;
+      const pending = detail?.ingestion.items.some((item) => item.status === 'pending') ?? false;
+      return pending || isPollingIngest ? 2000 : false;
+    },
   });
+
+  const hasPendingIngestion = useMemo(
+    () => emailDetail?.ingestion.items.some((item) => item.status === 'pending') ?? false,
+    [emailDetail?.ingestion.items]
+  );
+
+  useEffect(() => {
+    if (!isPollingIngest) return;
+    const safetyStop = window.setTimeout(() => {
+      setIsPollingIngest(false);
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+    }, 90_000);
+    return () => window.clearTimeout(safetyStop);
+  }, [isPollingIngest, queryClient, orgId]);
+
+  useEffect(() => {
+    if (!isPollingIngest || !ingestFeedback || !emailDetail) return;
+    if (hasPendingIngestion) return;
+    const hasIngested = emailDetail.ingestion.items.some((item) => item.status === 'ingested');
+    if (ingestFeedback.mode === 'queued' && !hasIngested) return;
+    setIsPollingIngest(false);
+    void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+  }, [
+    emailDetail,
+    hasPendingIngestion,
+    ingestFeedback,
+    isPollingIngest,
+    queryClient,
+    orgId,
+  ]);
 
   const selectEmail = useCallback((item: ConnectorItem) => {
     const uid = item.id || item.path;
@@ -112,7 +160,8 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     setSelectedAttachmentIds(new Set());
     setSelectedArchivePaths(new Set());
     setIngestError('');
-    setIngestSuccess(false);
+    setIngestFeedback(null);
+    setIsPollingIngest(false);
     setBodyTab('text');
   }, []);
 
@@ -147,33 +196,6 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     });
   };
 
-  const ingestMutation = useMutation({
-    mutationFn: (payload: { ingestAllIngestable?: boolean }) =>
-      ingestEmailAttachments(connectorId, selectedUid!, {
-        attachmentIds: payload.ingestAllIngestable ? undefined : Array.from(selectedAttachmentIds),
-        archivePaths: payload.ingestAllIngestable ? undefined : Array.from(selectedArchivePaths),
-        ingestAllIngestable: payload.ingestAllIngestable,
-      }),
-    onSuccess: (result) => {
-      setIngestError('');
-      setIngestSuccess(true);
-      setTimeout(() => setIngestSuccess(false), 4000);
-      void queryClient.invalidateQueries({ queryKey: ['email-detail', connectorId, selectedUid] });
-      void queryClient.invalidateQueries({ queryKey: ['connector-browse', connectorId] });
-      void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
-      if (result.processed === 0 && result.skipped && result.skipped > 0) {
-        setIngestError('No new files were ingested (already processed or skipped).');
-      }
-    },
-    onError: (err: unknown) => {
-      setIngestError(quotaErrorMessage(err, 'Failed to ingest attachments.'));
-    },
-  });
-
-  const selectedCount =
-    selectedAttachmentIds.size +
-    selectedArchivePaths.size;
-
   const ingestableAttachmentCount = useMemo(() => {
     if (!emailDetail) return 0;
     let count = 0;
@@ -184,6 +206,63 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     }
     return count;
   }, [emailDetail]);
+
+  const handleIngestSuccess = useCallback(
+    (result: EmailIngestResult, selectedForIngest: number, ingestAll: boolean) => {
+      setIngestError('');
+      const queued = result.status === 'queued';
+      const processed = result.processed ?? 0;
+      const skipped = result.skipped ?? 0;
+
+      setIngestFeedback({
+        mode: queued ? 'queued' : 'completed',
+        processed,
+        skipped,
+        selectedCount: ingestAll ? ingestableAttachmentCount : selectedForIngest,
+      });
+      setIsPollingIngest(queued || processed > 0);
+
+      void queryClient.invalidateQueries({ queryKey: ['email-detail', connectorId, selectedUid] });
+      void queryClient.invalidateQueries({ queryKey: ['connector-browse', connectorId] });
+      void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+
+      if (!queued && processed === 0 && skipped > 0) {
+        setIngestError('No new files were ingested (already processed or skipped).');
+      }
+    },
+    [
+      connectorId,
+      ingestableAttachmentCount,
+      orgId,
+      queryClient,
+      selectedUid,
+    ]
+  );
+
+  const ingestMutation = useMutation({
+    mutationFn: (payload: { ingestAllIngestable?: boolean }) => {
+      const ingestAll = Boolean(payload.ingestAllIngestable);
+      const selectedForIngest = ingestAll
+        ? ingestableAttachmentCount
+        : selectedAttachmentIds.size + selectedArchivePaths.size;
+      return ingestEmailAttachments(connectorId, selectedUid!, {
+        attachmentIds: ingestAll ? undefined : Array.from(selectedAttachmentIds),
+        archivePaths: ingestAll ? undefined : Array.from(selectedArchivePaths),
+        ingestAllIngestable: ingestAll,
+      }).then((result) => ({ result, selectedForIngest, ingestAll }));
+    },
+    onSuccess: ({ result, selectedForIngest, ingestAll }) => {
+      handleIngestSuccess(result, selectedForIngest, ingestAll);
+    },
+    onError: (err: unknown) => {
+      setIngestError(quotaErrorMessage(err, 'Failed to ingest attachments.'));
+    },
+  });
+
+  const selectedCount =
+    selectedAttachmentIds.size +
+    selectedArchivePaths.size;
 
   return (
     <div className={cn('flex flex-1 min-h-0 min-w-0', isModal ? 'flex-col lg:flex-row' : 'flex-col lg:flex-row gap-0')}>
@@ -427,51 +506,112 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
             </div>
 
             {/* Ingest actions */}
-            <footer className="shrink-0 px-5 py-4 border-t border-border/30 bg-surface-high/15 space-y-2">
-              {ingestSuccess ? (
-                <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm font-bold">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Ingestion complete
+            <footer className="shrink-0 px-5 py-4 border-t border-border/30 bg-surface-high/15 space-y-3">
+              {ingestFeedback ? (
+                <div className="rounded-xl border border-success/25 bg-success/[0.08] p-3.5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-success/15 text-success">
+                      {ingestFeedback.mode === 'queued' || isPollingIngest ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-sm font-bold text-foreground">
+                        {ingestFeedback.mode === 'queued' || isPollingIngest
+                          ? 'Ingestion in progress'
+                          : 'Ingestion complete'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        {ingestFeedback.mode === 'queued' || isPollingIngest ? (
+                          <>
+                            {ingestFeedback.selectedCount} file
+                            {ingestFeedback.selectedCount === 1 ? '' : 's'} queued. You can keep browsing
+                            mailroom — statuses update automatically.
+                          </>
+                        ) : ingestFeedback.processed > 0 ? (
+                          <>
+                            {ingestFeedback.processed} file
+                            {ingestFeedback.processed === 1 ? '' : 's'} added to Documents
+                            {ingestFeedback.skipped > 0 ? ` · ${ingestFeedback.skipped} skipped` : ''}.
+                          </>
+                        ) : (
+                          'No new files were ingested (already processed or skipped).'
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIngestFeedback(null)}
+                      className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-highest/30"
+                      aria-label="Dismiss ingestion notice"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {onViewIngestedDocuments ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewIngestedDocuments(connectorId)}
+                        className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-[11px] font-black uppercase tracking-wider"
+                      >
+                        View in Documents
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void refetchDetail()}
+                      className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border/30 text-[11px] font-bold uppercase tracking-wider hover:bg-surface-highest/20"
+                    >
+                      <RefreshCw className={cn('w-3.5 h-3.5', isPollingIngest && 'animate-spin')} />
+                      Refresh status
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    disabled={ingestMutation.isPending || ingestBlocked || selectedCount === 0}
-                    title={ingestBlocked ? capMessage('documentsMonth') : selectedCount === 0 ? 'Select attachments first' : undefined}
-                    onClick={() => {
-                      if (ingestBlocked) {
-                        setIngestError(capMessage('documentsMonth'));
-                        return;
-                      }
-                      setIngestError('');
-                      ingestMutation.mutate({});
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider disabled:opacity-50"
-                  >
-                    {ingestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                    Ingest selected ({selectedCount})
-                  </button>
-                  <button
-                    type="button"
-                    disabled={ingestMutation.isPending || ingestBlocked || ingestableAttachmentCount === 0}
-                    onClick={() => {
-                      if (ingestBlocked) {
-                        setIngestError(capMessage('documentsMonth'));
-                        return;
-                      }
-                      setIngestError('');
-                      ingestMutation.mutate({ ingestAllIngestable: true });
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider hover:bg-primary/5 disabled:opacity-50"
-                  >
-                    Ingest all ingestable ({ingestableAttachmentCount})
-                  </button>
-                </div>
-              )}
-              {ingestError && <p className="text-xs text-destructive text-center">{ingestError}</p>}
+              ) : null}
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  disabled={ingestMutation.isPending || ingestBlocked || selectedCount === 0}
+                  title={ingestBlocked ? capMessage('documentsMonth') : selectedCount === 0 ? 'Select attachments first' : undefined}
+                  onClick={() => {
+                    if (ingestBlocked) {
+                      setIngestError(capMessage('documentsMonth'));
+                      return;
+                    }
+                    setIngestError('');
+                    setIngestFeedback(null);
+                    ingestMutation.mutate({});
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider disabled:opacity-50"
+                >
+                  {ingestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  Ingest selected ({selectedCount})
+                </button>
+                <button
+                  type="button"
+                  disabled={ingestMutation.isPending || ingestBlocked || ingestableAttachmentCount === 0}
+                  onClick={() => {
+                    if (ingestBlocked) {
+                      setIngestError(capMessage('documentsMonth'));
+                      return;
+                    }
+                    setIngestError('');
+                    setIngestFeedback(null);
+                    ingestMutation.mutate({ ingestAllIngestable: true });
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider hover:bg-primary/5 disabled:opacity-50"
+                >
+                  Ingest all ingestable ({ingestableAttachmentCount})
+                </button>
+              </div>
+              {ingestError ? <p className="text-xs text-destructive text-center">{ingestError}</p> : null}
               <p className="text-[10px] text-muted-foreground text-center">
-                Selected files upload to S3 and enter the AI pipeline. Already-ingested files are skipped.
+                Ingestion runs in the background — no need to wait here. Files appear under Documents → Connectors.
               </p>
             </footer>
           </>

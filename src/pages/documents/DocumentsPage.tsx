@@ -84,7 +84,8 @@ export const DocumentsPage: React.FC = () => {
         connectorFilterType={list.connectorFilterType}
         onConnectorFilterChange={list.setConnectorFilterId}
         onConnectorTypeFilterChange={list.setConnectorFilterType}
-        onShowConnectorDocuments={() => list.setActiveTab('Connectors')}
+        onShowConnectorDocuments={() => list.openConnectorDocuments(null)}
+        connectorViewAllWorkspaces={list.connectorViewAllWorkspaces}
       />
 
       <DocumentsVaultSection
@@ -129,6 +130,10 @@ export const DocumentsPage: React.FC = () => {
         connectorDialogRef={connectorDialogRef}
         initialConnectorId={connectorBrowserLinkId}
         onClose={closeConnectorBrowserModal}
+        onViewIngestedDocuments={(connectorId) => {
+          list.openConnectorDocuments(connectorId);
+          closeConnectorBrowserModal();
+        }}
       />
 
       <DocumentReviewDrawer
