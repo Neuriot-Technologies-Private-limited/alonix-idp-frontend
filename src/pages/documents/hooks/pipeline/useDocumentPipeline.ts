@@ -13,7 +13,6 @@ import {
   markPipelineStageFailed,
   optimisticSetPipelineStage,
   pipelineActionToStage,
-  refreshPipelineDocuments,
   type JobUpdatePayload,
 } from '../../../../utils/pipelineDocumentsCache';
 import { useAlert } from '../../../../components/alert';
