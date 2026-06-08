@@ -9,10 +9,12 @@ import { connectSocket, getSocket } from '../../../../services/chatSocket';
 import { billingSubscriptionQueryKey } from '../../../../hooks/useOrgQuota';
 import { quotaErrorMessage } from '../../../../utils/billingQuota';
 import {
+  applyJobUpdateToPipelineCache,
   markPipelineStageFailed,
   optimisticSetPipelineStage,
   pipelineActionToStage,
   refreshPipelineDocuments,
+  type JobUpdatePayload,
 } from '../../../../utils/pipelineDocumentsCache';
 import { useAlert } from '../../../../components/alert';
 import type { DocumentRow } from '../../types/documentRow';
@@ -51,7 +53,6 @@ export function useDocumentPipeline(
       } else {
         await triggerClassify(docId, gid || null);
       }
-      await refreshPipelineDocuments(queryClient);
       if (action === 'ingest') {
         void queryClient.invalidateQueries({
           queryKey: billingSubscriptionQueryKey(orgId),
@@ -120,7 +121,6 @@ export function useDocumentPipeline(
           failures.push(`${docItem.fileName || id}: ${msg}`);
         }
       }
-      await refreshPipelineDocuments(queryClient);
       if (action === 'ingest' && selectedIds.size > failedIds.length) {
         void queryClient.invalidateQueries({
           queryKey: billingSubscriptionQueryKey(orgId),
@@ -150,16 +150,15 @@ export function useDocumentPipeline(
     const socket = getSocket();
     if (!socket) return;
 
-    const onJobUpdate = () => {
-      void refreshPipelineDocuments(queryClient);
-      void queryClient.invalidateQueries({ queryKey: ['documents'] });
+    const onJobUpdate = (payload: JobUpdatePayload) => {
+      applyJobUpdateToPipelineCache(queryClient, payload, orgId);
     };
 
     socket.on('job.update', onJobUpdate);
     return () => {
       socket.off('job.update', onJobUpdate);
     };
-  }, [queryClient, userEmail, userGroupId]);
+  }, [queryClient, orgId, userEmail, userGroupId]);
 
   return {
     actionBusyKey,

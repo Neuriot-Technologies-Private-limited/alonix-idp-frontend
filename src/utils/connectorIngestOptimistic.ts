@@ -83,31 +83,24 @@ export function optimisticAppendConnectorDocuments(
     })
   );
 
-  for (const scope of ['all', 'connector'] as const) {
-    const key = pipelineDocumentsQueryKey(orgId, scope);
-    const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
-    queryClient.setQueryData(key, () => {
-      const withoutDupes = prev.filter(
-        (d) =>
-          !rows.some(
-            (row) => String(row.fileName) === String(d.fileName) && isConnectorPendingDocumentId(d.id)
-          )
-      );
-      return [...rows, ...withoutDupes];
-    });
-  }
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
+  queryClient.setQueryData(key, () => {
+    const withoutDupes = prev.filter(
+      (d) =>
+        !rows.some(
+          (row) => String(row.fileName) === String(d.fileName) && isConnectorPendingDocumentId(d.id)
+        )
+    );
+    return [...rows, ...withoutDupes];
+  });
 }
 
 export function clearOptimisticConnectorDocuments(queryClient: QueryClient, orgId?: string | null) {
-  for (const scope of ['all', 'connector'] as const) {
-    const key = pipelineDocumentsQueryKey(orgId, scope);
-    const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
-    if (!prev?.length) continue;
-    queryClient.setQueryData(
-      key,
-      prev.filter((d) => !isConnectorPendingDocumentId(d.id))
-    );
-  }
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
+  if (!prev?.length) return;
+  queryClient.setQueryData(key, prev.filter((d) => !isConnectorPendingDocumentId(d.id)));
 }
 
 export function replaceOptimisticConnectorDocuments(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import {
+  applyJobUpdateToPipelineCache,
   hasProcessingPipelineDocuments,
   optimisticAppendUploadedDocument,
   optimisticSetPipelineStage,
@@ -71,6 +72,31 @@ describe('pipelineDocumentsCache', () => {
 
     const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
     expect(rows?.[0].pipeline.ingestion.status).toBe('error');
+  });
+
+  it('applyJobUpdateToPipelineCache patches stage from websocket payload', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['pipeline-documents', 'org-1', 'all'], [
+      {
+        id: 'doc-1',
+        fileName: 'a.pdf',
+        pipeline: { ingestion: { status: 'idle' } },
+      },
+    ]);
+
+    applyJobUpdateToPipelineCache(
+      qc,
+      {
+        documentId: 'doc-1',
+        taskType: 'INGEST',
+        status: 'PROCESSING',
+        timestamps: { startTime: '2026-06-08T10:00:00.000Z', endTime: null },
+      },
+      'org-1'
+    );
+
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
+    expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
   });
 
   it('hasProcessingPipelineDocuments detects in-flight stages', () => {

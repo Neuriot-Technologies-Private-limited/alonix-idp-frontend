@@ -17,5 +17,4 @@ export async function refreshDocumentsAfterConnectorIngest(
     clearOptimisticConnectorDocuments(queryClient, orgId);
   }
   await refreshPipelineDocuments(queryClient, orgId);
-  await queryClient.invalidateQueries({ queryKey: ['documents', orgId] });
 }

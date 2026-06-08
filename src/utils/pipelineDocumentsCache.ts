@@ -35,12 +35,82 @@ export function patchPipelineDocumentsCache(
   updater: (docs: Record<string, unknown>[]) => Record<string, unknown>[],
   orgId?: string | null
 ) {
-  for (const scope of ['all', 'connector'] as const) {
-    const key = pipelineDocumentsQueryKey(orgId, scope);
-    const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
-    if (!prev) continue;
-    queryClient.setQueryData(key, updater([...prev]));
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
+  if (!prev) return;
+  queryClient.setQueryData(key, updater([...prev]));
+}
+
+export type JobUpdatePayload = {
+  documentId?: string;
+  taskType?: string;
+  status?: string;
+  error?: string | null;
+  timestamps?: { startTime?: string | Date | null; endTime?: string | Date | null };
+};
+
+function jobTaskToStage(taskType: string | undefined): PipelineStageKey | null {
+  const task = String(taskType || '').toUpperCase();
+  if (task === 'INGEST' || task === 'PROCESS_DOCUMENT') return 'ingestion';
+  if (task === 'EXTRACT') return 'extraction';
+  if (task === 'CLASSIFY') return 'classification';
+  return null;
+}
+
+function mapJobStatusToStageStatus(status: string | undefined): PipelineStageStatus {
+  const u = String(status || '').toUpperCase();
+  if (u === 'PENDING' || u === 'PROCESSING' || u === 'RUNNING') return 'processing';
+  if (u === 'COMPLETED' || u === 'DONE' || u === 'SUCCESS' || u === 'SUCCEEDED') return 'done';
+  if (u === 'FAILED' || u === 'ERROR') return 'error';
+  return 'idle';
+}
+
+/** Apply websocket job.update to the vault list without refetching the org API. */
+export function applyJobUpdateToPipelineCache(
+  queryClient: QueryClient,
+  payload: JobUpdatePayload,
+  orgId?: string | null
+) {
+  const docId = payload?.documentId ? String(payload.documentId) : '';
+  const stage = jobTaskToStage(payload.taskType);
+  if (!docId || !stage) return;
+
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
+  if (!prev?.some((d) => String(d.id) === docId)) {
+    void refreshPipelineDocuments(queryClient, orgId);
+    return;
   }
+
+  const status = mapJobStatusToStageStatus(payload.status);
+  const startTime =
+    payload.timestamps?.startTime != null ? String(payload.timestamps.startTime) : null;
+  const endTime = payload.timestamps?.endTime != null ? String(payload.timestamps.endTime) : null;
+  const errorMessage = payload.error ? String(payload.error).slice(0, 500) : null;
+
+  patchPipelineDocumentsCache(
+    queryClient,
+    (docs) =>
+      docs.map((d) => {
+        if (String(d.id) !== docId) return d;
+        const p = mergePipeline(d.pipeline);
+        const prevStage = p[stage] as Record<string, unknown> | undefined;
+        const nextStage: Record<string, unknown> = {
+          ...prevStage,
+          status,
+          startTime: startTime ?? prevStage?.startTime ?? null,
+          endTime:
+            endTime ??
+            (status === 'done' || status === 'error' ? new Date().toISOString() : null),
+        };
+        if (status === 'error' && errorMessage) nextStage.errorMessage = errorMessage;
+        return normalizePipelineDocument({
+          ...d,
+          pipeline: { ...p, [stage]: nextStage },
+        });
+      }),
+    orgId
+  );
 }
 
 export function pipelineActionToStage(
@@ -160,7 +230,7 @@ export function hasProcessingPipelineDocuments(docs: Record<string, unknown>[] |
   });
 }
 
-const REFRESH_DEBOUNCE_MS = 600;
+const REFRESH_DEBOUNCE_MS = 1500;
 let refreshDebounceTimer: number | null = null;
 let refreshResolvers: Array<() => void> = [];
 
@@ -176,11 +246,11 @@ export function refreshPipelineDocuments(
       refreshDebounceTimer = null;
       const resolvers = refreshResolvers;
       refreshResolvers = [];
-      const prefix = pipelineDocumentsQueryPrefix(orgId);
+      const key = pipelineDocumentsQueryKey(orgId, 'all');
       void (async () => {
         try {
-          await queryClient.invalidateQueries({ queryKey: prefix });
-          await queryClient.refetchQueries({ queryKey: prefix, type: 'active' });
+          await queryClient.invalidateQueries({ queryKey: key });
+          await queryClient.refetchQueries({ queryKey: key, type: 'active' });
         } finally {
           resolvers.forEach((done) => done());
         }
