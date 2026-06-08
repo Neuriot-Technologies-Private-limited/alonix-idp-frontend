@@ -8,13 +8,11 @@ import {
 
 export const CONNECTOR_PENDING_ID_PREFIX = 'connector-pending-';
 
-const PIPELINE_STAGE_PROCESSING = {
-  status: 'processing' as const,
-  startTime: new Date().toISOString(),
-  endTime: null,
-};
-
 const PIPELINE_STAGE_IDLE = { status: 'idle' as const, startTime: null, endTime: null };
+
+function pipelineStageProcessing() {
+  return { status: 'processing' as const, startTime: new Date().toISOString(), endTime: null };
+}
 
 export function isConnectorPendingDocumentId(id: unknown): boolean {
   return String(id || '').startsWith(CONNECTOR_PENDING_ID_PREFIX);
@@ -61,9 +59,6 @@ export function optimisticAppendConnectorDocuments(
 ) {
   if (!files.length) return;
   const now = new Date().toISOString();
-  const key = pipelineDocumentsQueryKey(orgId);
-  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
-
   const rows = files.map((file) =>
     normalizePipelineDocument({
       id: `${CONNECTOR_PENDING_ID_PREFIX}${file.connectorId}::${file.fileName}`,
@@ -81,29 +76,38 @@ export function optimisticAppendConnectorDocuments(
       ingestSource: 'connector',
       uploadedAt: now,
       pipeline: {
-        ingestion: PIPELINE_STAGE_PROCESSING,
+        ingestion: pipelineStageProcessing(),
         extraction: PIPELINE_STAGE_IDLE,
         classification: PIPELINE_STAGE_IDLE,
       },
     })
   );
 
-  queryClient.setQueryData(key, () => {
-    const withoutDupes = prev.filter(
-      (d) => !rows.some((row) => String(row.fileName) === String(d.fileName) && isConnectorPendingDocumentId(d.id))
-    );
-    return [...rows, ...withoutDupes];
-  });
+  for (const scope of ['all', 'connector'] as const) {
+    const key = pipelineDocumentsQueryKey(orgId, scope);
+    const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
+    queryClient.setQueryData(key, () => {
+      const withoutDupes = prev.filter(
+        (d) =>
+          !rows.some(
+            (row) => String(row.fileName) === String(d.fileName) && isConnectorPendingDocumentId(d.id)
+          )
+      );
+      return [...rows, ...withoutDupes];
+    });
+  }
 }
 
 export function clearOptimisticConnectorDocuments(queryClient: QueryClient, orgId?: string | null) {
-  const key = pipelineDocumentsQueryKey(orgId);
-  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
-  if (!prev?.length) return;
-  queryClient.setQueryData(
-    key,
-    prev.filter((d) => !isConnectorPendingDocumentId(d.id))
-  );
+  for (const scope of ['all', 'connector'] as const) {
+    const key = pipelineDocumentsQueryKey(orgId, scope);
+    const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
+    if (!prev?.length) continue;
+    queryClient.setQueryData(
+      key,
+      prev.filter((d) => !isConnectorPendingDocumentId(d.id))
+    );
+  }
 }
 
 export function replaceOptimisticConnectorDocuments(
@@ -132,7 +136,7 @@ export function replaceOptimisticConnectorDocuments(
             uploadedBy: 'SYSTEM_CONNECTOR',
             uploadedAt: now,
             pipeline: {
-              ingestion: PIPELINE_STAGE_PROCESSING,
+              ingestion: pipelineStageProcessing(),
               extraction: PIPELINE_STAGE_IDLE,
               classification: PIPELINE_STAGE_IDLE,
             },

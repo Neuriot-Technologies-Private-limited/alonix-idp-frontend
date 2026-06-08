@@ -22,10 +22,13 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
       dot: 'bg-muted-foreground/45',
     },
   };
-  const c =
-    config[
-      status === 'Ingesting...' || status === 'Extracting...' || status === 'Classifying...' ? 'Processing' : status
-    ] ?? config.Idle;
+  const normalized =
+    status === 'Ingesting...' || status === 'Extracting...' || status === 'Classifying...'
+      ? 'Processing'
+      : /failed$/i.test(status)
+        ? 'Failed'
+        : status;
+  const c = config[normalized] ?? config.Idle;
   return (
     <span
       className={cn(

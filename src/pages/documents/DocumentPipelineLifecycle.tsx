@@ -1,6 +1,6 @@
 import React from 'react';
 import { mergePipeline } from '../../services/adminService';
-import { getPipelineCurrentStageLabel } from '../../utils/pipelineUi';
+import { getPipelineCurrentStageLabel, getPipelineFailureMessage } from '../../utils/pipelineUi';
 import { PipelineStage, StatusBadge } from './DocumentPrimitives';
 
 export const DocumentPipelineLifecycle: React.FC<{ pipeline: unknown; className?: string }> = ({
@@ -9,6 +9,7 @@ export const DocumentPipelineLifecycle: React.FC<{ pipeline: unknown; className?
 }) => {
   const p = mergePipeline(pipeline);
   const currentStage = getPipelineCurrentStageLabel(p);
+  const failureMessage = getPipelineFailureMessage(p);
   return (
     <div className={className ?? 'flex flex-col items-center justify-center gap-2'}>
       <div className="flex items-center">
@@ -21,6 +22,14 @@ export const DocumentPipelineLifecycle: React.FC<{ pipeline: unknown; className?
         />
       </div>
       <StatusBadge status={currentStage} />
+      {failureMessage ? (
+        <p
+          className="max-w-[14rem] text-center text-[10px] leading-snug text-destructive/90 line-clamp-3"
+          title={failureMessage}
+        >
+          {failureMessage}
+        </p>
+      ) : null}
     </div>
   );
 };

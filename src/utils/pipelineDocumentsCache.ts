@@ -35,10 +35,12 @@ export function patchPipelineDocumentsCache(
   updater: (docs: Record<string, unknown>[]) => Record<string, unknown>[],
   orgId?: string | null
 ) {
-  const key = pipelineDocumentsQueryKey(orgId);
-  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
-  if (!prev) return;
-  queryClient.setQueryData(key, updater([...prev]));
+  for (const scope of ['all', 'connector'] as const) {
+    const key = pipelineDocumentsQueryKey(orgId, scope);
+    const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
+    if (!prev) continue;
+    queryClient.setQueryData(key, updater([...prev]));
+  }
 }
 
 export function pipelineActionToStage(
@@ -158,9 +160,31 @@ export function hasProcessingPipelineDocuments(docs: Record<string, unknown>[] |
   });
 }
 
-/** Invalidate and immediately refetch the active documents query (no stale UI gap). */
-export async function refreshPipelineDocuments(queryClient: QueryClient, orgId?: string | null) {
-  const prefix = pipelineDocumentsQueryPrefix(orgId);
-  await queryClient.invalidateQueries({ queryKey: prefix });
-  await queryClient.refetchQueries({ queryKey: prefix, type: 'active' });
+const REFRESH_DEBOUNCE_MS = 600;
+let refreshDebounceTimer: number | null = null;
+let refreshResolvers: Array<() => void> = [];
+
+/** Invalidate and refetch pipeline lists (debounced to avoid request storms). */
+export function refreshPipelineDocuments(
+  queryClient: QueryClient,
+  orgId?: string | null
+): Promise<void> {
+  return new Promise((resolve) => {
+    refreshResolvers.push(resolve);
+    if (refreshDebounceTimer) window.clearTimeout(refreshDebounceTimer);
+    refreshDebounceTimer = window.setTimeout(() => {
+      refreshDebounceTimer = null;
+      const resolvers = refreshResolvers;
+      refreshResolvers = [];
+      const prefix = pipelineDocumentsQueryPrefix(orgId);
+      void (async () => {
+        try {
+          await queryClient.invalidateQueries({ queryKey: prefix });
+          await queryClient.refetchQueries({ queryKey: prefix, type: 'active' });
+        } finally {
+          resolvers.forEach((done) => done());
+        }
+      })();
+    }, REFRESH_DEBOUNCE_MS);
+  });
 }

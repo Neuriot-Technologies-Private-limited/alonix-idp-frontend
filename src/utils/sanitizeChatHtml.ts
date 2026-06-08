@@ -16,3 +16,13 @@ const CHAT_SANITIZE_CONFIG: Config = {
 export function sanitizeChatHtml(html: string): string {
   return DOMPurify.sanitize(html || '', CHAT_SANITIZE_CONFIG) as string;
 }
+
+const EMAIL_SANITIZE_CONFIG: Config = {
+  USE_PROFILES: { html: true },
+  FORBID_TAGS: ['iframe', 'object', 'embed', 'form', 'input', 'button', 'style'],
+};
+
+/** Sanitize untrusted HTML from connector email bodies before render. */
+export function sanitizeEmailHtml(html: string): string {
+  return DOMPurify.sanitize(html || '', EMAIL_SANITIZE_CONFIG) as string;
+}

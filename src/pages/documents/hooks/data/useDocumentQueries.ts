@@ -6,6 +6,8 @@ import { useSessionReady } from '../../../../hooks/useSessionReady';
 import { hasProcessingPipelineDocuments } from '../../../../utils/pipelineDocumentsCache';
 import { mergePipelineDocumentLists } from '../../../../utils/mergePipelineDocuments';
 
+const PIPELINE_POLL_MS = 5000;
+
 /** Org document list (vault API). Invalidate with `['documents']`. */
 export function useDocuments() {
   const sessionReady = useSessionReady();
@@ -27,14 +29,16 @@ export function usePipelineDocuments() {
     queryKey: ['pipeline-documents', orgId, 'all'],
     queryFn: () => adminService.getPipelineDocuments({ limit: 100 }),
     enabled,
-    staleTime: 0,
+    staleTime: PIPELINE_POLL_MS,
+    refetchOnWindowFocus: false,
   });
 
   const connectorQuery = useQuery({
     queryKey: ['pipeline-documents', orgId, 'connector'],
     queryFn: () => adminService.getPipelineDocuments({ ingestSource: 'connector', limit: 200 }),
     enabled,
-    staleTime: 0,
+    staleTime: PIPELINE_POLL_MS,
+    refetchOnWindowFocus: false,
   });
 
   const merged = React.useMemo(
@@ -42,14 +46,24 @@ export function usePipelineDocuments() {
     [allQuery.data, connectorQuery.data]
   );
 
+  const shouldPoll = React.useMemo(
+    () => enabled && hasProcessingPipelineDocuments(merged),
+    [enabled, merged]
+  );
+
+  const allRefetchRef = React.useRef(allQuery.refetch);
+  allRefetchRef.current = allQuery.refetch;
+  const connectorRefetchRef = React.useRef(connectorQuery.refetch);
+  connectorRefetchRef.current = connectorQuery.refetch;
+
   React.useEffect(() => {
-    if (!enabled || !hasProcessingPipelineDocuments(merged)) return undefined;
+    if (!shouldPoll) return undefined;
     const timer = window.setInterval(() => {
-      void allQuery.refetch();
-      void connectorQuery.refetch();
-    }, 2000);
+      void allRefetchRef.current();
+      void connectorRefetchRef.current();
+    }, PIPELINE_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, merged, allQuery, connectorQuery]);
+  }, [shouldPoll]);
 
   return {
     data: merged,

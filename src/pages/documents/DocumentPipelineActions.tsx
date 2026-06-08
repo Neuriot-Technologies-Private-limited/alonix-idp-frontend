@@ -64,6 +64,8 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           : true)
   );
   const ingestFailed = ingestionStatus === 'error';
+  const ingestErrorMessage =
+    ingestFailed && p?.ingestion?.errorMessage ? String(p.ingestion.errorMessage) : '';
   const ingestEnabled =
     !bulkBusyActive && !docBusy && !ingestRunning && (!ingestDone || ingestFailed);
   const extractEnabled = !bulkBusyActive && !docBusy && !extractRunning && !extractDone;
@@ -79,7 +81,9 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   const isCard = variant === 'card';
 
   const ingestTooltip = ingestFailed
-    ? 'Re-ingest — retry failed connector ingestion'
+    ? ingestErrorMessage
+      ? `Re-ingest — ${ingestErrorMessage}`
+      : 'Re-ingest — retry failed ingestion'
     : ingestDone
       ? 'Ingest — complete (no action needed)'
       : ingestRunning

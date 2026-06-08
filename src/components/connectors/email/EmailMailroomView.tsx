@@ -27,6 +27,7 @@ import {
   resolveSelectedIngestFileNames,
 } from '../../../utils/connectorIngestOptimistic';
 import type { EmailIngestResult } from '../../../services/connectorBrowserApi';
+import { sanitizeEmailHtml } from '../../../utils/sanitizeChatHtml';
 
 export interface EmailMailroomViewProps {
   connectorId: string;
@@ -67,7 +68,7 @@ function kindIcon(kind: string) {
   return <File className="w-3.5 h-3.5" />;
 }
 
-function statusBadge(status: string) {
+function statusBadge(status: string, errorMessage?: string | null) {
   const map: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
     ingested: { label: 'Ingested', className: 'bg-success/10 text-success border-success/20', icon: <CheckCircle2 className="w-3 h-3" /> },
     pending: { label: 'Processing', className: 'bg-amber-400/10 text-amber-500 border-amber-400/20', icon: <Clock className="w-3 h-3" /> },
@@ -76,15 +77,18 @@ function statusBadge(status: string) {
   };
   const meta = map[status] || map.not_ingested;
   return (
-    <span className={cn('inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border', meta.className)}>
+    <span
+      className={cn('inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border', meta.className)}
+      title={status === 'failed' && errorMessage ? errorMessage : undefined}
+    >
       {meta.icon}
       {meta.label}
     </span>
   );
 }
 
-function ingestionStatusForKey(detail: EmailDetail | undefined, sourceKey: string) {
-  return detail?.ingestion.items.find((i) => i.sourceKey === sourceKey)?.status || 'not_ingested';
+function ingestionItemForKey(detail: EmailDetail | undefined, sourceKey: string) {
+  return detail?.ingestion.items.find((i) => i.sourceKey === sourceKey);
 }
 
 const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
@@ -125,7 +129,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
       if (!isPollingIngest) return false;
       const detail = query.state.data as EmailDetail | undefined;
       const pending = detail?.ingestion.items.some((item) => item.status === 'pending') ?? false;
-      return pending || isPollingIngest ? 2000 : false;
+      return pending ? 2000 : false;
     },
   });
 
@@ -495,7 +499,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
                 {bodyTab === 'html' && emailDetail.body.html ? (
                   <div
                     className="prose prose-sm dark:prose-invert max-w-none text-xs rounded-xl border border-border/20 p-4 bg-surface-lowest/50 max-h-48 overflow-y-auto"
-                    dangerouslySetInnerHTML={{ __html: emailDetail.body.html }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(emailDetail.body.html) }}
                   />
                 ) : (
                   <pre className="text-xs text-foreground/85 whitespace-pre-wrap font-sans leading-relaxed rounded-xl border border-border/20 p-4 bg-surface-lowest/50 max-h-48 overflow-y-auto">
@@ -552,9 +556,19 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
                               <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">{att.skipReason}</p>
                             )}
                           </div>
-                          {!att.archiveEntries?.length && (
-                            statusBadge(ingestionStatusForKey(emailDetail, att.sourceKey))
-                          )}
+                          {!att.archiveEntries?.length && (() => {
+                            const item = ingestionItemForKey(emailDetail, att.sourceKey);
+                            return (
+                              <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                {statusBadge(item?.status || 'not_ingested', item?.errorMessage)}
+                                {item?.status === 'failed' && item.errorMessage ? (
+                                  <p className="max-w-[10rem] text-[9px] text-destructive/85 text-right line-clamp-2" title={item.errorMessage}>
+                                    {item.errorMessage}
+                                  </p>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {att.archiveEntries && att.archiveEntries.length > 0 && (
@@ -578,7 +592,19 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
                                   <p className="text-[11px] truncate">{entry.fileName}</p>
                                   <p className="text-[10px] text-muted-foreground">{formatSize(entry.size)}</p>
                                 </div>
-                                {statusBadge(ingestionStatusForKey(emailDetail, entry.sourceKey))}
+                                {(() => {
+                                  const item = ingestionItemForKey(emailDetail, entry.sourceKey);
+                                  return (
+                                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                      {statusBadge(item?.status || 'not_ingested', item?.errorMessage)}
+                                      {item?.status === 'failed' && item.errorMessage ? (
+                                        <p className="max-w-[10rem] text-[9px] text-destructive/85 text-right line-clamp-2" title={item.errorMessage}>
+                                          {item.errorMessage}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })()}
                               </li>
                             ))}
                           </ul>

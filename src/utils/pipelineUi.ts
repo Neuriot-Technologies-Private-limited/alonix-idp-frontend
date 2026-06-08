@@ -3,10 +3,23 @@
  * Kept in utils with a narrow type so feature code does not need `adminService` for labels.
  */
 export type PipelineStageForLabel = {
-  ingestion: { status: string };
-  extraction: { status: string };
-  classification: { status: string };
+  ingestion: { status: string; errorMessage?: string | null };
+  extraction: { status: string; errorMessage?: string | null };
+  classification: { status: string; errorMessage?: string | null };
 };
+
+export function getPipelineFailureMessage(p: PipelineStageForLabel): string | null {
+  if (p.ingestion.status === 'error') {
+    return p.ingestion.errorMessage ? String(p.ingestion.errorMessage) : null;
+  }
+  if (p.extraction.status === 'error') {
+    return p.extraction.errorMessage ? String(p.extraction.errorMessage) : null;
+  }
+  if (p.classification.status === 'error') {
+    return p.classification.errorMessage ? String(p.classification.errorMessage) : null;
+  }
+  return null;
+}
 
 export function getPipelineCurrentStageLabel(p: PipelineStageForLabel): string {
   const isAllDone =
@@ -14,11 +27,11 @@ export function getPipelineCurrentStageLabel(p: PipelineStageForLabel): string {
     p.extraction.status === 'done' &&
     p.classification.status === 'done';
   if (p.ingestion.status === 'processing') return 'Ingesting...';
-  if (p.ingestion.status === 'error') return 'Failed';
+  if (p.ingestion.status === 'error') return 'Ingest failed';
   if (p.extraction.status === 'processing') return 'Extracting...';
-  if (p.extraction.status === 'error') return 'Failed';
+  if (p.extraction.status === 'error') return 'Extract failed';
   if (p.classification.status === 'processing') return 'Classifying...';
-  if (p.classification.status === 'error') return 'Failed';
+  if (p.classification.status === 'error') return 'Classify failed';
   if (isAllDone) return 'Complete';
   return 'Idle';
 }

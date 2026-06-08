@@ -56,6 +56,7 @@ export interface EmailIngestionItem {
   status: 'not_ingested' | 'ingested' | 'pending' | 'failed';
   documentId: string | null;
   ingestionStatus: string | null;
+  errorMessage?: string | null;
 }
 
 export interface EmailDetail {
