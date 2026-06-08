@@ -20,6 +20,11 @@ import { quotaErrorMessage } from '../../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../../hooks/useOrgQuota';
 import { useAuthStore } from '../../../stores/authStore';
 import { refreshDocumentsAfterConnectorIngest } from '../../../utils/connectorIngestFeedback';
+import {
+  clearOptimisticConnectorDocuments,
+  optimisticAppendConnectorDocuments,
+  resolveSelectedIngestFileNames,
+} from '../../../utils/connectorIngestOptimistic';
 import type { EmailIngestResult } from '../../../services/connectorBrowserApi';
 
 export interface EmailMailroomViewProps {
@@ -225,7 +230,13 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
       void queryClient.invalidateQueries({ queryKey: ['email-detail', connectorId, selectedUid] });
       void queryClient.invalidateQueries({ queryKey: ['connector-browse', connectorId] });
       void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
-      void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+      const created = (result.documents || []).map((doc) => ({
+        documentId: doc.documentId,
+        fileName: doc.fileName,
+        connectorId,
+        connectorType: 'EMAIL',
+      }));
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId, created);
 
       if (!queued && processed === 0 && skipped > 0) {
         setIngestError('No new files were ingested (already processed or skipped).');
@@ -252,10 +263,30 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
         ingestAllIngestable: ingestAll,
       }).then((result) => ({ result, selectedForIngest, ingestAll }));
     },
+    onMutate: (payload) => {
+      const ingestAll = Boolean(payload.ingestAllIngestable);
+      const fileNames = resolveSelectedIngestFileNames(emailDetail, {
+        ingestAllIngestable: ingestAll,
+        attachmentIds: ingestAll ? undefined : Array.from(selectedAttachmentIds),
+        archivePaths: ingestAll ? undefined : Array.from(selectedArchivePaths),
+      });
+      optimisticAppendConnectorDocuments(
+        queryClient,
+        fileNames.map((fileName) => ({
+          fileName,
+          connectorId,
+          connectorType: 'EMAIL',
+        })),
+        orgId
+      );
+      onViewIngestedDocuments?.(connectorId);
+      return { fileNames };
+    },
     onSuccess: ({ result, selectedForIngest, ingestAll }) => {
       handleIngestSuccess(result, selectedForIngest, ingestAll);
     },
     onError: (err: unknown) => {
+      clearOptimisticConnectorDocuments(queryClient, orgId);
       setIngestError(quotaErrorMessage(err, 'Failed to ingest attachments.'));
     },
   });
@@ -611,7 +642,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
               </div>
               {ingestError ? <p className="text-xs text-destructive text-center">{ingestError}</p> : null}
               <p className="text-[10px] text-muted-foreground text-center">
-                Ingestion runs in the background — no need to wait here. Files appear under Documents → Connectors.
+                Selected files appear under Documents → Connectors right away while the pipeline runs.
               </p>
             </footer>
           </>

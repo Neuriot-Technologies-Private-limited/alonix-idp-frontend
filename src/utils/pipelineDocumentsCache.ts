@@ -141,6 +141,8 @@ export function optimisticAppendUploadedDocument(
 export function hasProcessingPipelineDocuments(docs: Record<string, unknown>[] | undefined): boolean {
   if (!docs?.length) return false;
   return docs.some((d) => {
+    const id = String(d.id || '');
+    if (id.startsWith('connector-pending-')) return true;
     const p = mergePipeline(d.pipeline);
     return (
       p.ingestion.status === 'processing' ||

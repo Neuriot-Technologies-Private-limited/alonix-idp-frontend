@@ -82,6 +82,11 @@ export interface EmailIngestSelection {
   async?: boolean;
 }
 
+export interface ConnectorIngestedDocument {
+  documentId: string;
+  fileName: string;
+}
+
 export interface EmailIngestResult {
   success: boolean;
   status: string;
@@ -89,6 +94,7 @@ export interface EmailIngestResult {
   processed?: number;
   skipped?: number;
   markedProcessed?: boolean;
+  documents?: ConnectorIngestedDocument[];
   jobId?: string;
   error?: string;
 }
@@ -182,8 +188,8 @@ export async function ingestEmailAttachments(
     `/admin/orgs/${orgId}/connectors/${connectorId}/emails/${encodeURIComponent(uid)}/ingest`,
     {
       ...selection,
-      // Queue on the server so the mailroom UI returns immediately (no long IMAP/S3 wait).
-      async: selection.async !== false,
+      // Sync ingest creates documents immediately (same as manual upload) so they appear in Connectors tab.
+      async: selection.async === true,
     }
   );
   return data;
