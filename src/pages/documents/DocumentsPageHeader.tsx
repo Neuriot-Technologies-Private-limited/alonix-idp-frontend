@@ -12,6 +12,8 @@ import { cn } from '../../utils/cn';
 import { MetricStateCard, MetricStateGrid } from '../../components/ui/MetricStateCard';
 import { SearchToolbarRow } from '../../components/ui/SearchToolbarRow';
 import type { DocumentPipelineTab } from './types/documentRow';
+import { ConnectorIngestBreakdown } from './ConnectorIngestBreakdown';
+import type { ConnectorNameBreakdown, ConnectorTypeBreakdown } from '../../utils/connectorDocumentSource';
 
 type PipelineTab = { id: DocumentPipelineTab; label: string; count: number };
 
@@ -19,20 +21,39 @@ type DocumentsPageHeaderProps = {
   isPureViewOnly: boolean;
   headerSubtitle: string;
   canUploadDocs: boolean;
+  canIngestFromConnectors: boolean;
   onOpenUpload: () => void;
   onOpenConnectors: () => void;
-  counts: { all: number; ingested: number; extracted: number; classified: number; failed: number };
+  counts: {
+    all: number;
+    ingested: number;
+    extracted: number;
+    classified: number;
+    failed: number;
+    fromConnectors: number;
+  };
   search: string;
   onSearchChange: (value: string) => void;
   pipelineTabs: PipelineTab[];
   activeTab: DocumentPipelineTab;
   onTabChange: (tab: DocumentPipelineTab) => void;
+  showConnectorBreakdown: boolean;
+  connectorBreakdown: {
+    byType: ConnectorTypeBreakdown[];
+    byConnector: ConnectorNameBreakdown[];
+  };
+  connectorFilterId: string | null;
+  connectorFilterType: string | null;
+  onConnectorFilterChange: (connectorId: string | null) => void;
+  onConnectorTypeFilterChange: (connectorType: string | null) => void;
+  onShowConnectorDocuments: () => void;
 };
 
 export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
   isPureViewOnly,
   headerSubtitle,
   canUploadDocs,
+  canIngestFromConnectors,
   onOpenUpload,
   onOpenConnectors,
   counts,
@@ -41,6 +62,13 @@ export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
   pipelineTabs,
   activeTab,
   onTabChange,
+  showConnectorBreakdown,
+  connectorBreakdown,
+  connectorFilterId,
+  connectorFilterType,
+  onConnectorFilterChange,
+  onConnectorTypeFilterChange,
+  onShowConnectorDocuments,
 }) => (
   <>
     <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -68,17 +96,19 @@ export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
             <span className="whitespace-nowrap">Upload Assets</span>
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={onOpenConnectors}
-          className="border border-border/25 bg-surface-highest/15 hover:bg-primary/10 hover:border-primary/35 text-foreground font-bold text-[11px] uppercase tracking-widest px-4 py-3 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full sm:w-auto sm:max-w-[16rem] sm:px-5 group sm:order-1"
-        >
-          <Network className="w-4 h-4 shrink-0 text-primary/90 group-hover:scale-105 transition-transform" />
-          <span className="text-center leading-snug sm:text-left">
-            <span className="hidden sm:inline">Ingest from connectors</span>
-            <span className="sm:hidden">Upload or ingest from connectors</span>
-          </span>
-        </button>
+        {canIngestFromConnectors ? (
+          <button
+            type="button"
+            onClick={onOpenConnectors}
+            className="border border-border/25 bg-surface-highest/15 hover:bg-primary/10 hover:border-primary/35 text-foreground font-bold text-[11px] uppercase tracking-widest px-4 py-3 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full sm:w-auto sm:max-w-[16rem] sm:px-5 group sm:order-1"
+          >
+            <Network className="w-4 h-4 shrink-0 text-primary/90 group-hover:scale-105 transition-transform" />
+            <span className="text-center leading-snug sm:text-left">
+              <span className="hidden sm:inline">Ingest from connectors</span>
+              <span className="sm:hidden">Ingest from connectors</span>
+            </span>
+          </button>
+        ) : null}
       </div>
     </section>
 
@@ -87,8 +117,35 @@ export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
       <MetricStateCard label="Ingested" value={counts.ingested} tone="emerald" icon={DatabaseZap} />
       <MetricStateCard label="Extracted" value={counts.extracted} tone="violet" icon={ScanSearch} />
       <MetricStateCard label="Classified" value={counts.classified} tone="amber" icon={Tags} />
+      <button
+        type="button"
+        onClick={onShowConnectorDocuments}
+        className="text-left rounded-2xl transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        title="Show connector-ingested documents"
+      >
+        <MetricStateCard label="From connectors" value={counts.fromConnectors} tone="violet" icon={Network} />
+      </button>
       <MetricStateCard label="Failed" value={counts.failed} tone="rose" icon={AlertTriangle} />
     </MetricStateGrid>
+
+    {showConnectorBreakdown ? (
+      <ConnectorIngestBreakdown
+        byType={connectorBreakdown.byType}
+        byConnector={connectorBreakdown.byConnector}
+        activeConnectorType={activeTab === 'Connectors' ? connectorFilterType : null}
+        activeConnectorId={activeTab === 'Connectors' ? connectorFilterId : null}
+        onSelectConnectorType={(connectorType) => {
+          onShowConnectorDocuments();
+          onConnectorTypeFilterChange(connectorType);
+          if (connectorType) onConnectorFilterChange(null);
+        }}
+        onSelectConnector={(connectorId) => {
+          onShowConnectorDocuments();
+          onConnectorFilterChange(connectorId);
+          if (connectorId) onConnectorTypeFilterChange(null);
+        }}
+      />
+    ) : null}
 
     <SearchToolbarRow
       search={{

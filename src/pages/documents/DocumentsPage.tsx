@@ -69,6 +69,7 @@ export const DocumentsPage: React.FC = () => {
         isPureViewOnly={list.isPureViewOnly}
         headerSubtitle={list.headerSubtitle}
         canUploadDocs={list.canUploadDocs}
+        canIngestFromConnectors={list.canIngestFromConnectors}
         onOpenUpload={() => upload.setIsUploadModalOpen(true)}
         onOpenConnectors={openConnectorBrowserModal}
         counts={list.counts}
@@ -77,6 +78,13 @@ export const DocumentsPage: React.FC = () => {
         pipelineTabs={list.pipelineTabs}
         activeTab={list.activeTab}
         onTabChange={list.setActiveTab}
+        showConnectorBreakdown={list.showConnectorBreakdown}
+        connectorBreakdown={list.connectorBreakdown}
+        connectorFilterId={list.connectorFilterId}
+        connectorFilterType={list.connectorFilterType}
+        onConnectorFilterChange={list.setConnectorFilterId}
+        onConnectorTypeFilterChange={list.setConnectorFilterType}
+        onShowConnectorDocuments={() => list.setActiveTab('Connectors')}
       />
 
       <DocumentsVaultSection

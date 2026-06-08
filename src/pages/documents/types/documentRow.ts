@@ -1,4 +1,4 @@
-export type DocumentPipelineTab = 'All' | 'Ingest' | 'Extract' | 'Classify';
+export type DocumentPipelineTab = 'All' | 'Connectors' | 'Ingest' | 'Extract' | 'Classify';
 
 export const DOCUMENTS_ITEMS_PER_PAGE = 8;
 

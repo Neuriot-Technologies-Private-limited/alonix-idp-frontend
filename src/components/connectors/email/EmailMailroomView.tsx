@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Mail, Loader2, AlertCircle, RefreshCw, Search, ChevronRight,
-  FileText, Image, Archive, File, CheckCircle2, XCircle, Clock,
+  FileText, Image, Archive, File, CheckCircle2, XCircle, Clock, Presentation,
   Zap, Inbox, Paperclip,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -46,6 +46,8 @@ function kindIcon(kind: string) {
   if (kind === 'pdf') return <FileText className="w-3.5 h-3.5" />;
   if (kind === 'image') return <Image className="w-3.5 h-3.5" />;
   if (kind === 'archive') return <Archive className="w-3.5 h-3.5" />;
+  if (kind === 'text') return <FileText className="w-3.5 h-3.5" />;
+  if (kind === 'presentation') return <Presentation className="w-3.5 h-3.5" />;
   return <File className="w-3.5 h-3.5" />;
 }
 

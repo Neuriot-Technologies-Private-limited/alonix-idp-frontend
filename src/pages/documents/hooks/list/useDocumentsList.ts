@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { membershipForGroup } from '../../../../core/rbac/capabilities';
 import { mergePipeline } from '../../../../services/adminService';
+import apiClient from '../../../../services/api/client';
 import { resolveCustodianDisplay } from '../../../../utils/custodianDisplay';
+import {
+  buildConnectorBreakdown,
+  isConnectorSourcedDoc,
+  resolveConnectorSourceType,
+  type ConnectorListItem,
+} from '../../../../utils/connectorDocumentSource';
 import { useUsers } from '../../../../services/userService';
 import { useRbac } from '../../../../hooks/useRbac';
 import { useAuthStore } from '../../../../stores/authStore';
@@ -35,8 +43,11 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   );
 
   const [activeTab, setActiveTab] = useState<DocumentPipelineTab>('All');
+  const [connectorFilterId, setConnectorFilterId] = useState<string | null>(null);
+  const [connectorFilterType, setConnectorFilterType] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const orgId = context?.orgId ?? user?.orgId ?? null;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const headerCheckboxRef = React.useRef<HTMLInputElement>(null);
 
@@ -100,19 +111,43 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, activeTab, activeGroupIdForScope]);
+  }, [search, activeTab, activeGroupIdForScope, connectorFilterId, connectorFilterType]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'Connectors') {
+      setConnectorFilterId(null);
+      setConnectorFilterType(null);
+    }
+  }, [activeTab]);
 
   React.useEffect(() => {
     setSelectedIds(new Set());
   }, [activeGroupIdForScope]);
 
   React.useEffect(() => {
-    if (isPureViewOnly && activeTab !== 'All') setActiveTab('All');
+    if (isPureViewOnly && activeTab !== 'All' && activeTab !== 'Connectors') setActiveTab('All');
   }, [isPureViewOnly, activeTab]);
 
   React.useEffect(() => {
     if (!hasBulkActions) setSelectedIds(new Set());
   }, [hasBulkActions]);
+
+  const { data: connectors = [] } = useQuery<ConnectorListItem[]>({
+    queryKey: ['connectors', orgId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ConnectorListItem[]>(
+        `/admin/orgs/${encodeURIComponent(String(orgId))}/connectors`
+      );
+      return data;
+    },
+    enabled: Boolean(orgId),
+    staleTime: 60_000,
+  });
+
+  const connectorById = React.useMemo(
+    () => new Map(connectors.map((c) => [String(c._id), c])),
+    [connectors]
+  );
 
   const filtered = React.useMemo(() => {
     if (!documents) return [];
@@ -128,6 +163,19 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
           label.toLowerCase().includes(q)
         );
       });
+    }
+
+    if (activeTab === 'Connectors') {
+      list = list.filter((d: DocumentRow) => isConnectorSourcedDoc(d));
+      if (connectorFilterType) {
+        list = list.filter(
+          (d: DocumentRow) => resolveConnectorSourceType(d, connectorById) === connectorFilterType
+        );
+      }
+      if (connectorFilterId) {
+        list = list.filter((d: DocumentRow) => String(d.connectorId || '') === connectorFilterId);
+      }
+      return list;
     }
 
     if (activeTab === 'All') return list;
@@ -147,7 +195,16 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
         );
       return true;
     });
-  }, [documentsInScope, activeTab, search, documents, custodianNameByEmail]);
+  }, [
+    documentsInScope,
+    activeTab,
+    connectorFilterId,
+    connectorFilterType,
+    connectorById,
+    search,
+    documents,
+    custodianNameByEmail,
+  ]);
 
   const paginatedDocuments = React.useMemo(() => {
     const start = (currentPage - 1) * DOCUMENTS_ITEMS_PER_PAGE;
@@ -215,10 +272,15 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     if (el) el.indeterminate = somePageSelected && !allPageSelected;
   }, [somePageSelected, allPageSelected]);
 
+  const connectorBreakdown = React.useMemo(
+    () => buildConnectorBreakdown(documentsInScope, connectors),
+    [documentsInScope, connectors]
+  );
+
   const counts = React.useMemo(() => {
     const scope = documentsInScope;
     if (!scope.length && !documents?.length)
-      return { all: 0, ingested: 0, extracted: 0, classified: 0, failed: 0 };
+      return { all: 0, ingested: 0, extracted: 0, classified: 0, failed: 0, fromConnectors: 0 };
     return {
       all: scope.length,
       ingested: scope.filter((d: DocumentRow) => mergePipeline(d.pipeline).ingestion.status === 'done').length,
@@ -233,6 +295,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
           p.classification.status === 'error'
         );
       }).length,
+      fromConnectors: scope.filter((d: DocumentRow) => isConnectorSourcedDoc(d)).length,
     };
   }, [documentsInScope, documents?.length]);
 
@@ -243,17 +306,24 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
       : 'Manage the document pipeline for workspaces where you are a group admin; other assigned workspaces are view-only.';
 
   const pipelineTabs = isPureViewOnly
-    ? [{ id: 'All' as const, label: 'All', count: counts.all }]
+    ? [
+        { id: 'All' as const, label: 'All', count: counts.all },
+        { id: 'Connectors' as const, label: 'Connectors', count: counts.fromConnectors },
+      ]
     : [
         { id: 'All' as const, label: 'All', count: counts.all },
+        { id: 'Connectors' as const, label: 'Connectors', count: counts.fromConnectors },
         { id: 'Ingest' as const, label: 'Ingest', count: counts.ingested },
         { id: 'Extract' as const, label: 'Extract', count: counts.extracted },
         { id: 'Classify' as const, label: 'Classify', count: counts.classified },
       ];
 
+  const showConnectorBreakdown = counts.fromConnectors > 0;
+
   return {
     isLoading,
     isCompanyAdmin,
+    canIngestFromConnectors: isCompanyAdmin,
     hasBulkActions,
     canUploadDocs,
     isPureViewOnly,
@@ -273,6 +343,12 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     filtered,
     paginatedDocuments,
     counts,
+    connectorBreakdown,
+    connectorFilterId,
+    setConnectorFilterId,
+    connectorFilterType,
+    setConnectorFilterType,
+    showConnectorBreakdown,
     pipelineTabs,
     headerSubtitle,
     toggleSelected,
