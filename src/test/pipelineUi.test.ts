@@ -44,14 +44,28 @@ describe('getPipelineCurrentStageLabel', () => {
     ).toBe('Complete');
   });
 
-  it('reports Failed on first error stage in order', () => {
+  it('reports stage-specific failure labels in pipeline order', () => {
     expect(
       getPipelineCurrentStageLabel({
         ingestion: error,
         extraction: idle,
         classification: idle,
       })
-    ).toBe('Failed');
+    ).toBe('Ingest failed');
+    expect(
+      getPipelineCurrentStageLabel({
+        ingestion: done,
+        extraction: error,
+        classification: idle,
+      })
+    ).toBe('Extract failed');
+    expect(
+      getPipelineCurrentStageLabel({
+        ingestion: done,
+        extraction: done,
+        classification: error,
+      })
+    ).toBe('Classify failed');
   });
 
   it('returns Idle when nothing is running', () => {
