@@ -14,7 +14,9 @@ describe('connectorDocumentSource', () => {
   it('detects connector-sourced documents', () => {
     expect(isConnectorSourcedDoc({ connectorId: 'c-email' })).toBe(true);
     expect(isConnectorSourcedDoc({ uploadedBy: 'SYSTEM_CONNECTOR' })).toBe(true);
+    expect(isConnectorSourcedDoc({ uploader: 'SYSTEM_CONNECTOR' })).toBe(true);
     expect(isConnectorSourcedDoc({ sourceType: 'EMAIL' })).toBe(true);
+    expect(isConnectorSourcedDoc({ ingestSource: 'connector' })).toBe(true);
     expect(isConnectorSourcedDoc({ sourceType: 'UPLOAD' })).toBe(false);
   });
 

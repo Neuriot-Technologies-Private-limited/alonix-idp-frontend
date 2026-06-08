@@ -18,7 +18,13 @@ export function readPipelineStageStatus(
   return 'idle';
 }
 
-export function pipelineDocumentsQueryKey(orgId?: string | null) {
+export function pipelineDocumentsQueryKey(orgId?: string | null, scope: 'all' | 'connector' = 'all') {
+  const oid =
+    orgId ?? useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId ?? null;
+  return ['pipeline-documents', oid, scope] as const;
+}
+
+export function pipelineDocumentsQueryPrefix(orgId?: string | null) {
   const oid =
     orgId ?? useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId ?? null;
   return ['pipeline-documents', oid] as const;
@@ -154,7 +160,7 @@ export function hasProcessingPipelineDocuments(docs: Record<string, unknown>[] |
 
 /** Invalidate and immediately refetch the active documents query (no stale UI gap). */
 export async function refreshPipelineDocuments(queryClient: QueryClient, orgId?: string | null) {
-  const key = pipelineDocumentsQueryKey(orgId);
-  await queryClient.invalidateQueries({ queryKey: key });
-  await queryClient.refetchQueries({ queryKey: key, type: 'active' });
+  const prefix = pipelineDocumentsQueryPrefix(orgId);
+  await queryClient.invalidateQueries({ queryKey: prefix });
+  await queryClient.refetchQueries({ queryKey: prefix, type: 'active' });
 }

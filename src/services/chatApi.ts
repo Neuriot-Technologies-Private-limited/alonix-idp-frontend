@@ -150,9 +150,19 @@ export async function getUserDocuments(userEmail: string, groupId?: string | nul
   );
 }
 
+export type OrgPipelineDocumentsParams = {
+  limit?: number;
+  cursor?: string;
+  ingestSource?: 'connector';
+  connectorId?: string;
+};
+
 /** Org-wide pipeline rows for dashboard / documents (authenticated, org-scoped). */
-export async function getOrgPipelineDocuments() {
-  return apiClient.get<{ documents: unknown[] }>('/documents/org');
+export async function getOrgPipelineDocuments(params?: OrgPipelineDocumentsParams) {
+  return apiClient.get<{ documents: unknown[]; nextCursor?: string | null; hasMore?: boolean }>(
+    '/documents/org',
+    { params }
+  );
 }
 
 // ---- DTOs (loose; API may vary) ----

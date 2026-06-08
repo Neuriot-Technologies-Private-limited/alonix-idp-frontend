@@ -19,6 +19,7 @@ import { cn } from '../../../utils/cn';
 import { quotaErrorMessage } from '../../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../../hooks/useOrgQuota';
 import { useAuthStore } from '../../../stores/authStore';
+import { triggerIngest } from '../../../services/chatApi';
 import { refreshDocumentsAfterConnectorIngest } from '../../../utils/connectorIngestFeedback';
 import {
   clearOptimisticConnectorDocuments,
@@ -200,6 +201,31 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
       return next;
     });
   };
+
+  const failedIngestionItems = useMemo(
+    () =>
+      emailDetail?.ingestion.items.filter(
+        (item) => item.status === 'failed' && item.documentId
+      ) ?? [],
+    [emailDetail?.ingestion.items]
+  );
+
+  const retryFailedMutation = useMutation({
+    mutationFn: async () => {
+      for (const item of failedIngestionItems) {
+        await triggerIngest(item.documentId!, { collectionName: item.fileName }, null);
+      }
+    },
+    onSuccess: async () => {
+      setIngestError('');
+      await refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+      void refetchDetail();
+      onViewIngestedDocuments?.(connectorId);
+    },
+    onError: (err: unknown) => {
+      setIngestError(quotaErrorMessage(err, 'Failed to retry ingestion.'));
+    },
+  });
 
   const ingestableAttachmentCount = useMemo(() => {
     if (!emailDetail) return 0;
@@ -410,11 +436,39 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
                 <span><span className="font-semibold text-foreground/70">From</span> {emailDetail.from}</span>
                 <span><span className="font-semibold text-foreground/70">Date</span> {formatDate(emailDetail.date)}</span>
               </div>
-              {emailDetail.ingestion.failedCount > 0 && (
-                <p className="mt-2 text-[10px] text-destructive font-medium">
-                  {emailDetail.ingestion.failedCount} attachment(s) failed pipeline processing
-                </p>
-              )}
+              {emailDetail.ingestion.failedCount > 0 ? (
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/[0.06] px-3 py-2.5">
+                  <p className="text-[11px] text-destructive font-medium flex-1">
+                    {emailDetail.ingestion.failedCount} attachment(s) failed pipeline processing. Retry from
+                    here or open Documents → Connectors to re-ingest.
+                  </p>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={retryFailedMutation.isPending || failedIngestionItems.length === 0}
+                      onClick={() => retryFailedMutation.mutate()}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-wider border border-destructive/20 hover:bg-destructive/15 disabled:opacity-50"
+                    >
+                      {retryFailedMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      Retry failed
+                    </button>
+                    {onViewIngestedDocuments ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewIngestedDocuments(connectorId)}
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/30 text-[10px] font-bold uppercase tracking-wider hover:bg-surface-highest/20"
+                      >
+                        Open Connectors
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </header>
 
             <div className="flex-1 overflow-y-auto min-h-0">

@@ -18,7 +18,7 @@ describe('pipelineDocumentsCache', () => {
 
   it('optimisticSetPipelineStage updates ingestion to processing', () => {
     const qc = new QueryClient();
-    qc.setQueryData(['pipeline-documents', 'org-1'], [
+    qc.setQueryData(['pipeline-documents', 'org-1', 'all'], [
       {
         id: 'doc-1',
         fileName: 'a.pdf',
@@ -28,13 +28,13 @@ describe('pipelineDocumentsCache', () => {
 
     optimisticSetPipelineStage(qc, 'doc-1', 'ingestion', 'processing', 'org-1');
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1']);
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
     expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
   });
 
   it('optimisticAppendUploadedDocument prepends a new row', () => {
     const qc = new QueryClient();
-    qc.setQueryData(['pipeline-documents', 'org-1'], [
+    qc.setQueryData(['pipeline-documents', 'org-1', 'all'], [
       { id: 'existing', fileName: 'old.pdf', pipeline: {} },
     ]);
 
@@ -49,7 +49,7 @@ describe('pipelineDocumentsCache', () => {
       'org-1'
     );
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1']);
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
     expect(rows).toHaveLength(2);
     expect(rows?.[0].id).toBe('new-doc');
     expect(rows?.[0].group).toBe('Ops');
@@ -57,7 +57,7 @@ describe('pipelineDocumentsCache', () => {
 
   it('markPipelineStageFailed sets error on the stage after API failure', () => {
     const qc = new QueryClient();
-    qc.setQueryData(['pipeline-documents', 'org-1'], [
+    qc.setQueryData(['pipeline-documents', 'org-1', 'all'], [
       {
         id: 'doc-1',
         fileName: 'a.pdf',
@@ -69,7 +69,7 @@ describe('pipelineDocumentsCache', () => {
     optimisticSetPipelineStage(qc, 'doc-1', 'ingestion', 'processing', 'org-1');
     markPipelineStageFailed(qc, 'doc-1', 'ingestion', 'org-1');
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1']);
+    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
     expect(rows?.[0].pipeline.ingestion.status).toBe('error');
   });
 

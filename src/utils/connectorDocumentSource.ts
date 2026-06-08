@@ -38,12 +38,19 @@ export function connectorTypeLabel(type: string): string {
   return CONNECTOR_TYPE_LABELS[key] || key || 'Connector';
 }
 
-export function isConnectorSourcedDoc(d: ConnectorDocRow): boolean {
+const CONNECTOR_SOURCE_TYPES = new Set(['EMAIL', 'SFTP', 'SHAREPOINT', 'BOX', 'API', 'FAX']);
+
+function isSystemConnectorRef(value: unknown): boolean {
+  return String(value || '').trim().toUpperCase() === 'SYSTEM_CONNECTOR';
+}
+
+export function isConnectorSourcedDoc(d: ConnectorDocRow & { uploader?: string | null }): boolean {
   if (d?.ingestSource === 'connector') return true;
   if (d?.connectorId) return true;
-  if (d?.uploadedBy === 'SYSTEM_CONNECTOR') return true;
+  if (isSystemConnectorRef(d?.uploadedBy)) return true;
+  if (isSystemConnectorRef(d?.uploader)) return true;
   const sourceType = String(d?.sourceType || 'UPLOAD').toUpperCase();
-  return sourceType !== 'UPLOAD' && sourceType !== '';
+  return CONNECTOR_SOURCE_TYPES.has(sourceType);
 }
 
 export function resolveConnectorSourceType(

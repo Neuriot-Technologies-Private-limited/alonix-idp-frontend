@@ -77,11 +77,27 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     [groups]
   );
 
+  const orgWideDocumentsInScope = React.useMemo(() => {
+    if (!documents) return [];
+    if (isCompanyAdmin) return documents;
+    return documents.filter((d: DocumentRow) => {
+      const docGroupId = String(d.groupId || '').toLowerCase();
+      const docGroupName = String(d.group || '').trim().toLowerCase();
+      return (
+        (docGroupId && groupIdSet.has(docGroupId)) ||
+        (docGroupName && groupNameSet.has(docGroupName))
+      );
+    });
+  }, [documents, isCompanyAdmin, groupIdSet, groupNameSet]);
+
   const documentsInScope = React.useMemo(() => {
     if (!documents) return [];
 
+    const skipWorkspaceScope =
+      connectorViewAllWorkspaces || activeTab === 'Connectors';
+
     const matchesActiveWorkspace = (d: DocumentRow) => {
-      if (connectorViewAllWorkspaces) return true;
+      if (skipWorkspaceScope) return true;
       if (!activeGroupIdForScope) return true;
       const gid = String(d.groupId || '').trim();
       if (gid && gid === activeGroupIdForScope) return true;
@@ -93,23 +109,15 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     if (isCompanyAdmin) {
       return documents.filter(matchesActiveWorkspace);
     }
-    return documents.filter((d: DocumentRow) => {
-      const docGroupId = String(d.groupId || '').toLowerCase();
-      const docGroupName = String(d.group || '').trim().toLowerCase();
-      const inMembership =
-        (docGroupId && groupIdSet.has(docGroupId)) ||
-        (docGroupName && groupNameSet.has(docGroupName));
-      if (!inMembership) return false;
-      return matchesActiveWorkspace(d);
-    });
+    return orgWideDocumentsInScope.filter(matchesActiveWorkspace);
   }, [
     documents,
     isCompanyAdmin,
-    groupIdSet,
-    groupNameSet,
+    orgWideDocumentsInScope,
     activeGroupIdForScope,
     activeGroupNameNorm,
     connectorViewAllWorkspaces,
+    activeTab,
   ]);
 
   React.useEffect(() => {
@@ -117,11 +125,13 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   }, [search, activeTab, activeGroupIdForScope, connectorFilterId, connectorFilterType]);
 
   React.useEffect(() => {
-    if (activeTab !== 'Connectors') {
-      setConnectorFilterId(null);
-      setConnectorFilterType(null);
-      setConnectorViewAllWorkspaces(false);
+    if (activeTab === 'Connectors') {
+      setConnectorViewAllWorkspaces(true);
+      return;
     }
+    setConnectorFilterId(null);
+    setConnectorFilterType(null);
+    setConnectorViewAllWorkspaces(false);
   }, [activeTab]);
 
   React.useEffect(() => {
@@ -277,8 +287,8 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   }, [somePageSelected, allPageSelected]);
 
   const connectorBreakdown = React.useMemo(
-    () => buildConnectorBreakdown(documentsInScope, connectors),
-    [documentsInScope, connectors]
+    () => buildConnectorBreakdown(orgWideDocumentsInScope, connectors),
+    [orgWideDocumentsInScope, connectors]
   );
 
   const counts = React.useMemo(() => {
@@ -299,9 +309,9 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
           p.classification.status === 'error'
         );
       }).length,
-      fromConnectors: scope.filter((d: DocumentRow) => isConnectorSourcedDoc(d)).length,
+      fromConnectors: orgWideDocumentsInScope.filter((d: DocumentRow) => isConnectorSourcedDoc(d)).length,
     };
-  }, [documentsInScope, documents?.length]);
+  }, [documentsInScope, orgWideDocumentsInScope, documents?.length]);
 
   const headerSubtitle = isCompanyAdmin
     ? 'Organization-wide vault: ingest, run pipeline stages, and review AI outputs across all workspaces.'
@@ -335,6 +345,11 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     []
   );
 
+  const handleSetActiveTab = React.useCallback((tab: DocumentPipelineTab) => {
+    if (tab === 'Connectors') setConnectorViewAllWorkspaces(true);
+    setActiveTab(tab);
+  }, []);
+
   return {
     isLoading,
     isCompanyAdmin,
@@ -346,7 +361,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     docCanManage,
     docCanReviewEdit: docCanManage,
     activeTab,
-    setActiveTab,
+    setActiveTab: handleSetActiveTab,
     search,
     setSearch,
     currentPage,

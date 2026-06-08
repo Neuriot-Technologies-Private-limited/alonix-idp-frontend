@@ -254,6 +254,26 @@ export function normalizePipelineDocument(d: Record<string, unknown>): Record<st
   const uploaderRaw = d.uploader ?? d.uploadedBy;
   const uploader =
     uploaderRaw != null && String(uploaderRaw).trim() !== '' ? String(uploaderRaw) : 'Unknown';
+  const uploadedBy =
+    d.uploadedBy != null && String(d.uploadedBy).trim() !== ''
+      ? String(d.uploadedBy)
+      : String(uploader).trim().toUpperCase() === 'SYSTEM_CONNECTOR'
+        ? 'SYSTEM_CONNECTOR'
+        : d.uploadedBy;
+  const sourceType =
+    d.sourceType != null && String(d.sourceType).trim() !== ''
+      ? String(d.sourceType).toUpperCase()
+      : uploadedBy === 'SYSTEM_CONNECTOR'
+        ? 'EMAIL'
+        : 'UPLOAD';
+  const connectorId = d.connectorId != null && String(d.connectorId).trim() !== '' ? String(d.connectorId) : null;
+  const ingestSource =
+    d.ingestSource === 'connector' ||
+    connectorId ||
+    uploadedBy === 'SYSTEM_CONNECTOR' ||
+    (sourceType !== 'UPLOAD' && sourceType !== '')
+      ? 'connector'
+      : 'upload';
   const uploadedAt = coalesceUploadIso(d);
   const rawLevel = d.sensitivityLevel;
   const sensitivityLevel =
@@ -264,6 +284,10 @@ export function normalizePipelineDocument(d: Record<string, unknown>): Record<st
     ...d,
     pipeline: mergePipeline(d.pipeline),
     uploader,
+    uploadedBy,
+    sourceType,
+    connectorId,
+    ingestSource,
     sensitivityLevel,
     ...(uploadedAt != null ? { uploadedAt } : {}),
   };
@@ -408,8 +432,12 @@ export const adminService = {
     return (data.documents || []).map((row) => normalizePipelineDocument(row as Record<string, unknown>));
   },
 
-  getPipelineDocuments: async (): Promise<any[]> => {
-    const { data } = await getOrgPipelineDocuments();
+  getPipelineDocuments: async (params?: {
+    limit?: number;
+    ingestSource?: 'connector';
+    connectorId?: string;
+  }): Promise<any[]> => {
+    const { data } = await getOrgPipelineDocuments(params);
     return (data.documents || []).map((row) => normalizePipelineDocument(row as Record<string, unknown>));
   },
 

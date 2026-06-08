@@ -63,7 +63,9 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           ? Object.keys(docItem.classificationData).length
           : true)
   );
-  const ingestEnabled = !bulkBusyActive && !docBusy && !ingestRunning && !ingestDone;
+  const ingestFailed = ingestionStatus === 'error';
+  const ingestEnabled =
+    !bulkBusyActive && !docBusy && !ingestRunning && (!ingestDone || ingestFailed);
   const extractEnabled = !bulkBusyActive && !docBusy && !extractRunning && !extractDone;
   const classifyEnabled = !bulkBusyActive && !docBusy && !classifyRunning && !classifyDone;
   const showResults =
@@ -76,11 +78,13 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
 
   const isCard = variant === 'card';
 
-  const ingestTooltip = ingestDone
-    ? 'Ingest — complete (no action needed)'
-    : ingestRunning
-      ? 'Ingest — in progress…'
-      : 'Ingest — run ingestion for this document';
+  const ingestTooltip = ingestFailed
+    ? 'Re-ingest — retry failed connector ingestion'
+    : ingestDone
+      ? 'Ingest — complete (no action needed)'
+      : ingestRunning
+        ? 'Ingest — in progress…'
+        : 'Ingest — run ingestion for this document';
   const extractTooltip = extractDone
     ? 'Extract — complete (no action needed)'
     : extractRunning
@@ -159,7 +163,10 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           e.stopPropagation();
           void runPipeline(docItem.id, 'ingest');
         }}
-        className={iconBtn(ingestEnabled, 'emerald')}
+        className={cn(
+          iconBtn(ingestEnabled, 'emerald'),
+          ingestFailed && ingestEnabled && 'bg-destructive/10 text-destructive border-destructive/25 hover:bg-destructive/15'
+        )}
       >
         {actionBusyKey === bustKey(docItem.id, 'ingest') ? (
           <Loader2 className="w-4 h-4 animate-spin" />
