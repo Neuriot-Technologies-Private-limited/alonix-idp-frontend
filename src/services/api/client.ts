@@ -1,6 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore, waitForAuthInit } from '../../stores/authStore';
-import { getCsrfTokenFromCookie } from '../../utils/csrf';
+import { getCsrfTokenFromCookie, setCsrfToken } from '../../utils/csrf';
 import { hasActiveSession } from '../../utils/session';
 
 /** Ensures REST paths hit `/api/...` (avoids 404 when env points at server root without `/api`). */
@@ -67,6 +67,14 @@ function isSessionBootstrapRequest(config: InternalAxiosRequestConfig): boolean 
 let csrfBootstrapInflight: Promise<void> | null = null;
 let unauthorizedHandling: Promise<void> | null = null;
 
+function captureCsrfFromPayload(data: unknown): void {
+  if (!data || typeof data !== 'object') return;
+  const token = (data as { csrfToken?: unknown }).csrfToken;
+  if (typeof token === 'string' && token.trim()) {
+    setCsrfToken(token.trim());
+  }
+}
+
 async function ensureCsrfCookieBeforeMutate(): Promise<void> {
   if (getCsrfTokenFromCookie()) return;
   const { user, context } = useAuthStore.getState();
@@ -74,7 +82,9 @@ async function ensureCsrfCookieBeforeMutate(): Promise<void> {
   if (!csrfBootstrapInflight) {
     csrfBootstrapInflight = apiClient
       .get('/users/me/context')
-      .then(() => undefined)
+      .then((res) => {
+        captureCsrfFromPayload(res.data);
+      })
       .catch(() => undefined)
       .finally(() => {
         csrfBootstrapInflight = null;
@@ -96,10 +106,17 @@ apiClient.interceptors.request.use(async (config) => {
     }
   }
 
-  if (MUTATING_METHODS.has(method)) {
+  if (MUTATING_METHODS.has(method) && !isPublic) {
     await ensureCsrfCookieBeforeMutate();
     const csrf = getCsrfTokenFromCookie();
-    if (csrf) {
+    if (!csrf) {
+      const { user, context } = useAuthStore.getState();
+      if (hasActiveSession(user, context)) {
+        return Promise.reject(
+          new Error('CSRF token unavailable — refresh the page or sign in again')
+        );
+      }
+    } else {
       config.headers['X-CSRF-Token'] = csrf;
     }
   }
@@ -136,7 +153,10 @@ apiClient.interceptors.request.use(async (config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    captureCsrfFromPayload(response.data);
+    return response;
+  },
   async (error) => {
     const csrfMsg = String(error.response?.data?.message || '');
     if (
@@ -145,7 +165,8 @@ apiClient.interceptors.response.use(
       !(error.config as { _csrfRetried?: boolean })?._csrfRetried
     ) {
       try {
-        await apiClient.get('/users/me/context');
+        const bootstrap = await apiClient.get('/users/me/context');
+        captureCsrfFromPayload(bootstrap.data);
         const csrf = getCsrfTokenFromCookie();
         if (csrf && error.config) {
           const retryConfig = { ...error.config, _csrfRetried: true };

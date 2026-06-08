@@ -9,6 +9,7 @@ import type {
 import { defaultUserPreferences } from '../types/auth';
 import { applyActiveGroupToContext } from '../core/rbac/capabilities';
 import { hasActiveSession } from '../utils/session';
+import { clearCsrfToken } from '../utils/csrf';
 
 let authContextSyncInflight: Promise<boolean> | null = null;
 
@@ -85,6 +86,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch {
           // Clear local state even if server call fails
         }
+        clearCsrfToken();
         set({
           token: null,
           user: null,
