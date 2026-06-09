@@ -64,12 +64,20 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           : true)
   );
   const ingestFailed = ingestionStatus === 'error';
+  const extractFailed = extractionStatus === 'error';
+  const classifyFailed = classificationStatus === 'error';
   const ingestErrorMessage =
     ingestFailed && p?.ingestion?.errorMessage ? String(p.ingestion.errorMessage) : '';
+  const extractErrorMessage =
+    extractFailed && p?.extraction?.errorMessage ? String(p.extraction.errorMessage) : '';
+  const classifyErrorMessage =
+    classifyFailed && p?.classification?.errorMessage ? String(p.classification.errorMessage) : '';
   const ingestEnabled =
     !bulkBusyActive && !docBusy && !ingestRunning && (!ingestDone || ingestFailed);
-  const extractEnabled = !bulkBusyActive && !docBusy && !extractRunning && !extractDone;
-  const classifyEnabled = !bulkBusyActive && !docBusy && !classifyRunning && !classifyDone;
+  const extractEnabled =
+    !bulkBusyActive && !docBusy && !extractRunning && (!extractDone || extractFailed);
+  const classifyEnabled =
+    !bulkBusyActive && !docBusy && !classifyRunning && (!classifyDone || classifyFailed);
   const showResults =
     extractDone ||
     classifyDone ||
@@ -89,16 +97,24 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
       : ingestRunning
         ? 'Ingest — in progress…'
         : 'Ingest — run ingestion for this document';
-  const extractTooltip = extractDone
-    ? 'Extract — complete (no action needed)'
-    : extractRunning
-      ? 'Extract — in progress…'
-      : 'Extract — run extraction and structured output';
-  const classifyTooltip = classifyDone
-    ? 'Classify — complete (no action needed)'
-    : classifyRunning
-      ? 'Classify — in progress…'
-      : 'Classify — run classification on extracted content';
+  const extractTooltip = extractFailed
+    ? extractErrorMessage
+      ? `Re-extract — ${extractErrorMessage}`
+      : 'Re-extract — retry failed extraction'
+    : extractDone
+      ? 'Extract — complete (no action needed)'
+      : extractRunning
+        ? 'Extract — in progress…'
+        : 'Extract — run extraction and structured output';
+  const classifyTooltip = classifyFailed
+    ? classifyErrorMessage
+      ? `Re-classify — ${classifyErrorMessage}`
+      : 'Re-classify — retry failed classification'
+    : classifyDone
+      ? 'Classify — complete (no action needed)'
+      : classifyRunning
+        ? 'Classify — in progress…'
+        : 'Classify — run classification on extracted content';
   const resultsTooltip = 'Results — view extraction and classification output';
 
   if (readOnly) {
@@ -187,7 +203,10 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
           e.stopPropagation();
           void runPipeline(docItem.id, 'extract');
         }}
-        className={iconBtn(extractEnabled, 'violet')}
+        className={cn(
+          iconBtn(extractEnabled, 'violet'),
+          extractFailed && extractEnabled && 'bg-destructive/10 text-destructive border-destructive/25 hover:bg-destructive/15'
+        )}
       >
         {actionBusyKey === bustKey(docItem.id, 'extract') ? (
           <Loader2 className="w-4 h-4 animate-spin" />
