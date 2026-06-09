@@ -77,8 +77,11 @@ export function applyJobUpdateToPipelineCache(
 
   const key = pipelineDocumentsQueryKey(orgId, 'all');
   const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
-  if (!prev?.some((d) => String(d.id) === docId)) {
-    void refreshPipelineDocuments(queryClient, orgId);
+  const docInCache = prev?.some(
+    (d) => String(d.id) === docId || String(d._id ?? '') === docId
+  );
+  if (!docInCache) {
+    scheduleMissingDocRefresh(queryClient, orgId);
     return;
   }
 
@@ -92,7 +95,7 @@ export function applyJobUpdateToPipelineCache(
     queryClient,
     (docs) =>
       docs.map((d) => {
-        if (String(d.id) !== docId) return d;
+        if (String(d.id) !== docId && String(d._id ?? '') !== docId) return d;
         const p = mergePipeline(d.pipeline);
         const prevStage = p[stage] as Record<string, unknown> | undefined;
         const nextStage: Record<string, unknown> = {
@@ -231,8 +234,38 @@ export function hasProcessingPipelineDocuments(docs: Record<string, unknown>[] |
 }
 
 const REFRESH_DEBOUNCE_MS = 1500;
+const MISSING_DOC_REFRESH_COOLDOWN_MS = 30_000;
 let refreshDebounceTimer: number | null = null;
 let refreshResolvers: Array<() => void> = [];
+let refreshInFlight = false;
+let refreshQueued = false;
+let lastMissingDocRefreshAt = 0;
+
+function scheduleMissingDocRefresh(queryClient: QueryClient, orgId?: string | null) {
+  const now = Date.now();
+  if (now - lastMissingDocRefreshAt < MISSING_DOC_REFRESH_COOLDOWN_MS) return;
+  lastMissingDocRefreshAt = now;
+  void refreshPipelineDocuments(queryClient, orgId);
+}
+
+async function runPipelineDocumentsRefresh(queryClient: QueryClient, orgId?: string | null) {
+  if (refreshInFlight) {
+    refreshQueued = true;
+    return;
+  }
+  refreshInFlight = true;
+  try {
+    const prefix = pipelineDocumentsQueryPrefix(orgId);
+    await queryClient.invalidateQueries({ queryKey: prefix });
+    await queryClient.refetchQueries({ queryKey: prefix, type: 'active' });
+  } finally {
+    refreshInFlight = false;
+    if (refreshQueued) {
+      refreshQueued = false;
+      await runPipelineDocumentsRefresh(queryClient, orgId);
+    }
+  }
+}
 
 /** Invalidate and refetch pipeline lists (debounced to avoid request storms). */
 export function refreshPipelineDocuments(
@@ -246,11 +279,9 @@ export function refreshPipelineDocuments(
       refreshDebounceTimer = null;
       const resolvers = refreshResolvers;
       refreshResolvers = [];
-      const key = pipelineDocumentsQueryKey(orgId, 'all');
       void (async () => {
         try {
-          await queryClient.invalidateQueries({ queryKey: key });
-          await queryClient.refetchQueries({ queryKey: key, type: 'active' });
+          await runPipelineDocumentsRefresh(queryClient, orgId);
         } finally {
           resolvers.forEach((done) => done());
         }

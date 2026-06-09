@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import {
   applyJobUpdateToPipelineCache,
@@ -97,6 +97,28 @@ describe('pipelineDocumentsCache', () => {
 
     const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
     expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
+  });
+
+  it('applyJobUpdateToPipelineCache does not refetch on every miss for unknown document', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['pipeline-documents', 'org-1', 'all'], [
+      { id: 'other-doc', fileName: 'b.pdf', pipeline: { ingestion: { status: 'idle' } } },
+    ]);
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries');
+
+    applyJobUpdateToPipelineCache(
+      qc,
+      { documentId: 'missing-doc', taskType: 'EXTRACT', status: 'PROCESSING' },
+      'org-1'
+    );
+    applyJobUpdateToPipelineCache(
+      qc,
+      { documentId: 'missing-doc', taskType: 'EXTRACT', status: 'PROCESSING' },
+      'org-1'
+    );
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    invalidateSpy.mockRestore();
   });
 
   it('hasProcessingPipelineDocuments detects in-flight stages', () => {
