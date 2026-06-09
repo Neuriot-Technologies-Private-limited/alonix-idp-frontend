@@ -99,7 +99,7 @@ describe('pipelineDocumentsCache', () => {
     expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
   });
 
-  it('applyJobUpdateToPipelineCache does not refetch on every miss for unknown document', () => {
+  it('applyJobUpdateToPipelineCache skips unknown document without HTTP refetch', () => {
     const qc = new QueryClient();
     qc.setQueryData(['pipeline-documents', 'org-1', 'all'], [
       { id: 'other-doc', fileName: 'b.pdf', pipeline: { ingestion: { status: 'idle' } } },

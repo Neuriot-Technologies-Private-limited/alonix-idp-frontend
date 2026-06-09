@@ -80,10 +80,8 @@ export function applyJobUpdateToPipelineCache(
   const docInCache = prev?.some(
     (d) => String(d.id) === docId || String(d._id ?? '') === docId
   );
-  if (!docInCache) {
-    scheduleMissingDocRefresh(queryClient, orgId);
-    return;
-  }
+  // No HTTP refetch — list is loaded once; optimistic + socket job.update own live state.
+  if (!docInCache || !prev) return;
 
   const status = mapJobStatusToStageStatus(payload.status);
   const startTime =
@@ -234,19 +232,10 @@ export function hasProcessingPipelineDocuments(docs: Record<string, unknown>[] |
 }
 
 const REFRESH_DEBOUNCE_MS = 1500;
-const MISSING_DOC_REFRESH_COOLDOWN_MS = 30_000;
 let refreshDebounceTimer: number | null = null;
 let refreshResolvers: Array<() => void> = [];
 let refreshInFlight = false;
 let refreshQueued = false;
-let lastMissingDocRefreshAt = 0;
-
-function scheduleMissingDocRefresh(queryClient: QueryClient, orgId?: string | null) {
-  const now = Date.now();
-  if (now - lastMissingDocRefreshAt < MISSING_DOC_REFRESH_COOLDOWN_MS) return;
-  lastMissingDocRefreshAt = now;
-  void refreshPipelineDocuments(queryClient, orgId);
-}
 
 async function runPipelineDocumentsRefresh(queryClient: QueryClient, orgId?: string | null) {
   if (refreshInFlight) {

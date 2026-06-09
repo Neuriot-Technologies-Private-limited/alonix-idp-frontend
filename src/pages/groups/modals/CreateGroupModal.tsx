@@ -53,6 +53,11 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
       await queryClient.invalidateQueries({ queryKey: ['group-health', orgId] });
       await queryClient.invalidateQueries({ queryKey: ['admin-stats', orgId] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard-state', orgId] });
+      // Navbar workspace list reads auth context — refresh so the new group appears immediately.
+      const { syncAuthContext, setActiveGroup } = useAuthStore.getState();
+      await syncAuthContext();
+      const newGroupId = String(res.group?.id || '').trim();
+      if (newGroupId) setActiveGroup(newGroupId);
       onCreated?.(res.group as GroupHealth);
       onClose();
     } catch {

@@ -66,6 +66,28 @@ function isSessionBootstrapRequest(config: InternalAxiosRequestConfig): boolean 
 
 let csrfBootstrapInflight: Promise<void> | null = null;
 let unauthorizedHandling: Promise<void> | null = null;
+let contextBootstrapCooldownUntil = 0;
+const CONTEXT_429_COOLDOWN_MS = 60_000;
+const CONTEXT_BOOTSTRAP_MIN_INTERVAL_MS = 5_000;
+let contextBootstrapLastAt = 0;
+
+async function bootstrapContextForCsrf(): Promise<void> {
+  const now = Date.now();
+  if (now < contextBootstrapCooldownUntil) return;
+  if (getCsrfTokenFromCookie()) return;
+  if (now - contextBootstrapLastAt < CONTEXT_BOOTSTRAP_MIN_INTERVAL_MS) return;
+
+  contextBootstrapLastAt = now;
+  try {
+    const res = await apiClient.get('/users/me/context');
+    captureCsrfFromPayload(res.data);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 429) {
+      contextBootstrapCooldownUntil = Date.now() + CONTEXT_429_COOLDOWN_MS;
+    }
+  }
+}
 
 function captureCsrfFromPayload(data: unknown): void {
   if (!data || typeof data !== 'object') return;
@@ -80,15 +102,9 @@ async function ensureCsrfCookieBeforeMutate(): Promise<void> {
   const { user, context } = useAuthStore.getState();
   if (!hasActiveSession(user, context)) return;
   if (!csrfBootstrapInflight) {
-    csrfBootstrapInflight = apiClient
-      .get('/users/me/context')
-      .then((res) => {
-        captureCsrfFromPayload(res.data);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        csrfBootstrapInflight = null;
-      });
+    csrfBootstrapInflight = bootstrapContextForCsrf().finally(() => {
+      csrfBootstrapInflight = null;
+    });
   }
   await csrfBootstrapInflight;
 }
@@ -165,8 +181,7 @@ apiClient.interceptors.response.use(
       !(error.config as { _csrfRetried?: boolean })?._csrfRetried
     ) {
       try {
-        const bootstrap = await apiClient.get('/users/me/context');
-        captureCsrfFromPayload(bootstrap.data);
+        await bootstrapContextForCsrf();
         const csrf = getCsrfTokenFromCookie();
         if (csrf && error.config) {
           const retryConfig = { ...error.config, _csrfRetried: true };

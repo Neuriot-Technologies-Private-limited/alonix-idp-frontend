@@ -37,10 +37,11 @@ const TopNavBar: React.FC = () => {
     return () => mainContainer?.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close dropdowns on click outside
+  // Refresh RBAC context once on mount (deduped in auth store).
   useEffect(() => {
     void syncAuthContext();
-  }, [syncAuthContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

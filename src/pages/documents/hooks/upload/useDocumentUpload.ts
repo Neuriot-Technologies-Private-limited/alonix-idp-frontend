@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../../services/api/client';
 import { useGroupHealth } from '../../../../services/adminService';
+import { billingSubscriptionQueryKey } from '../../../../hooks/useOrgQuota';
 import {
   DOCUMENT_SENSITIVITY_HINTS,
   DOCUMENT_SENSITIVITY_LABELS,
@@ -12,10 +13,8 @@ import { uploadDocument } from '../../../../services/chatApi';
 import { useUploadStore } from '../../../../stores/uploadStore';
 import { useAlert } from '../../../../components/alert';
 import { quotaErrorMessage } from '../../../../utils/billingQuota';
-import {
-  optimisticAppendUploadedDocument,
-  refreshPipelineDocuments,
-} from '../../../../utils/pipelineDocumentsCache';
+import { useAuthStore } from '../../../../stores/authStore';
+import { optimisticAppendUploadedDocument } from '../../../../utils/pipelineDocumentsCache';
 
 export function useDocumentUpload(opts: {
   isCompanyAdmin: boolean;
@@ -167,22 +166,28 @@ export function useDocumentUpload(opts: {
           updateJob(jobId, { status: 'done', finishedAt: Date.now() });
           const newId = uploadBody?.id ? String(uploadBody.id) : '';
           if (newId) {
-            optimisticAppendUploadedDocument(queryClient, {
-              id: newId,
-              fileName: file.name,
-              groupId: gid,
-              groupName: uploadGroupName,
-              uploader: uploaderLabel,
-              sensitivityLevel: uploadSensitivityLevel,
-            });
+            optimisticAppendUploadedDocument(
+              queryClient,
+              {
+                id: newId,
+                fileName: file.name,
+                groupId: gid,
+                groupName: uploadGroupName,
+                uploader: uploaderLabel,
+                sensitivityLevel: uploadSensitivityLevel,
+              },
+              orgId
+            );
+            // List is scoped to navbar workspace — switch so the new row is visible immediately.
+            useAuthStore.getState().setActiveGroup(gid);
           }
         } catch (err: unknown) {
           const errMsg = quotaErrorMessage(err, 'Upload failed');
           updateJob(jobId, { status: 'error', error: errMsg, finishedAt: Date.now() });
         }
       }
-      await refreshPipelineDocuments(queryClient);
-      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      void queryClient.invalidateQueries({ queryKey: ['documents'] });
+      void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
     })();
   };
 
