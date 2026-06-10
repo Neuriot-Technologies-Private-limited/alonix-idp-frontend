@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { normalizeDocumentTypeLabel } from '../../utils/documentFileType';
 
 export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const config: Record<string, { cls: string; dot: string }> = {
@@ -84,8 +85,11 @@ export const PipelineStage: React.FC<{
   </div>
 );
 
-export const FileIcon: React.FC<{ type: string }> = ({ type }) => {
-  const t = type.toUpperCase();
+export const FileIcon: React.FC<{ type?: string | null; fileName?: string | null }> = ({
+  type,
+  fileName,
+}) => {
+  const t = normalizeDocumentTypeLabel(type, fileName);
   if (t === 'PDF') return <FileText className="w-4 h-4 text-rose-500 dark:text-rose-300" />;
   if (t === 'JSON') return <FileJson className="w-4 h-4 text-violet-500 dark:text-violet-300" />;
   if (t === 'XLSX' || t === 'CSV')

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
 import { getOrgPipelineDocuments } from './chatApi';
+import { normalizeDocumentTypeLabel } from '../utils/documentFileType';
 
 function requireOrgId(): string {
   const id = useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId;
@@ -251,6 +252,7 @@ function coalesceUploadIso(d: Record<string, unknown>): string | undefined {
 }
 
 export function normalizePipelineDocument(d: Record<string, unknown>): Record<string, unknown> {
+  const fileName = String(d.fileName ?? d.title ?? '').trim();
   const uploaderRaw = d.uploader ?? d.uploadedBy;
   const uploader =
     uploaderRaw != null && String(uploaderRaw).trim() !== '' ? String(uploaderRaw) : 'Unknown';
@@ -280,8 +282,11 @@ export function normalizePipelineDocument(d: Record<string, unknown>): Record<st
     rawLevel != null && String(rawLevel).trim() !== ''
       ? String(rawLevel).trim().toUpperCase().replace(/-/g, '_')
       : 'INTERNAL_USE';
+  const type = normalizeDocumentTypeLabel(d.type != null ? String(d.type) : null, fileName);
   return {
     ...d,
+    ...(fileName ? { fileName } : {}),
+    type,
     pipeline: mergePipeline(d.pipeline),
     uploader,
     uploadedBy,

@@ -4,10 +4,11 @@ import { cn } from '../../utils/cn';
 import { FileIcon } from './DocumentPrimitives';
 import { truncateFileName } from '../../utils/truncateFileName';
 import { DocumentSensitivityBadge } from './DocumentSensitivityBadge';
+import { normalizeDocumentTypeLabel } from '../../utils/documentFileType';
 
 export interface DocumentAssetIdentityProps {
   fileName: string;
-  type: string;
+  type?: string | null;
   size: string;
   /** Slightly larger icon area for mobile cards. */
   density?: 'table' | 'card';
@@ -30,6 +31,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
 }) => {
   const isCard = density === 'card';
   const badgeDensity = isCard ? 'comfortable' : 'compact';
+  const typeLabel = normalizeDocumentTypeLabel(type, fileName);
   return (
     <div className="flex items-center gap-3">
       <div
@@ -38,7 +40,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
           isCard ? 'w-10 h-10 from-primary/25' : 'w-9 h-9 group-hover/row:scale-105 transition-all'
         )}
       >
-        <FileIcon type={type} />
+        <FileIcon type={typeLabel} fileName={fileName} />
       </div>
       <div className="min-w-0">
         <div className={cn('flex flex-wrap items-center gap-1.5 min-w-0', isCard && 'gap-2')}>
@@ -79,7 +81,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
               : 'text-muted-foreground/30'
           )}
         >
-          {type} {isCard ? '·' : '•'} {size}
+          {typeLabel} {isCard ? '·' : '•'} {size}
         </p>
       </div>
     </div>

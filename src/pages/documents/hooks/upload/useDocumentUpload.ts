@@ -171,6 +171,7 @@ export function useDocumentUpload(opts: {
               {
                 id: newId,
                 fileName: file.name,
+                fileSizeBytes: file.size,
                 groupId: gid,
                 groupName: uploadGroupName,
                 uploader: uploaderLabel,

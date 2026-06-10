@@ -54,6 +54,7 @@ describe('pipelineDocumentsCache', () => {
     expect(rows).toHaveLength(2);
     expect(rows?.[0].id).toBe('new-doc');
     expect(rows?.[0].group).toBe('Ops');
+    expect(rows?.[0].type).toBe('PDF');
   });
 
   it('markPipelineStageFailed sets error on the stage after API failure', () => {

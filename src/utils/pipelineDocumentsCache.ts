@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { mergePipeline, normalizePipelineDocument } from '../services/adminService';
 import { useAuthStore } from '../stores/authStore';
+import { inferDocumentFileType } from './documentFileType';
 
 export type PipelineStageKey = 'ingestion' | 'extraction' | 'classification';
 
@@ -186,6 +187,13 @@ export function markPipelineStageFailed(
 }
 
 /** Show a newly uploaded file in the vault list as soon as upload API returns. */
+function formatFileSize(bytes?: number | null): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function optimisticAppendUploadedDocument(
   queryClient: QueryClient,
   payload: {
@@ -195,12 +203,15 @@ export function optimisticAppendUploadedDocument(
     groupName?: string;
     uploader?: string;
     sensitivityLevel?: string;
+    fileSizeBytes?: number;
   },
   orgId?: string | null
 ) {
   const row = normalizePipelineDocument({
     id: payload.id,
     fileName: payload.fileName,
+    type: inferDocumentFileType(payload.fileName),
+    size: formatFileSize(payload.fileSizeBytes),
     groupId: payload.groupId,
     group: payload.groupName || '',
     uploader: payload.uploader,
