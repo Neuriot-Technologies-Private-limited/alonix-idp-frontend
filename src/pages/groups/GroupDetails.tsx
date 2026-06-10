@@ -32,6 +32,7 @@ import {
   sensitivityLevelIndex,
 } from '../../constants/documentSensitivity';
 import { DocumentSensitivityBadge } from '../documents/DocumentSensitivityBadge';
+import { GroupEmailMailboxPanel } from '../../components/groups/GroupEmailMailboxPanel';
 
 function getNameInitials(name?: string) {
   const clean = String(name ?? '').trim();
@@ -683,6 +684,13 @@ export const GroupDetails: React.FC = () => {
 
           {activeTab === 'settings' && (
             <>
+              {/* ── Email Mailbox Panel ──────────────────────────────── */}
+              <GroupEmailMailboxPanel
+                groupId={String(group.id)}
+                orgId={String(authUser?.orgId ?? '')}
+                canManage={canManage}
+              />
+
               <div
                 className={
                   isCompanyAdmin

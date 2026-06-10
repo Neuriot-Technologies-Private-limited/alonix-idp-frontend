@@ -350,10 +350,12 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     setActiveTab(tab);
   }, []);
 
+  const isGroupAdmin = (adminGroupIds !== null && (adminGroupIds?.length ?? 0) > 0);
+
   return {
     isLoading,
     isCompanyAdmin,
-    canIngestFromConnectors: isCompanyAdmin,
+    canIngestFromConnectors: isCompanyAdmin || isGroupAdmin,
     hasBulkActions,
     canUploadDocs,
     isPureViewOnly,

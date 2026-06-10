@@ -7,9 +7,10 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../services/api/client';
-import { browseConnector, ingestFile } from '../../services/connectorBrowserApi';
-import type { BrowseResult, ConnectorItem } from '../../services/connectorBrowserApi';
+import { browseConnector, ingestFile, listMailboxes, listMailboxesForGroup } from '../../services/connectorBrowserApi';
+import type { BrowseResult, ConnectorItem, Mailbox } from '../../services/connectorBrowserApi';
 import EmailMailroomView from './email/EmailMailroomView';
+import EmailMailboxConnectForm from './email/EmailMailboxConnectForm';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { quotaErrorMessage } from '../../utils/billingQuota';
@@ -90,12 +91,18 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
 }) => {
   const context = useAuthStore((s) => s.context);
   const orgId = context?.orgId;
+  const activeGroupId = context?.activeGroupId ?? null;
+  const activeGroup = context?.groups.find((g) => g.groupId === activeGroupId);
+  const isCompanyAdmin = context?.orgRole === 'COMPANY_ADMIN';
+  const canManageMailbox =
+    isCompanyAdmin || activeGroup?.role === 'GROUP_ADMIN';
   const queryClient = useQueryClient();
   const { atCap, capMessage, blocksUsage } = useOrgQuota();
   const ingestBlocked = blocksUsage || atCap('documentsMonth');
   const [ingestError, setIngestError] = useState('');
 
   const [selectedConnectorId, setSelectedConnectorId] = useState<string>(initialConnectorId || '');
+  const [selectedMailboxId, setSelectedMailboxId] = useState<string>('');
   const [currentPath, setCurrentPath] = useState<string>('');
   const [breadcrumbs, setBreadcrumbs] = useState<{ label: string; path: string }[]>([]);
   const [selectedItem, setSelectedItem] = useState<ConnectorItem | null>(null);
@@ -105,6 +112,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
   useEffect(() => {
     if (initialConnectorId) {
       setSelectedConnectorId(initialConnectorId);
+      setSelectedMailboxId('');
       setCurrentPath('');
       setBreadcrumbs([]);
       setSelectedItem(null);
@@ -121,8 +129,61 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
   });
 
   const selectedConnector = connectors.find((c) => c._id === selectedConnectorId);
-
   const isEmailConnector = selectedConnector?.type === 'EMAIL';
+
+  // ── Mailboxes for EMAIL connectors ──────────────────────────────────────
+  const { data: mailboxes = [], isLoading: loadingMailboxes } = useQuery<Mailbox[]>({
+    queryKey: ['connector-mailboxes', selectedConnectorId],
+    queryFn: () => listMailboxes(selectedConnectorId),
+    enabled: !!selectedConnectorId && isEmailConnector,
+    staleTime: 30000,
+  });
+
+  const { data: groupMailboxes = [], isLoading: loadingGroupMailbox } = useQuery<Mailbox[]>({
+    queryKey: ['group-mailbox', orgId, activeGroupId],
+    queryFn: () => listMailboxesForGroup(activeGroupId!),
+    enabled: !!orgId && !!activeGroupId && isEmailConnector,
+    staleTime: 30000,
+  });
+
+  const mailboxForActiveGroup = React.useMemo(() => {
+    if (!activeGroupId || !selectedConnectorId) return null;
+    const fromGroupQuery = groupMailboxes.find((m) => m.connectorId === selectedConnectorId);
+    if (fromGroupQuery) return fromGroupQuery;
+    return (
+      mailboxes.find(
+        (m) => String(m.groupId) === activeGroupId && m.connectorId === selectedConnectorId
+      ) ?? null
+    );
+  }, [activeGroupId, selectedConnectorId, groupMailboxes, mailboxes]);
+
+  // Prefer active workspace mailbox; fall back to sole accessible mailbox
+  useEffect(() => {
+    if (!isEmailConnector) return;
+    if (mailboxForActiveGroup) {
+      setSelectedMailboxId(mailboxForActiveGroup._id);
+      return;
+    }
+    if (mailboxes.length === 1 && !activeGroupId) {
+      setSelectedMailboxId(mailboxes[0]._id);
+      return;
+    }
+    if (!loadingMailboxes && !loadingGroupMailbox) {
+      setSelectedMailboxId('');
+    }
+  }, [
+    isEmailConnector,
+    mailboxForActiveGroup,
+    mailboxes,
+    activeGroupId,
+    loadingMailboxes,
+    loadingGroupMailbox,
+  ]);
+
+  const selectedMailbox =
+    mailboxes.find((m) => m._id === selectedMailboxId) ??
+    groupMailboxes.find((m) => m._id === selectedMailboxId) ??
+    mailboxForActiveGroup;
 
   const { data: browseData, isLoading: loadingBrowse, error: browseError, refetch } = useQuery<BrowseResult>({
     queryKey: ['connector-browse', selectedConnectorId, currentPath],
@@ -168,6 +229,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
 
   const selectConnector = useCallback((id: string) => {
     setSelectedConnectorId(id);
+    setSelectedMailboxId('');
     setCurrentPath('');
     setBreadcrumbs([]);
     setSelectedItem(null);
@@ -315,12 +377,84 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
                 : 'rounded-2xl border border-border/15 bg-surface-lowest dark:bg-surface-highest/5 lg:col-span-2'
             )}
           >
-            <EmailMailroomView
-              connectorId={selectedConnectorId}
-              connectorName={selectedConnector?.name || 'Email'}
-              variant={variant}
-              onViewIngestedDocuments={onViewIngestedDocuments}
-            />
+            {/* Mailbox picker — company admin with multiple workspaces */}
+            {selectedMailboxId && mailboxes.length > 1 && (
+              <div className="shrink-0 border-b border-border/25 bg-surface-high/20 px-4 py-3 flex flex-wrap items-center gap-2">
+                <Mail className="w-4 h-4 text-sky-400 shrink-0" />
+                <span className="text-xs font-bold text-foreground">Mailbox:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {mailboxes.map((mb) => (
+                    <button
+                      key={mb._id}
+                      type="button"
+                      onClick={() => setSelectedMailboxId(mb._id)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all',
+                        selectedMailboxId === mb._id
+                          ? 'bg-sky-400/15 border-sky-400/40 text-sky-400'
+                          : 'bg-surface-highest/10 border-border/20 text-muted-foreground hover:border-border/40'
+                      )}
+                    >
+                      <Mail className="w-3 h-3" />
+                      {mb.emailAddress}
+                      {mb.groupName && (
+                        <span className="text-[9px] opacity-60">({mb.groupName})</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loadingMailboxes || loadingGroupMailbox ? (
+              <div className="flex-1 flex flex-col items-center justify-center min-h-[280px] gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-sky-400/60" />
+                <p className="text-sm text-muted-foreground">Loading mailbox…</p>
+              </div>
+            ) : selectedMailboxId ? (
+              <EmailMailroomView
+                connectorId={selectedConnectorId}
+                mailboxId={selectedMailboxId}
+                connectorName={selectedMailbox?.emailAddress || selectedConnector?.name || 'Email'}
+                variant={variant}
+                onViewIngestedDocuments={onViewIngestedDocuments}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 min-h-[280px] overflow-y-auto">
+                {!activeGroupId ? (
+                  <div className="max-w-sm text-center space-y-3">
+                    <div className="mx-auto h-12 w-12 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6 text-amber-400" />
+                    </div>
+                    <p className="font-display text-base font-bold text-foreground">Select a workspace</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Choose your group from the workspace menu in the top bar, then connect this group&apos;s email mailbox here.
+                    </p>
+                  </div>
+                ) : !canManageMailbox ? (
+                  <div className="max-w-sm text-center space-y-3">
+                    <div className="mx-auto h-12 w-12 rounded-2xl bg-surface-highest/20 border border-border/25 flex items-center justify-center">
+                      <Mail className="w-6 h-6 text-muted-foreground/50" />
+                    </div>
+                    <p className="font-display text-base font-bold text-foreground">No mailbox for this workspace</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Ask your group admin to connect an email inbox for{' '}
+                      <span className="font-semibold text-foreground">{activeGroup?.groupName || 'this workspace'}</span>.
+                    </p>
+                  </div>
+                ) : (
+                  <EmailMailboxConnectForm
+                    orgId={orgId!}
+                    groupId={activeGroupId}
+                    groupName={activeGroup?.groupName}
+                    connectorId={selectedConnectorId}
+                    connectorName={selectedConnector?.name || 'Email connector'}
+                    onSuccess={(mailbox) => setSelectedMailboxId(mailbox._id)}
+                    idPrefix="ingest-modal-mailbox"
+                  />
+                )}
+              </div>
+            )}
           </div>
         ) : (
         <>

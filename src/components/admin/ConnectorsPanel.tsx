@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
   Mail, Box, Plus, Trash2, Webhook, Loader2,
-  Clock, History, Zap, CheckCircle2, FolderOpen,
-  Server, Eye, ToggleLeft, ToggleRight,
+  Clock, FolderOpen, CheckCircle2,
+  Server, Eye, ToggleLeft, ToggleRight, ChevronDown,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -24,9 +24,15 @@ interface Connector {
   config: Record<string, unknown>;
 }
 
-type IngestionMode = 'new-only' | 'historic';
-
 type ConnectorType = 'EMAIL' | 'SHAREPOINT' | 'SFTP';
+
+type EmailProvider = 'gmail' | 'outlook' | 'custom';
+
+const EMAIL_PROVIDER_PRESETS: Record<EmailProvider, { label: string; imapHost: string; imapPort: number }> = {
+  gmail:   { label: 'Gmail',   imapHost: 'imap.gmail.com',           imapPort: 993 },
+  outlook: { label: 'Outlook', imapHost: 'outlook.office365.com',    imapPort: 993 },
+  custom:  { label: 'Custom',  imapHost: '',                          imapPort: 993 },
+};
 
 export const ConnectorsPanel: React.FC = () => {
   const context = useAuthStore((s) => s.context);
@@ -40,7 +46,7 @@ export const ConnectorsPanel: React.FC = () => {
   // ── Modal state ──────────────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newType, setNewType] = useState<ConnectorType>('EMAIL');
-  const [ingestionMode, setIngestionMode] = useState<IngestionMode>('new-only');
+  const [emailProvider, setEmailProvider] = useState<EmailProvider>('gmail');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sftpAuthType, setSftpAuthType] = useState<'password' | 'privateKey'>('password');
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -55,7 +61,7 @@ export const ConnectorsPanel: React.FC = () => {
       return;
     }
     setNewType('EMAIL');
-    setIngestionMode('new-only'); // reset each time
+    setEmailProvider('gmail');
     setIsModalOpen(true);
   };
 
@@ -122,12 +128,12 @@ export const ConnectorsPanel: React.FC = () => {
     let config: Record<string, unknown> = {};
 
     if (newType === 'EMAIL') {
-      const imapHost = String(formData.get('imapHost') || '').trim();
-      const imapPortRaw = String(formData.get('imapPort') || '').trim();
+      const preset = EMAIL_PROVIDER_PRESETS[emailProvider];
+      const imapHost = String(formData.get('imapHost') || preset.imapHost).trim();
+      const imapPortRaw = String(formData.get('imapPort') || String(preset.imapPort)).trim();
       config = {
-        emailAddress: formData.get('emailAddress'),
-        password: formData.get('password'),
-        ...(imapHost ? { imapHost } : {}),
+        provider: emailProvider,
+        imapHost,
         ...(imapPortRaw ? { imapPort: parseInt(imapPortRaw, 10) } : {}),
       };
     } else if (newType === 'SHAREPOINT') {
@@ -148,7 +154,7 @@ export const ConnectorsPanel: React.FC = () => {
       };
     }
 
-    createMutation.mutate({ name, type: newType, config, ingestHistoric: ingestionMode === 'historic' });
+    createMutation.mutate({ name, type: newType, config });
   };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -163,7 +169,13 @@ export const ConnectorsPanel: React.FC = () => {
   };
 
   const getConnectorSubtitle = (c: Connector) => {
-    if (c.type === 'EMAIL')      return c.config?.emailAddress as string;
+    if (c.type === 'EMAIL') {
+      const host = c.config?.imapHost as string;
+      const provider = c.config?.provider as string;
+      if (host) return host;
+      if (provider) return EMAIL_PROVIDER_PRESETS[provider as EmailProvider]?.label ?? provider;
+      return 'Email connector';
+    }
     if (c.type === 'SHAREPOINT') return c.config?.siteUrl as string;
     if (c.type === 'SFTP')       return `${c.config?.username}@${c.config?.host}:${c.config?.remotePath}`;
     return 'API Mode';
@@ -264,27 +276,15 @@ export const ConnectorsPanel: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Historic ingestion badge (EMAIL only) */}
+                  {/* EMAIL: show provider / IMAP host badge */}
                   {c.type === 'EMAIL' && (
                     <div className="flex items-center gap-2 mt-2">
-                      {c.ingestHistoric ? (
-                        c.lastHistoricSyncAt ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 className="h-2.5 w-2.5" />
-                            Historic synced
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                            Backfilling…
-                          </span>
-                        )
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-surface-highest/20 px-2 py-0.5 rounded-full">
-                          <Zap className="h-2.5 w-2.5" />
-                          New emails only
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-info bg-info/10 px-2 py-0.5 rounded-full">
+                        <Mail className="h-2.5 w-2.5" />
+                        {c.config?.provider
+                          ? EMAIL_PROVIDER_PRESETS[c.config.provider as EmailProvider]?.label ?? String(c.config.provider)
+                          : 'IMAP'}
+                      </span>
                     </div>
                   )}
                   {/* Auto-ingest toggle for SFTP / SharePoint */}
@@ -387,127 +387,87 @@ export const ConnectorsPanel: React.FC = () => {
 
               {/* ── EMAIL config ──────────────────────────────────────────── */}
               {newType === 'EMAIL' && (
-                <>
-                  <div className="space-y-3 p-4 rounded-xl bg-info/10 border border-info/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Mail className="h-4 w-4 text-info" />
-                      <span className="text-xs font-bold text-info">IMAP CONFIGURATION</span>
+                <div className="space-y-3 p-4 rounded-xl bg-info/10 border border-info/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Mail className="h-4 w-4 text-info" />
+                    <span className="text-xs font-bold text-info">IMAP SERVER TEMPLATE</span>
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    This creates a shared connector template. Group admins attach their own mailbox credentials after creation.
+                  </p>
+
+                  {/* Provider preset */}
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                      Provider
+                    </label>
+                    <div className="flex gap-2">
+                      {(Object.keys(EMAIL_PROVIDER_PRESETS) as EmailProvider[]).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          id={`email-provider-${p}`}
+                          onClick={() => setEmailProvider(p)}
+                          className={cn(
+                            'flex-1 py-2 rounded-xl text-xs font-bold border transition-all',
+                            emailProvider === p
+                              ? 'bg-info/20 border-info text-info'
+                              : 'bg-surface-highest/10 border-border/20 hover:border-border/40'
+                          )}
+                        >
+                          {EMAIL_PROVIDER_PRESETS[p].label}
+                        </button>
+                      ))}
                     </div>
+                  </div>
+
+                  {/* IMAP host (required) */}
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                      IMAP Host <span className="normal-case font-normal">(required)</span>
+                    </label>
                     <input
                       required
-                      id="connector-email"
-                      name="emailAddress"
-                      type="email"
-                      placeholder="Email Address"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                    />
-                    <input
-                      required
-                      id="connector-password"
-                      name="password"
-                      type="password"
-                      placeholder="App Password"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                    />
-                    <input
                       id="connector-imap-host"
                       name="imapHost"
                       type="text"
-                      placeholder="IMAP host (optional — auto-detected from domain)"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                    />
-                    <input
-                      id="connector-imap-port"
-                      name="imapPort"
-                      type="number"
-                      min={1}
-                      max={65535}
-                      placeholder="IMAP port (default 993)"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                      key={emailProvider}
+                      defaultValue={EMAIL_PROVIDER_PRESETS[emailProvider].imapHost}
+                      placeholder="e.g. imap.gmail.com"
+                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono"
                     />
                   </div>
 
-                  {/* ── Ingestion scope ──────────────────────────────────── */}
+                  {/* IMAP port */}
                   <div>
-                    <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-2 block">
-                      Email Ingestion Scope
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                      IMAP Port
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* New only */}
-                      <button
-                        type="button"
-                        id="ingestion-mode-new-only"
-                        onClick={() => setIngestionMode('new-only')}
-                        className={cn(
-                          'relative flex flex-col items-start gap-1.5 rounded-xl border p-3.5 text-left transition-all',
-                          ingestionMode === 'new-only'
-                            ? 'border-primary bg-primary/8 ring-1 ring-primary/30'
-                            : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            'h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all',
-                            ingestionMode === 'new-only' ? 'border-primary' : 'border-border/50'
-                          )}>
-                            {ingestionMode === 'new-only' && (
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                            )}
-                          </div>
-                          <Zap className={cn('h-3.5 w-3.5', ingestionMode === 'new-only' ? 'text-primary' : 'text-muted-foreground')} />
-                          <span className={cn('text-xs font-bold', ingestionMode === 'new-only' ? 'text-primary' : 'text-foreground')}>
-                            New emails only
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed pl-5">
-                          Start from today — only ingest emails received after this connector is created.
-                        </p>
-                      </button>
-
-                      {/* + Historic */}
-                      <button
-                        type="button"
-                        id="ingestion-mode-historic"
-                        onClick={() => setIngestionMode('historic')}
-                        className={cn(
-                          'relative flex flex-col items-start gap-1.5 rounded-xl border p-3.5 text-left transition-all',
-                          ingestionMode === 'historic'
-                            ? 'border-violet bg-violet/8 ring-1 ring-violet/30'
-                            : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            'h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all',
-                            ingestionMode === 'historic' ? 'border-violet' : 'border-border/50'
-                          )}>
-                            {ingestionMode === 'historic' && (
-                              <div className="h-1.5 w-1.5 rounded-full bg-violet" />
-                            )}
-                          </div>
-                          <History className={cn('h-3.5 w-3.5', ingestionMode === 'historic' ? 'text-violet' : 'text-muted-foreground')} />
-                          <span className={cn('text-xs font-bold', ingestionMode === 'historic' ? 'text-violet' : 'text-foreground')}>
-                            + Historical emails
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed pl-5">
-                          Also backfill all previous emails from this inbox on first connect.
-                        </p>
-                      </button>
+                    <div className="relative">
+                      <input
+                        id="connector-imap-port"
+                        name="imapPort"
+                        type="number"
+                        min={1}
+                        max={65535}
+                        key={`port-${emailProvider}`}
+                        defaultValue={EMAIL_PROVIDER_PRESETS[emailProvider].imapPort}
+                        placeholder="993"
+                        className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm pr-10"
+                      />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
                     </div>
-
-                    {/* Contextual hint */}
-                    {ingestionMode === 'historic' && (
-                      <div className="mt-2 flex items-start gap-2 rounded-lg bg-violet/10 border border-violet/20 p-2.5 text-[10px] text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5 text-violet shrink-0 mt-0.5" />
-                        <span>
-                          A one-time backfill job will run in the background. Large inboxes may take a while.
-                          Duplicate detection is built-in — no file will be ingested twice.
-                        </span>
-                      </div>
-                    )}
                   </div>
-                </>
+
+                  <div className="flex items-start gap-2 rounded-lg bg-info/10 border border-info/20 p-2.5 text-[10px] text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5 text-info shrink-0 mt-0.5" />
+                    <span>
+                      Each group admin adds their own mailbox email &amp; password via their group settings.
+                      One mailbox per group is supported.
+                    </span>
+                  </div>
+                </div>
               )}
 
               {/* ── SHAREPOINT config ─────────────────────────────────────── */}

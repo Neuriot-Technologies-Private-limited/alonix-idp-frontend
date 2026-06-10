@@ -110,6 +110,25 @@ export interface ConnectorIngestionRecord {
   uploadedBy: string;
 }
 
+export interface Mailbox {
+  _id: string;
+  connectorId: string;
+  groupId: string;
+  groupName?: string;
+  emailAddress: string;
+  status?: 'ACTIVE' | 'ERROR' | 'PAUSED';
+  ingestHistoric?: boolean;
+  lastHistoricSyncAt?: string | null;
+  createdAt?: string;
+}
+
+export interface AddMailboxPayload {
+  groupId: string;
+  emailAddress: string;
+  password: string;
+  ingestHistoric?: boolean;
+}
+
 export interface TestConnectionResult {
   success: boolean;
   message?: string;
@@ -134,11 +153,71 @@ function resolveOrgId(): string {
   return state.context?.orgId || state.user?.orgId || '';
 }
 
-export async function browseConnector(connectorId: string, browsePath?: string): Promise<BrowseResult> {
+export async function browseConnector(
+  connectorId: string,
+  browsePath?: string,
+  mailboxId?: string
+): Promise<BrowseResult> {
   const orgId = resolveOrgId();
   const params = browsePath ? `?path=${encodeURIComponent(browsePath)}` : '';
-  const { data } = await apiClient.get<BrowseResult>(
-    `/admin/orgs/${orgId}/connectors/${connectorId}/browse${params}`
+  const url = mailboxId
+    ? `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes/${encodeURIComponent(mailboxId)}/browse${params}`
+    : `/admin/orgs/${orgId}/connectors/${connectorId}/browse${params}`;
+  const { data } = await apiClient.get<BrowseResult>(url);
+  return data;
+}
+
+export async function listMailboxes(connectorId: string): Promise<Mailbox[]> {
+  const orgId = resolveOrgId();
+  const { data } = await apiClient.get<Mailbox[]>(
+    `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes`
+  );
+  return data;
+}
+
+export async function listAllMailboxes(): Promise<Mailbox[]> {
+  const orgId = resolveOrgId();
+  const { data } = await apiClient.get<Mailbox[]>(
+    `/admin/orgs/${orgId}/connectors/mailboxes`
+  );
+  return data;
+}
+
+/** Server-scoped lookup — one mailbox per workspace (0 or 1 result). */
+export async function listMailboxesForGroup(groupId: string): Promise<Mailbox[]> {
+  const orgId = resolveOrgId();
+  const { data } = await apiClient.get<Mailbox[]>(
+    `/admin/orgs/${orgId}/connectors/mailboxes`,
+    { params: { groupId } }
+  );
+  return data;
+}
+
+export async function deleteMailbox(connectorId: string, mailboxId: string): Promise<void> {
+  const orgId = resolveOrgId();
+  await apiClient.delete(
+    `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes/${encodeURIComponent(mailboxId)}`
+  );
+}
+
+export async function updateMailboxPassword(
+  connectorId: string,
+  mailboxId: string,
+  password: string
+): Promise<Mailbox> {
+  const orgId = resolveOrgId();
+  const { data } = await apiClient.patch<Mailbox>(
+    `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes/${encodeURIComponent(mailboxId)}`,
+    { password }
+  );
+  return data;
+}
+
+export async function addMailbox(connectorId: string, payload: AddMailboxPayload): Promise<Mailbox> {
+  const orgId = resolveOrgId();
+  const { data } = await apiClient.post<Mailbox>(
+    `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes`,
+    payload
   );
   return data;
 }
@@ -171,28 +250,33 @@ export async function updateConnector(
   await apiClient.patch(`/admin/orgs/${orgId}/connectors/${connectorId}`, updates);
 }
 
-export async function fetchEmailDetail(connectorId: string, uid: string): Promise<EmailDetail> {
+export async function fetchEmailDetail(
+  connectorId: string,
+  uid: string,
+  mailboxId?: string
+): Promise<EmailDetail> {
   const orgId = resolveOrgId();
-  const { data } = await apiClient.get<EmailDetail>(
-    `/admin/orgs/${orgId}/connectors/${connectorId}/emails/${encodeURIComponent(uid)}`
-  );
+  const url = mailboxId
+    ? `/admin/orgs/${orgId}/mailboxes/${encodeURIComponent(mailboxId)}/emails/${encodeURIComponent(uid)}`
+    : `/admin/orgs/${orgId}/connectors/${connectorId}/emails/${encodeURIComponent(uid)}`;
+  const { data } = await apiClient.get<EmailDetail>(url);
   return data;
 }
 
 export async function ingestEmailAttachments(
   connectorId: string,
   uid: string,
-  selection: EmailIngestSelection
+  selection: EmailIngestSelection,
+  mailboxId?: string
 ): Promise<EmailIngestResult> {
   const orgId = resolveOrgId();
-  const { data } = await apiClient.post<EmailIngestResult>(
-    `/admin/orgs/${orgId}/connectors/${connectorId}/emails/${encodeURIComponent(uid)}/ingest`,
-    {
-      ...selection,
-      // Sync ingest creates documents immediately (same as manual upload) so they appear in Connectors tab.
-      async: selection.async === true,
-    }
-  );
+  const url = mailboxId
+    ? `/admin/orgs/${orgId}/mailboxes/${encodeURIComponent(mailboxId)}/emails/${encodeURIComponent(uid)}/ingest`
+    : `/admin/orgs/${orgId}/connectors/${connectorId}/emails/${encodeURIComponent(uid)}/ingest`;
+  const { data } = await apiClient.post<EmailIngestResult>(url, {
+    ...selection,
+    async: selection.async === true,
+  });
   return data;
 }
 
@@ -205,5 +289,20 @@ export async function listConnectorIngestions(
     `/admin/orgs/${orgId}/connectors/${connectorId}/ingestions`,
     { params: { limit } }
   );
+  return data;
+}
+
+export async function listMailboxIngestions(
+  mailboxId: string,
+  limit = 50
+): Promise<{ items: ConnectorIngestionRecord[]; connectorId: string; mailboxId: string }> {
+  const orgId = resolveOrgId();
+  const { data } = await apiClient.get<{
+    items: ConnectorIngestionRecord[];
+    connectorId: string;
+    mailboxId: string;
+  }>(`/admin/orgs/${orgId}/mailboxes/${encodeURIComponent(mailboxId)}/ingestions`, {
+    params: { limit },
+  });
   return data;
 }

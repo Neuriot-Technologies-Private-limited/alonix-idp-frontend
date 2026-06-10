@@ -31,6 +31,8 @@ import { sanitizeEmailHtml } from '../../../utils/sanitizeChatHtml';
 
 export interface EmailMailroomViewProps {
   connectorId: string;
+  /** Mailbox ID for the split-model API; when provided, API calls are scoped to this mailbox */
+  mailboxId?: string;
   connectorName: string;
   variant?: 'page' | 'modal';
   onViewIngestedDocuments?: (connectorId: string) => void;
@@ -93,6 +95,7 @@ function ingestionItemForKey(detail: EmailDetail | undefined, sourceKey: string)
 
 const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   connectorId,
+  mailboxId,
   connectorName,
   variant = 'page',
   onViewIngestedDocuments,
@@ -114,15 +117,15 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   const isModal = variant === 'modal';
 
   const { data: browseData, isLoading: loadingInbox, error: inboxError, refetch: refetchInbox } = useQuery({
-    queryKey: ['connector-browse', connectorId, 'INBOX'],
-    queryFn: () => browseConnector(connectorId),
+    queryKey: ['connector-browse', connectorId, mailboxId ?? 'INBOX'],
+    queryFn: () => browseConnector(connectorId, undefined, mailboxId),
     enabled: !!connectorId,
     staleTime: 30000,
   });
 
   const { data: emailDetail, isLoading: loadingDetail, error: detailError, refetch: refetchDetail } = useQuery({
-    queryKey: ['email-detail', connectorId, selectedUid],
-    queryFn: () => fetchEmailDetail(connectorId, selectedUid!),
+    queryKey: ['email-detail', mailboxId ?? connectorId, selectedUid],
+    queryFn: () => fetchEmailDetail(connectorId, selectedUid!, mailboxId),
     enabled: !!connectorId && !!selectedUid,
     staleTime: 5000,
     refetchInterval: (query) => {
@@ -257,8 +260,8 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
       });
       setIsPollingIngest(queued || processed > 0);
 
-      void queryClient.invalidateQueries({ queryKey: ['email-detail', connectorId, selectedUid] });
-      void queryClient.invalidateQueries({ queryKey: ['connector-browse', connectorId] });
+      void queryClient.invalidateQueries({ queryKey: ['email-detail', mailboxId ?? connectorId, selectedUid] });
+      void queryClient.invalidateQueries({ queryKey: ['connector-browse', connectorId, mailboxId ?? 'INBOX'] });
       void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
       const created = (result.documents || []).map((doc) => ({
         documentId: doc.documentId,
@@ -291,7 +294,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
         attachmentIds: ingestAll ? undefined : Array.from(selectedAttachmentIds),
         archivePaths: ingestAll ? undefined : Array.from(selectedArchivePaths),
         ingestAllIngestable: ingestAll,
-      }).then((result) => ({ result, selectedForIngest, ingestAll }));
+      }, mailboxId).then((result) => ({ result, selectedForIngest, ingestAll }));
     },
     onMutate: (payload) => {
       const ingestAll = Boolean(payload.ingestAllIngestable);
