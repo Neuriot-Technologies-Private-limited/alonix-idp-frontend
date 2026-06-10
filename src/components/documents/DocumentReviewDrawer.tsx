@@ -4,15 +4,16 @@ import {
   X,
   Database,
   Sparkles,
-  Download,
   Loader2,
   ClipboardCheck,
   Eye,
+  FileCode2,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { FileIcon } from '../../pages/documents/DocumentPrimitives';
 import { ExtractionReviewPanel } from './ExtractionReviewPanel';
 import { ClassificationReviewPanel } from './ClassificationReviewPanel';
+import { RawResultPanel } from './RawResultPanel';
 import {
   cloneClassificationState,
   cloneExtractionPages,
@@ -28,7 +29,7 @@ import {
   patchExtractionReview,
 } from '../../services/documentReviewApi';
 
-export type ReviewTab = 'extraction' | 'classification';
+export type ReviewTab = 'extraction' | 'classification' | 'raw';
 
 export interface DocumentReviewDrawerProps {
   documentItem: Record<string, unknown> | null;
@@ -76,7 +77,6 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
     extraLabels: {},
   });
   const [saving, setSaving] = useState(false);
-  const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
     if (!reviewData || !isOpen || isLoading) return;
@@ -94,10 +94,7 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
   }, [reviewData, isOpen, isLoading]);
 
   useEffect(() => {
-    if (!isOpen) {
-      setShowExport(false);
-      return;
-    }
+    if (!isOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
@@ -173,7 +170,12 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
   const readOnlyBanner = !allowEdit;
 
   const reviewHintBanner =
-    !isLoading && readOnlyBanner ? (
+    !isLoading && activeTab === 'raw' ? (
+      <p className="inline-flex w-fit max-w-full items-start gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.06] px-3 py-2 text-[10px] leading-snug text-cyan-200/85">
+        <FileCode2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300/80" aria-hidden />
+        <span>Switch JSON, CSV, or MD to inspect the full extraction payload.</span>
+      </p>
+    ) : !isLoading && readOnlyBanner ? (
       <p className="inline-flex w-fit max-w-full items-start gap-2 rounded-lg border border-border/25 bg-surface-highest/20 px-3 py-2 text-[10px] leading-snug text-muted-foreground/80">
         <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
         <span>View-only — edit requires admin or uploader access.</span>
@@ -283,56 +285,22 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
                   </span>
                 ) : null}
               </button>
-
-              {allowExport && exportPayload ? (
+              {exportPayload ? (
                 <button
                   type="button"
-                  onClick={() => setShowExport((v) => !v)}
-                  className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border/30 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hover:border-primary/30 hover:text-primary"
+                  onClick={() => setActiveTab('raw')}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[9px] font-black uppercase tracking-widest transition-all',
+                    activeTab === 'raw'
+                      ? 'border-cyan-400/35 bg-cyan-400/10 text-cyan-300'
+                      : 'border-border/30 bg-surface-highest/15 text-muted-foreground/55 hover:text-foreground'
+                  )}
                 >
-                  <Download className="h-3 w-3" />
-                  Export
+                  <FileCode2 className="h-3 w-3" />
+                  Raw result
                 </button>
               ) : null}
             </div>
-
-            {showExport && allowExport && exportPayload ? (
-              <div
-                className="relative mt-1.5 flex flex-wrap items-center gap-2 rounded-lg border border-border/30 bg-surface-highest/25 px-2 py-1.5"
-                role="group"
-                aria-label="Export format"
-              >
-                <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/45">
-                  Export as
-                </span>
-                {(['json', 'csv', 'md'] as const).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => onFormatChange(f)}
-                    className={cn(
-                      'rounded-md border px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all',
-                      extractFormat === f
-                        ? 'border-primary/40 bg-primary/15 text-primary'
-                        : 'border-border/30 bg-surface-lowest/40 text-muted-foreground/55 hover:border-border/50 hover:text-foreground'
-                    )}
-                  >
-                    {f}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    onExport(exportPayload, extractFormat, fileName.replace(/ /g, '_'));
-                    setShowExport(false);
-                  }}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[8px] font-black uppercase tracking-widest text-primary-foreground shadow-sm shadow-primary/10 hover:opacity-90"
-                >
-                  <Download className="h-3 w-3" aria-hidden />
-                  Download
-                </button>
-              </div>
-            ) : null}
           </div>
 
           {/* Body */}
@@ -350,6 +318,15 @@ export const DocumentReviewDrawer: React.FC<DocumentReviewDrawerProps> = ({
                 threshold={threshold}
                 allowEdit={allowEdit}
                 onPagesChange={setExtractionPages}
+              />
+            ) : contentReady && activeTab === 'raw' && exportPayload ? (
+              <RawResultPanel
+                data={exportPayload}
+                format={extractFormat}
+                onFormatChange={onFormatChange}
+                onDownload={onExport}
+                filename={fileName}
+                allowDownload={allowExport}
               />
             ) : contentReady ? (
               <ClassificationReviewPanel
