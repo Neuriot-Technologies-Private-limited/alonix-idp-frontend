@@ -100,12 +100,17 @@ jobs:
           echo "Live URL (fallback): https://${TARGET_SITE}.firebaseapp.com"
 
   notify-slack:
-    needs: live
+    needs: [security, live]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     env:
       PROJECT_NAME: Findout Frontend (Firebase Hosting)
-      JOB_RESULT: ${{ needs.live.result }}
+      SECURITY_RESULT: ${{ needs.security.result }}
+      LIVE_RESULT: ${{ needs.live.result }}
     steps:
       - name: Build Slack message
         id: slack
@@ -122,6 +127,16 @@ jobs:
           fi
           echo "send=true" >> "$GITHUB_OUTPUT"
           SHA_SHORT="${GITHUB_SHA:0:7}"
+
+          if [ "${SECURITY_RESULT}" = "failure" ] || [ "${LIVE_RESULT}" = "failure" ]; then
+            JOB_RESULT="failure"
+          elif [ "${SECURITY_RESULT}" = "cancelled" ] || [ "${LIVE_RESULT}" = "cancelled" ]; then
+            JOB_RESULT="cancelled"
+          elif [ "${LIVE_RESULT}" = "success" ]; then
+            JOB_RESULT="success"
+          else
+            JOB_RESULT="${LIVE_RESULT:-${SECURITY_RESULT:-unknown}}"
+          fi
 
           case "${JOB_RESULT}" in
             success)   STATUS="✅ SUCCESS" ;;
@@ -179,10 +194,16 @@ jobs:
 
           jq -n --arg text "$TEXT" '{text: $text}' > slack-payload.json
 
+      # Direct webhook POST — slack-github-action v2 has hung for minutes on this repo.
       - name: Notify Slack
         if: steps.slack.outputs.send == 'true'
-        uses: slackapi/slack-github-action@v2.0.0
-        with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload-file-path: slack-payload.json
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 30 --retry 2 --retry-delay 2 \
+            -X POST \
+            -H 'Content-type: application/json' \
+            --data @"slack-payload.json" \
+            "$SLACK_WEBHOOK_URL"
+          echo "Slack notification sent."
