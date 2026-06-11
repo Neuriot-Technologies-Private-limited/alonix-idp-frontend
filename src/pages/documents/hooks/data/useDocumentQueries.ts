@@ -30,7 +30,7 @@ export function usePipelineDocuments() {
     queryFn: async () => {
       const [primary, connector] = await Promise.all([
         adminService.getPipelineDocuments({ limit: 100 }),
-        adminService.getPipelineDocuments({ ingestSource: 'connector', limit: 200 }),
+        adminService.getPipelineDocuments({ ingestSource: 'connector', limit: 500 }),
       ]);
       return mergePipelineDocumentLists(primary, connector);
     },

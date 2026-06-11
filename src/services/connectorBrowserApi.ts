@@ -4,6 +4,7 @@
  */
 import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
+import { wrapMailboxCredential } from './wrapMailboxCredential';
 
 export interface ConnectorItem {
   name: string;
@@ -13,6 +14,8 @@ export interface ConnectorItem {
   path?: string;
   id?: string;
   from?: string;
+  fromAddress?: string;
+  fromName?: string;
   subject?: string;
   downloadUrl?: string;
   seen?: boolean;
@@ -26,6 +29,16 @@ export interface BrowseResult {
   connectorName: string;
   connectorType: string;
   mailboxStats?: { total: number; unseen: number };
+  hasMore?: boolean;
+  nextBeforeUid?: string | null;
+  searchQuery?: string | null;
+  resultCount?: number;
+}
+
+export interface BrowseEmailOptions {
+  beforeUid?: string;
+  limit?: number;
+  search?: string;
 }
 
 export type AttachmentKind = 'pdf' | 'image' | 'archive' | 'other';
@@ -86,6 +99,13 @@ export interface EmailIngestSelection {
 export interface ConnectorIngestedDocument {
   documentId: string;
   fileName: string;
+  existing?: boolean;
+}
+
+export interface EmailIngestSkippedDetail {
+  fileName: string;
+  code?: string;
+  error?: string;
 }
 
 export interface EmailIngestResult {
@@ -96,6 +116,7 @@ export interface EmailIngestResult {
   skipped?: number;
   markedProcessed?: boolean;
   documents?: ConnectorIngestedDocument[];
+  skippedDetails?: EmailIngestSkippedDetail[];
   jobId?: string;
   error?: string;
 }
@@ -156,13 +177,20 @@ function resolveOrgId(): string {
 export async function browseConnector(
   connectorId: string,
   browsePath?: string,
-  mailboxId?: string
+  mailboxId?: string,
+  emailOptions?: BrowseEmailOptions
 ): Promise<BrowseResult> {
   const orgId = resolveOrgId();
-  const params = browsePath ? `?path=${encodeURIComponent(browsePath)}` : '';
+  const params = new URLSearchParams();
+  if (browsePath) params.set('path', browsePath);
+  if (emailOptions?.beforeUid) params.set('beforeUid', emailOptions.beforeUid);
+  if (emailOptions?.limit) params.set('limit', String(emailOptions.limit));
+  if (emailOptions?.search?.trim()) params.set('search', emailOptions.search.trim());
+  const qs = params.toString();
+  const suffix = qs ? `?${qs}` : '';
   const url = mailboxId
-    ? `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes/${encodeURIComponent(mailboxId)}/browse${params}`
-    : `/admin/orgs/${orgId}/connectors/${connectorId}/browse${params}`;
+    ? `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes/${encodeURIComponent(mailboxId)}/browse${suffix}`
+    : `/admin/orgs/${orgId}/connectors/${connectorId}/browse${suffix}`;
   const { data } = await apiClient.get<BrowseResult>(url);
   return data;
 }
@@ -206,18 +234,26 @@ export async function updateMailboxPassword(
   password: string
 ): Promise<Mailbox> {
   const orgId = resolveOrgId();
+  const wrapped = await wrapMailboxCredential(password);
   const { data } = await apiClient.patch<Mailbox>(
     `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes/${encodeURIComponent(mailboxId)}`,
-    { password }
+    wrapped
   );
   return data;
 }
 
 export async function addMailbox(connectorId: string, payload: AddMailboxPayload): Promise<Mailbox> {
   const orgId = resolveOrgId();
+  const wrapped = await wrapMailboxCredential(payload.password);
   const { data } = await apiClient.post<Mailbox>(
     `/admin/orgs/${orgId}/connectors/${connectorId}/mailboxes`,
-    payload
+    {
+      groupId: payload.groupId,
+      emailAddress: payload.emailAddress,
+      ingestHistoric: payload.ingestHistoric,
+      wrapKeyId: wrapped.wrapKeyId,
+      wrappedPassword: wrapped.wrappedPassword,
+    }
   );
   return data;
 }

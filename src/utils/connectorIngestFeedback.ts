@@ -1,7 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query';
 import {
   clearOptimisticConnectorDocuments,
+  ensureConnectorDocumentsInCache,
   replaceOptimisticConnectorDocuments,
+  type ConnectorIngestCreatedRow,
 } from './connectorIngestOptimistic';
 import { refreshPipelineDocuments } from './pipelineDocumentsCache';
 
@@ -9,12 +11,20 @@ import { refreshPipelineDocuments } from './pipelineDocumentsCache';
 export async function refreshDocumentsAfterConnectorIngest(
   queryClient: QueryClient,
   orgId?: string | null,
-  created?: { documentId: string; fileName: string; connectorId: string; connectorType?: string }[]
+  created?: ConnectorIngestCreatedRow[],
+  groupId?: string | null
 ) {
-  if (created?.length) {
-    replaceOptimisticConnectorDocuments(queryClient, created, orgId);
+  const snapshot = created?.length ? [...created] : [];
+
+  if (snapshot.length) {
+    replaceOptimisticConnectorDocuments(queryClient, snapshot, orgId, groupId);
+  }
+
+  await refreshPipelineDocuments(queryClient, orgId);
+
+  if (snapshot.length) {
+    ensureConnectorDocumentsInCache(queryClient, snapshot, orgId, groupId);
   } else {
     clearOptimisticConnectorDocuments(queryClient, orgId);
   }
-  await refreshPipelineDocuments(queryClient, orgId);
 }

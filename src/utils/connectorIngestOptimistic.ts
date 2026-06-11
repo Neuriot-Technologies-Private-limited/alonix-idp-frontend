@@ -2,13 +2,20 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { EmailAttachmentPreview, EmailDetail } from '../services/connectorBrowserApi';
 import { normalizePipelineDocument } from '../services/adminService';
 import {
-  patchPipelineDocumentsCache,
   pipelineDocumentsQueryKey,
 } from './pipelineDocumentsCache';
 
 export const CONNECTOR_PENDING_ID_PREFIX = 'connector-pending-';
 
 const PIPELINE_STAGE_IDLE = { status: 'idle' as const, startTime: null, endTime: null };
+
+export type ConnectorIngestCreatedRow = {
+  documentId: string;
+  fileName: string;
+  connectorId: string;
+  connectorType?: string;
+  existing?: boolean;
+};
 
 function pipelineStageProcessing() {
   return { status: 'processing' as const, startTime: new Date().toISOString(), endTime: null };
@@ -55,7 +62,8 @@ export function resolveSelectedIngestFileNames(
 export function optimisticAppendConnectorDocuments(
   queryClient: QueryClient,
   files: { fileName: string; connectorId: string; connectorType?: string }[],
-  orgId?: string | null
+  orgId?: string | null,
+  groupId?: string | null
 ) {
   if (!files.length) return;
   const now = new Date().toISOString();
@@ -67,7 +75,7 @@ export function optimisticAppendConnectorDocuments(
       type: file.fileName.includes('.')
         ? file.fileName.split('.').pop()?.toUpperCase().slice(0, 5) || 'FILE'
         : 'FILE',
-      groupId: '',
+      groupId: groupId || '',
       group: '',
       uploader: 'SYSTEM_CONNECTOR',
       uploadedBy: 'SYSTEM_CONNECTOR',
@@ -105,40 +113,57 @@ export function clearOptimisticConnectorDocuments(queryClient: QueryClient, orgI
 
 export function replaceOptimisticConnectorDocuments(
   queryClient: QueryClient,
-  created: { documentId: string; fileName: string; connectorId: string; connectorType?: string }[],
-  orgId?: string | null
+  created: ConnectorIngestCreatedRow[],
+  orgId?: string | null,
+  groupId?: string | null
 ) {
   clearOptimisticConnectorDocuments(queryClient, orgId);
   if (!created.length) return;
 
   const now = new Date().toISOString();
-  patchPipelineDocumentsCache(
-    queryClient,
-    (docs) => {
-      const existingIds = new Set(docs.map((d) => String(d.id)));
-      const newRows = created
-        .filter((row) => !existingIds.has(row.documentId))
-        .map((row) =>
-          normalizePipelineDocument({
-            id: row.documentId,
-            fileName: row.fileName,
-            title: row.fileName.replace(/\.[^/.]+$/, '') || row.fileName,
-            connectorId: row.connectorId,
-            sourceType: row.connectorType || 'EMAIL',
-            ingestSource: 'connector',
-            uploadedBy: 'SYSTEM_CONNECTOR',
-            uploadedAt: now,
-            pipeline: {
-              ingestion: pipelineStageProcessing(),
-              extraction: PIPELINE_STAGE_IDLE,
-              classification: PIPELINE_STAGE_IDLE,
-            },
-          })
-        );
-      return [...newRows, ...docs];
-    },
-    orgId
-  );
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
+  const existingIds = new Set(prev.map((d) => String(d.id)));
+  const newRows = created
+    .filter((row) => !existingIds.has(row.documentId))
+    .map((row) =>
+      normalizePipelineDocument({
+        id: row.documentId,
+        fileName: row.fileName,
+        title: row.fileName.replace(/\.[^/.]+$/, '') || row.fileName,
+        groupId: groupId || '',
+        connectorId: row.connectorId,
+        sourceType: row.connectorType || 'EMAIL',
+        ingestSource: 'connector',
+        uploadedBy: 'SYSTEM_CONNECTOR',
+        uploader: 'SYSTEM_CONNECTOR',
+        uploadedAt: now,
+        pipeline: {
+          ingestion: row.existing
+            ? { status: 'done' as const, startTime: now, endTime: now }
+            : pipelineStageProcessing(),
+          extraction: PIPELINE_STAGE_IDLE,
+          classification: PIPELINE_STAGE_IDLE,
+        },
+      })
+    );
+  queryClient.setQueryData(key, [...newRows, ...prev]);
+}
+
+/** Re-insert ingested rows if the org pipeline refetch did not include them yet. */
+export function ensureConnectorDocumentsInCache(
+  queryClient: QueryClient,
+  created: ConnectorIngestCreatedRow[],
+  orgId?: string | null,
+  groupId?: string | null
+) {
+  if (!created.length) return;
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
+  const existingIds = new Set(prev.map((d) => String(d.id)));
+  const missing = created.filter((row) => !existingIds.has(row.documentId));
+  if (!missing.length) return;
+  replaceOptimisticConnectorDocuments(queryClient, missing, orgId, groupId);
 }
 
 export function hasConnectorPendingDocuments(docs: Record<string, unknown>[] | undefined): boolean {

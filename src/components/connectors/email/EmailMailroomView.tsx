@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Mail, Loader2, AlertCircle, RefreshCw, Search, ChevronRight,
   FileText, Image, Archive, File, CheckCircle2, XCircle, Clock, Presentation,
   Zap, Inbox, Paperclip, ArrowRight, X,
 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   browseConnector,
   fetchEmailDetail,
@@ -101,12 +101,16 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   onViewIngestedDocuments,
 }) => {
   const orgId = useAuthStore((s) => s.context?.orgId);
+  const activeGroupId = useAuthStore((s) => s.context?.activeGroupId ?? null);
   const queryClient = useQueryClient();
   const { atCap, capMessage, blocksUsage } = useOrgQuota();
   const ingestBlocked = blocksUsage || atCap('documentsMonth');
 
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const listEndRef = useRef<HTMLLIElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [bodyTab, setBodyTab] = useState<BodyTab>('text');
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<Set<string>>(new Set());
   const [selectedArchivePaths, setSelectedArchivePaths] = useState<Set<string>>(new Set());
@@ -116,12 +120,67 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
 
   const isModal = variant === 'modal';
 
-  const { data: browseData, isLoading: loadingInbox, error: inboxError, refetch: refetchInbox } = useQuery({
-    queryKey: ['connector-browse', connectorId, mailboxId ?? 'INBOX'],
-    queryFn: () => browseConnector(connectorId, undefined, mailboxId),
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const inboxQueryKey = ['connector-browse', connectorId, mailboxId ?? 'INBOX', debouncedSearch] as const;
+
+  const {
+    data: inboxPages,
+    isLoading: loadingInbox,
+    error: inboxError,
+    refetch: refetchInbox,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: inboxQueryKey,
+    queryFn: ({ pageParam }) =>
+      browseConnector(connectorId, undefined, mailboxId, {
+        beforeUid: pageParam as string | undefined,
+        limit: 50,
+        search: debouncedSearch || undefined,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore && lastPage.nextBeforeUid ? lastPage.nextBeforeUid : undefined,
     enabled: !!connectorId,
     staleTime: 30000,
   });
+
+  const browseData = inboxPages?.pages[0];
+  const inboxEmails = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: ConnectorItem[] = [];
+    for (const page of inboxPages?.pages ?? []) {
+      for (const item of page.items) {
+        const uid = String(item.id || item.path || '');
+        if (!uid || seen.has(uid)) continue;
+        seen.add(uid);
+        merged.push(item);
+      }
+    }
+    return merged;
+  }, [inboxPages?.pages]);
+
+  useEffect(() => {
+    const root = scrollContainerRef.current;
+    const target = listEndRef.current;
+    if (!root || !target || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void fetchNextPage();
+        }
+      },
+      { root, rootMargin: '120px', threshold: 0.1 }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, inboxEmails.length, debouncedSearch]);
 
   const { data: emailDetail, isLoading: loadingDetail, error: detailError, refetch: refetchDetail } = useQuery({
     queryKey: ['email-detail', mailboxId ?? connectorId, selectedUid],
@@ -178,18 +237,6 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     setBodyTab('text');
   }, []);
 
-  const filteredEmails = useMemo(() => {
-    const items = browseData?.items || [];
-    if (!search.trim()) return items;
-    const q = search.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        (item.from || '').toLowerCase().includes(q) ||
-        (item.subject || '').toLowerCase().includes(q)
-    );
-  }, [browseData?.items, search]);
-
   const toggleAttachment = (att: EmailAttachmentPreview) => {
     if (!att.ingestable) return;
     setSelectedAttachmentIds((prev) => {
@@ -225,7 +272,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     },
     onSuccess: async () => {
       setIngestError('');
-      await refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+      await refreshDocumentsAfterConnectorIngest(queryClient, orgId, undefined, activeGroupId);
       void refetchDetail();
       onViewIngestedDocuments?.(connectorId);
     },
@@ -268,19 +315,36 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
         fileName: doc.fileName,
         connectorId,
         connectorType: 'EMAIL',
+        existing: doc.existing,
       }));
-      void refreshDocumentsAfterConnectorIngest(queryClient, orgId, created);
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId, created, activeGroupId);
+
+      if (created.length > 0 || processed > 0) {
+        onViewIngestedDocuments?.(connectorId);
+      }
 
       if (!queued && processed === 0 && skipped > 0) {
-        setIngestError('No new files were ingested (already processed or skipped).');
+        const quotaDetail = result.skippedDetails?.find((d) =>
+          /QUOTA|STORAGE|SUBSCRIPTION/i.test(String(d.code || ''))
+        );
+        if (quotaDetail?.error) {
+          setIngestError(quotaDetail.error);
+        } else if (created.length > 0) {
+          setIngestError('Selected files were already ingested from this mailbox.');
+        } else {
+          setIngestError('No new files were ingested (already processed or skipped).');
+        }
       }
     },
     [
+      activeGroupId,
       connectorId,
       ingestableAttachmentCount,
+      onViewIngestedDocuments,
       orgId,
       queryClient,
       selectedUid,
+      mailboxId,
     ]
   );
 
@@ -310,9 +374,9 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
           connectorId,
           connectorType: 'EMAIL',
         })),
-        orgId
+        orgId,
+        activeGroupId
       );
-      onViewIngestedDocuments?.(connectorId);
       return { fileNames };
     },
     onSuccess: ({ result, selectedForIngest, ingestAll }) => {
@@ -344,6 +408,9 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
             {browseData?.mailboxStats && (
               <p className="text-[10px] text-muted-foreground">
                 {browseData.mailboxStats.total} messages · {browseData.mailboxStats.unseen} unseen
+                {debouncedSearch && browseData.resultCount != null
+                  ? ` · ${browseData.resultCount} match${browseData.resultCount === 1 ? '' : 'es'}`
+                  : ''}
               </p>
             )}
           </div>
@@ -364,13 +431,13 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search subject or sender…"
+              placeholder="Search subject, sender name, or email…"
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border/25 bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0">
           {loadingInbox ? (
             <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/40" /></div>
           ) : inboxError ? (
@@ -378,11 +445,13 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
               <AlertCircle className="w-6 h-6 text-destructive/50 mx-auto mb-2" />
               <p className="text-xs text-destructive">Could not load inbox</p>
             </div>
-          ) : filteredEmails.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-12">No messages</p>
+          ) : inboxEmails.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-12">
+              {debouncedSearch ? 'No messages match your search' : 'No messages'}
+            </p>
           ) : (
             <ul className="divide-y divide-border/10">
-              {filteredEmails.map((item) => {
+              {inboxEmails.map((item) => {
                 const uid = String(item.id || item.path);
                 const active = selectedUid === uid;
                 return (
@@ -402,7 +471,12 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
                           <p className={cn('text-xs font-semibold truncate', !item.seen && 'text-foreground', item.seen && 'text-foreground/90')}>
                             {item.subject || item.name}
                           </p>
-                          <p className="text-[10px] text-muted-foreground truncate">{item.from}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {item.fromName || item.from || item.fromAddress}
+                          </p>
+                          {item.fromName && item.fromAddress ? (
+                            <p className="text-[10px] text-muted-foreground/60 truncate">{item.fromAddress}</p>
+                          ) : null}
                           <p className="text-[10px] text-muted-foreground/70 mt-0.5">{formatDate(item.mtime)}</p>
                         </div>
                         <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0 mt-1" />
@@ -411,6 +485,15 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
                   </li>
                 );
               })}
+              <li ref={listEndRef} className="py-3 flex justify-center">
+                {isFetchingNextPage ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/50" />
+                ) : hasNextPage ? (
+                  <span className="text-[10px] text-muted-foreground/60">Scroll for older messages…</span>
+                ) : inboxEmails.length > 0 ? (
+                  <span className="text-[10px] text-muted-foreground/50">End of list</span>
+                ) : null}
+              </li>
             </ul>
           )}
         </div>
