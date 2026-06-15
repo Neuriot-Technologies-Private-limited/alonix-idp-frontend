@@ -15,10 +15,20 @@ import {
   pipelineActionToStage,
   type JobUpdatePayload,
 } from '../../../../utils/pipelineDocumentsCache';
+import { refreshDocumentsAfterConnectorIngest } from '../../../../utils/connectorIngestFeedback';
+import type { ConnectorIngestCreatedRow } from '../../../../utils/connectorIngestOptimistic';
 import { useAlert } from '../../../../components/alert';
 import type { DocumentRow } from '../../types/documentRow';
 
 type PipelineAction = 'ingest' | 'extract' | 'classify';
+
+type ConnectorIngestSocketPayload = {
+  orgId?: string;
+  groupId?: string;
+  connectorId?: string;
+  connectorType?: string;
+  documents?: ConnectorIngestCreatedRow[];
+};
 
 export function useDocumentPipeline(
   documents: DocumentRow[] | undefined,
@@ -153,9 +163,23 @@ export function useDocumentPipeline(
       applyJobUpdateToPipelineCache(queryClient, payload, orgId);
     };
 
+    const onConnectorIngest = (payload: ConnectorIngestSocketPayload) => {
+      if (payload?.orgId && orgId && String(payload.orgId) !== String(orgId)) return;
+      const created = payload.documents || [];
+      if (!created.length) return;
+      void refreshDocumentsAfterConnectorIngest(
+        queryClient,
+        orgId,
+        created,
+        payload.groupId || gid || null
+      );
+    };
+
     socket.on('job.update', onJobUpdate);
+    socket.on('connector.ingest', onConnectorIngest);
     return () => {
       socket.off('job.update', onJobUpdate);
+      socket.off('connector.ingest', onConnectorIngest);
     };
   }, [queryClient, orgId, userEmail, userGroupId]);
 
