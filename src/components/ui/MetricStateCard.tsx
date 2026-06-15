@@ -47,6 +47,8 @@ export interface MetricStateCardProps {
   valueClassName?: string;
   className?: string;
   icon?: LucideIcon;
+  /** Tighter padding and type for dense dashboard rows (e.g. 6-up metrics). */
+  compact?: boolean;
 }
 
 /**
@@ -59,12 +61,14 @@ export const MetricStateCard: React.FC<MetricStateCardProps> = ({
   valueClassName,
   className,
   icon: Icon,
+  compact = false,
 }) => {
   const colorClass = valueClassName ?? TONE_VALUE[tone];
   return (
     <div
       className={cn(
-        'relative isolate overflow-hidden bg-gradient-to-b from-surface-highest/65 to-surface-highest/35 border border-border/30 dark:border-border/45 rounded-2xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4 group hover:border-border/45 dark:hover:border-border/60 transition-all cursor-default',
+        'relative isolate overflow-hidden bg-gradient-to-b from-surface-highest/65 to-surface-highest/35 border border-border/30 dark:border-border/45 rounded-2xl flex items-center group hover:border-border/45 dark:hover:border-border/60 transition-all cursor-default min-w-0',
+        compact ? 'p-2 sm:p-2.5 gap-2 rounded-xl' : 'p-3 sm:p-4 gap-3 sm:gap-4',
         className
       )}
     >
@@ -78,17 +82,25 @@ export const MetricStateCard: React.FC<MetricStateCardProps> = ({
       {Icon ? (
         <span
           className={cn(
-            'relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border backdrop-blur-sm transition-transform duration-300 group-hover:scale-[1.03]',
+            'relative grid shrink-0 place-items-center rounded-xl border backdrop-blur-sm transition-transform duration-300 group-hover:scale-[1.03]',
+            compact ? 'h-7 w-7' : 'h-9 w-9',
             TONE_ICON_CHROME[tone]
           )}
           aria-hidden="true"
         >
-          <Icon className="h-4 w-4" />
+          <Icon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
         </span>
       ) : null}
       <div className="min-w-0">
-        <p className={cn('text-2xl font-black tracking-tight', colorClass)}>{value}</p>
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/55 dark:text-muted-foreground/45">
+        <p className={cn('font-black tracking-tight truncate', compact ? 'text-lg sm:text-xl' : 'text-2xl', colorClass)}>
+          {value}
+        </p>
+        <p
+          className={cn(
+            'font-black uppercase tracking-[0.18em] text-muted-foreground/55 dark:text-muted-foreground/45 truncate',
+            compact ? 'text-[7px] sm:text-[8px]' : 'text-[9px] tracking-[0.2em]'
+          )}
+        >
           {label}
         </p>
       </div>
@@ -99,11 +111,23 @@ export const MetricStateCard: React.FC<MetricStateCardProps> = ({
 export interface MetricStateGridProps {
   children: React.ReactNode;
   className?: string;
+  /** Six-up single row on large screens (documents pipeline header). */
+  columns?: 'default' | 'six';
 }
 
-export const MetricStateGrid: React.FC<MetricStateGridProps> = ({ children, className }) => (
+export const MetricStateGrid: React.FC<MetricStateGridProps> = ({
+  children,
+  className,
+  columns = 'default',
+}) => (
   <section
-    className={cn('grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4', className)}
+    className={cn(
+      'grid gap-2 sm:gap-3',
+      columns === 'six'
+        ? 'grid-cols-2 min-[520px]:grid-cols-3 lg:grid-cols-6'
+        : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5',
+      className
+    )}
   >
     {children}
   </section>

@@ -27,6 +27,23 @@ function typeIcon(type: string): LucideIcon {
   return TYPE_ICONS[String(type).toUpperCase()] || Network;
 }
 
+const chipClass = (active: boolean) =>
+  cn(
+    'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition-colors shrink-0',
+    active
+      ? 'border-primary/40 bg-primary/10 text-primary'
+      : 'border-border/25 bg-background/40 text-foreground hover:border-primary/25'
+  );
+
+const countClass = (active: boolean) =>
+  cn(
+    'rounded px-1 py-px text-[8px] font-black leading-none',
+    active ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'
+  );
+
+const sectionLabelClass =
+  'text-[8px] font-black uppercase tracking-[0.18em] text-muted-foreground/55 shrink-0 whitespace-nowrap';
+
 export const ConnectorIngestBreakdown: React.FC<ConnectorIngestBreakdownProps> = ({
   byType,
   byConnector,
@@ -38,107 +55,80 @@ export const ConnectorIngestBreakdown: React.FC<ConnectorIngestBreakdownProps> =
 }) => {
   if (!byType.length) return null;
 
+  const allTypesActive = activeConnectorType == null && activeConnectorId == null;
+
   return (
     <section
       className={cn(
-        'rounded-2xl border border-border/30 bg-surface-highest/25 px-4 py-3 sm:px-5 sm:py-4 space-y-3',
+        'rounded-xl border border-border/30 bg-surface-highest/20 px-3 py-2 sm:px-4',
         className
       )}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 w-full sm:w-auto sm:mr-2">
-          Connector sources
-        </p>
-        <button
-          type="button"
-          onClick={() => onSelectConnectorType?.(null)}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-colors',
-            activeConnectorType == null && activeConnectorId == null
-              ? 'border-primary/40 bg-primary/10 text-primary'
-              : 'border-border/25 bg-background/40 text-foreground hover:border-primary/25'
-          )}
-        >
-          All types
-        </button>
-        {byType.map((row) => {
-          const Icon = typeIcon(row.type);
-          const active = activeConnectorType === row.type;
-          return (
-            <button
-              key={row.type}
-              type="button"
-              onClick={() => onSelectConnectorType?.(row.type)}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-colors',
-                active
-                  ? 'border-primary/40 bg-primary/10 text-primary'
-                  : 'border-border/25 bg-background/40 text-foreground hover:border-primary/25'
-              )}
-            >
-              <Icon className="h-3.5 w-3.5 text-primary/80" aria-hidden="true" />
-              <span>{row.label}</span>
-              <span
-                className={cn(
-                  'rounded-md px-1.5 py-0.5 text-[9px] font-black',
-                  active ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'
-                )}
-              >
-                {row.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {byConnector.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 border-t border-border/20 pt-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 w-full sm:w-auto sm:mr-2">
-            By connector
-          </p>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-0 min-w-0">
+        {/* Connector sources */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0 md:flex-1 md:pr-3">
+          <p className={sectionLabelClass}>Sources</p>
           <button
             type="button"
-            onClick={() => onSelectConnector?.(null)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-colors',
-              activeConnectorId == null
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-border/25 bg-background/40 text-foreground hover:border-primary/25'
-            )}
+            onClick={() => onSelectConnectorType?.(null)}
+            className={chipClass(allTypesActive)}
           >
-            All connectors
+            All types
           </button>
-          {byConnector.map((row) => {
+          {byType.map((row) => {
             const Icon = typeIcon(row.type);
-            const active = activeConnectorId === row.connectorId;
+            const active = activeConnectorType === row.type;
             return (
               <button
-                key={row.connectorId}
+                key={row.type}
                 type="button"
-                onClick={() => onSelectConnector?.(row.connectorId)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-colors max-w-full',
-                  active
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : 'border-border/25 bg-background/40 text-foreground hover:border-primary/25'
-                )}
-                title={`${row.name} (${connectorTypeLabel(row.type)})`}
+                onClick={() => onSelectConnectorType?.(row.type)}
+                className={chipClass(active)}
               >
-                <Icon className="h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden="true" />
-                <span className="truncate">{row.name}</span>
-                <span
-                  className={cn(
-                    'rounded-md px-1.5 py-0.5 text-[9px] font-black shrink-0',
-                    active ? 'bg-primary/15 text-primary' : 'bg-surface-highest/50 text-muted-foreground'
-                  )}
-                >
-                  {row.count}
-                </span>
+                <Icon className="h-3 w-3 text-primary/80" aria-hidden="true" />
+                <span>{row.label}</span>
+                <span className={countClass(active)}>{row.count}</span>
               </button>
             );
           })}
         </div>
-      ) : null}
+
+        {byConnector.length > 0 ? (
+          <>
+            <div
+              className="hidden md:block w-px self-stretch min-h-[1.25rem] bg-border/25 shrink-0"
+              aria-hidden="true"
+            />
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0 md:flex-1 md:pl-3 md:border-l-0 border-t border-border/20 pt-2 md:pt-0 md:border-t-0">
+              <p className={sectionLabelClass}>By connector</p>
+              <button
+                type="button"
+                onClick={() => onSelectConnector?.(null)}
+                className={chipClass(activeConnectorId == null)}
+              >
+                All
+              </button>
+              {byConnector.map((row) => {
+                const Icon = typeIcon(row.type);
+                const active = activeConnectorId === row.connectorId;
+                return (
+                  <button
+                    key={row.connectorId}
+                    type="button"
+                    onClick={() => onSelectConnector?.(row.connectorId)}
+                    className={cn(chipClass(active), 'max-w-[12rem]')}
+                    title={`${row.name} (${connectorTypeLabel(row.type)})`}
+                  >
+                    <Icon className="h-3 w-3 shrink-0 text-primary/80" aria-hidden="true" />
+                    <span className="truncate">{row.name}</span>
+                    <span className={countClass(active)}>{row.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+      </div>
     </section>
   );
 };

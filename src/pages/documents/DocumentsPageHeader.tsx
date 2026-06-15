@@ -114,20 +114,20 @@ export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
       </div>
     </section>
 
-    <MetricStateGrid>
-      <MetricStateCard label="Total Documents" value={counts.all} tone="primary" icon={Files} />
-      <MetricStateCard label="Ingested" value={counts.ingested} tone="emerald" icon={DatabaseZap} />
-      <MetricStateCard label="Extracted" value={counts.extracted} tone="violet" icon={ScanSearch} />
-      <MetricStateCard label="Classified" value={counts.classified} tone="amber" icon={Tags} />
+    <MetricStateGrid columns="six">
+      <MetricStateCard compact label="Total Documents" value={counts.all} tone="primary" icon={Files} />
+      <MetricStateCard compact label="Ingested" value={counts.ingested} tone="emerald" icon={DatabaseZap} />
+      <MetricStateCard compact label="Extracted" value={counts.extracted} tone="violet" icon={ScanSearch} />
+      <MetricStateCard compact label="Classified" value={counts.classified} tone="amber" icon={Tags} />
       <button
         type="button"
         onClick={onShowConnectorDocuments}
-        className="text-left rounded-2xl transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        className="text-left rounded-xl transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 min-w-0"
         title="Show connector-ingested documents"
       >
-        <MetricStateCard label="From connectors" value={counts.fromConnectors} tone="violet" icon={Network} />
+        <MetricStateCard compact label="From connectors" value={counts.fromConnectors} tone="violet" icon={Network} />
       </button>
-      <MetricStateCard label="Failed" value={counts.failed} tone="rose" icon={AlertTriangle} />
+      <MetricStateCard compact label="Failed" value={counts.failed} tone="rose" icon={AlertTriangle} />
     </MetricStateGrid>
 
     {showConnectorBreakdown ? (
