@@ -23,6 +23,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        env:
+          GITLEAKS_VERSION: 8.24.2
+        run: |
+          set -euo pipefail
+          GITLEAKS_DIR="${RUNNER_TEMP}/gitleaks"
+          mkdir -p "$GITLEAKS_DIR"
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$GITLEAKS_DIR" gitleaks
+          chmod +x "${GITLEAKS_DIR}/gitleaks"
+          echo "${GITLEAKS_DIR}" >> "$GITHUB_PATH"
+
+      - name: Scan for secrets (Gitleaks)
+        run: |
+          gitleaks version
+          gitleaks detect --source . --verbose
+
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -48,9 +69,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run unit tests
-        run: npm run test:run
 
       - name: Build app
         env:

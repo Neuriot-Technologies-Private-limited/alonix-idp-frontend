@@ -1,8 +1,7 @@
 name: Security Scan
 
+# PR-only gate — push to develop runs security inside firebase-hosting.yml (no duplicate runs).
 on:
-  push:
-    branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
 
