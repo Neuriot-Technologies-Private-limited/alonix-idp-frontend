@@ -1,6 +1,7 @@
 import React from 'react';
 import { Loader2, Import, ScanText, Tags, ScrollText, Trash2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { isConnectorPendingDocumentId } from '../../utils/connectorIngestOptimistic';
 
 export interface DocumentPipelineActionsProps {
   docItem: any;
@@ -66,6 +67,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   const ingestFailed = ingestionStatus === 'error';
   const extractFailed = extractionStatus === 'error';
   const classifyFailed = classificationStatus === 'error';
+  const isConnectorPlaceholder = isConnectorPendingDocumentId(docItem?.id);
   const ingestErrorMessage =
     ingestFailed && p?.ingestion?.errorMessage ? String(p.ingestion.errorMessage) : '';
   const extractErrorMessage =
@@ -73,7 +75,11 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   const classifyErrorMessage =
     classifyFailed && p?.classification?.errorMessage ? String(p.classification.errorMessage) : '';
   const ingestEnabled =
-    !bulkBusyActive && !docBusy && !ingestRunning && (!ingestDone || ingestFailed);
+    !bulkBusyActive &&
+    !docBusy &&
+    !ingestRunning &&
+    (!ingestDone || ingestFailed) &&
+    !isConnectorPlaceholder;
   const extractEnabled =
     !bulkBusyActive && !docBusy && !extractRunning && (!extractDone || extractFailed);
   const classifyEnabled =
@@ -88,7 +94,9 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
 
   const isCard = variant === 'card';
 
-  const ingestTooltip = ingestFailed
+  const ingestTooltip = isConnectorPlaceholder && ingestFailed
+    ? 'Not saved yet — re-ingest from Connectors → Email'
+    : ingestFailed
     ? ingestErrorMessage
       ? `Re-ingest — ${ingestErrorMessage}`
       : 'Re-ingest — retry failed ingestion'

@@ -6,9 +6,8 @@ import {
   Box, Plug,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../services/api/client';
-import { browseConnector, ingestFile, listMailboxes, listMailboxesForGroup } from '../../services/connectorBrowserApi';
-import type { BrowseResult, ConnectorItem, Mailbox } from '../../services/connectorBrowserApi';
+import { browseConnector, ingestFile, listMailboxes, listMailboxesForGroup, listOrgConnectors } from '../../services/connectorBrowserApi';
+import type { BrowseResult, ConnectorItem, Mailbox, OrgConnector } from '../../services/connectorBrowserApi';
 import EmailMailroomView from './email/EmailMailroomView';
 import EmailMailboxConnectForm from './email/EmailMailboxConnectForm';
 import { useAuthStore } from '../../stores/authStore';
@@ -24,14 +23,6 @@ export interface ConnectorBrowserContentProps {
   /** Deep-link / admin “open in documents” — selects connector when set */
   initialConnectorId?: string | null;
   onViewIngestedDocuments?: (connectorId: string) => void;
-}
-
-interface Connector {
-  _id: string;
-  name: string;
-  type: 'EMAIL' | 'BOX' | 'API' | 'SHAREPOINT' | 'SFTP';
-  status: 'ACTIVE' | 'PAUSED' | 'ERROR';
-  config: Record<string, unknown>;
 }
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
@@ -119,11 +110,11 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
     }
   }, [initialConnectorId]);
 
-  const { data: connectors = [], isLoading: loadingConnectors } = useQuery<Connector[]>({
+  const { data: connectors = [], isLoading: loadingConnectors } = useQuery<OrgConnector[]>({
     queryKey: ['connectors', orgId],
     queryFn: async () => {
-      const { data } = await apiClient.get<Connector[]>(`/admin/orgs/${orgId}/connectors`);
-      return data.filter((c) => c.status === 'ACTIVE');
+      const rows = await listOrgConnectors(orgId || undefined);
+      return rows.filter((c) => c.status === 'ACTIVE');
     },
     enabled: !!orgId,
   });

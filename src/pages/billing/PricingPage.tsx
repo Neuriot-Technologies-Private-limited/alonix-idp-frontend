@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 
 import { useQuery, useMutation } from '@tanstack/react-query';
-import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import {
@@ -26,10 +25,13 @@ import { useBrand } from '../../brand/useBrand';
 import {
   fetchBillingPlans,
   fetchBillingConfig,
+  fetchBillingSubscription,
+  createBillingCheckoutSession,
   sortBillingPlans,
   connectorQuotaLabel,
   type BillingPlan,
 } from '../../services/billingService';
+import { billingSubscriptionQueryKey } from '../../hooks/useOrgQuota';
 
 // ── Plan styling ──────────────────────────────────────────────────────────
 const planStyles: Record<string, {
@@ -253,21 +255,17 @@ export const PricingPage: React.FC = () => {
   });
 
   const { data: billingData } = useQuery<{ plan: { name: string } }>({
-    queryKey: ['billing-subscription', orgId],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/billing/subscription');
-      return data;
-    },
+    queryKey: billingSubscriptionQueryKey(orgId),
+    queryFn: fetchBillingSubscription,
     enabled: !!user && !!orgId,
   });
 
   const [upgrading, setUpgrading] = useState<string | null>(null);
 
   const checkoutMutation = useMutation({
-    mutationFn: async (vars: { planName: string; billingCycle: BillingCycle }) => {
+    mutationFn: (vars: { planName: string; billingCycle: BillingCycle }) => {
       setUpgrading(vars.planName);
-      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', vars);
-      return data;
+      return createBillingCheckoutSession(vars);
     },
     onSuccess: ({ url }) => { window.location.href = url; },
     onSettled: () => setUpgrading(null),

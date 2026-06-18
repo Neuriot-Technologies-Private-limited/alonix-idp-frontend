@@ -131,6 +131,23 @@ export interface ConnectorIngestionRecord {
   uploadedBy: string;
 }
 
+/** Org-level connector row (admin settings + browser picker). */
+export interface OrgConnector {
+  _id: string;
+  name: string;
+  type: 'EMAIL' | 'BOX' | 'API' | 'SHAREPOINT' | 'SFTP';
+  status: 'ACTIVE' | 'PAUSED' | 'ERROR';
+  ingestHistoric: boolean;
+  lastHistoricSyncAt?: string | null;
+  config: Record<string, unknown>;
+}
+
+export interface CreateOrgConnectorPayload {
+  name: string;
+  type: string;
+  config: Record<string, unknown>;
+}
+
 export interface Mailbox {
   _id: string;
   connectorId: string;
@@ -172,6 +189,59 @@ export interface IngestResult {
 function resolveOrgId(): string {
   const state = useAuthStore.getState();
   return state.context?.orgId || state.user?.orgId || '';
+}
+
+export async function listOrgConnectors(orgId?: string): Promise<OrgConnector[]> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.get<OrgConnector[]>(`/admin/orgs/${scopedOrgId}/connectors`);
+  return data;
+}
+
+export async function createOrgConnector(
+  payload: CreateOrgConnectorPayload,
+  orgId?: string
+): Promise<OrgConnector> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.post<OrgConnector>(
+    `/admin/orgs/${scopedOrgId}/connectors`,
+    payload
+  );
+  return data;
+}
+
+export async function deleteOrgConnector(connectorId: string, orgId?: string): Promise<void> {
+  const scopedOrgId = orgId || resolveOrgId();
+  await apiClient.delete(`/admin/orgs/${scopedOrgId}/connectors/${connectorId}`);
+}
+
+export interface ConnectorDeletionMailbox {
+  mailboxId: string;
+  emailAddress: string;
+  groupId: string;
+  groupName: string;
+  status?: string;
+}
+
+export interface ConnectorDeletionImpact {
+  connectorId: string;
+  connectorName: string;
+  connectorType: string;
+  mailboxCount: number;
+  mailboxes: ConnectorDeletionMailbox[];
+  documentCount: number;
+  canDelete: boolean;
+  blockedReason: string | null;
+}
+
+export async function fetchConnectorDeletionImpact(
+  connectorId: string,
+  orgId?: string
+): Promise<ConnectorDeletionImpact> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.get<ConnectorDeletionImpact>(
+    `/admin/orgs/${scopedOrgId}/connectors/${connectorId}/deletion-impact`
+  );
+  return data;
 }
 
 export async function browseConnector(

@@ -221,6 +221,17 @@ export const userService = {
     await apiClient.delete(`/admin/groups/${encodeURIComponent(groupId)}/members/${enc}`);
   },
 
+  updateGroupMemberRole: async (
+    groupId: string,
+    userEmail: string,
+    body: { role: 'GROUP_ADMIN' | 'SEARCH_USER'; maxDocumentSensitivity?: string }
+  ): Promise<void> => {
+    await apiClient.put(
+      `/admin/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userEmail)}`,
+      body
+    );
+  },
+
   resendGroupInvite: async (
     groupId: string,
     inviteId: string

@@ -1,12 +1,11 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../../services/api/client';
 import { useAuthStore } from '../../../stores/authStore';
 import { UserPlus, Loader2, Mail, Search } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { ThemedSelect } from '../../../components/ui/ThemedSelect';
 import { userService, type User } from '../../../services/userService';
-import type { GroupHealth } from '../../../services/adminService';
+import { adminService, type GroupHealth } from '../../../services/adminService';
 import { cn } from '../../../utils/cn';
 import {
   DOCUMENT_SENSITIVITY_HINTS,
@@ -80,14 +79,7 @@ export const InviteUsersToGroupModal: React.FC<InviteUsersToGroupModalProps> = (
   const { data: groupEnabledLevels = null } = useQuery({
     queryKey: ['invite-group-policy', groupId],
     enabled: isOpen && Boolean(groupId),
-    queryFn: async () => {
-      const { data } = await apiClient.get<{ enabledDocumentSensitivityLevels?: string[] | null }>(
-        `/groups/${encodeURIComponent(groupId)}`
-      );
-      return Array.isArray(data.enabledDocumentSensitivityLevels)
-        ? data.enabledDocumentSensitivityLevels
-        : null;
-    },
+    queryFn: () => adminService.getGroupSensitivityPolicy(groupId),
     staleTime: 60_000,
   });
 

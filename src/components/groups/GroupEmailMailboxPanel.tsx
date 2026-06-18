@@ -4,24 +4,19 @@ import {
   AlertCircle, Eye, EyeOff, History, Zap, Trash2, KeyRound,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../services/api/client';
 import {
   addMailbox,
   deleteMailbox,
   listMailboxesForGroup,
+  listOrgConnectors,
   updateMailboxPassword,
+  type OrgConnector,
 } from '../../services/connectorBrowserApi';
 import type { Mailbox } from '../../services/connectorBrowserApi';
 import { cn } from '../../utils/cn';
 import { useAlert } from '../alert';
 
-interface ConnectorListItem {
-  _id: string;
-  name: string;
-  type: string;
-  config?: Record<string, unknown>;
-  status?: string;
-}
+interface ConnectorListItem extends Pick<OrgConnector, '_id' | 'name' | 'type' | 'config' | 'status'> {}
 
 interface GroupEmailMailboxPanelProps {
   groupId: string;
@@ -54,8 +49,8 @@ export const GroupEmailMailboxPanel: React.FC<GroupEmailMailboxPanelProps> = ({
   const { data: emailConnectors = [], isLoading: loadingConnectors } = useQuery<ConnectorListItem[]>({
     queryKey: ['connectors', orgId],
     queryFn: async () => {
-      const { data } = await apiClient.get<ConnectorListItem[]>(`/admin/orgs/${orgId}/connectors`);
-      return data.filter((c) => c.type === 'EMAIL' && c.status !== 'PAUSED');
+      const rows = await listOrgConnectors(orgId || undefined);
+      return rows.filter((c) => c.type === 'EMAIL' && c.status !== 'PAUSED');
     },
     enabled: !!orgId,
     staleTime: 60_000,

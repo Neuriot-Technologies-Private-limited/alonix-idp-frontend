@@ -581,6 +581,21 @@ export const adminService = {
     return data.settings;
   },
 
+  getGroupSensitivityPolicy: async (groupId: string): Promise<string[] | null> => {
+    const { data } = await apiClient.get<{ enabledDocumentSensitivityLevels?: string[] | null }>(
+      `/groups/${encodeURIComponent(groupId)}`
+    );
+    return Array.isArray(data.enabledDocumentSensitivityLevels)
+      ? data.enabledDocumentSensitivityLevels
+      : null;
+  },
+
+  updateGroupSensitivityPolicy: async (groupId: string, levels: string[]): Promise<void> => {
+    await apiClient.put(`/admin/groups/${encodeURIComponent(groupId)}/document-sensitivity-policy`, {
+      enabledDocumentSensitivityLevels: levels,
+    });
+  },
+
 };
 
 export const useDashboardState = () => {

@@ -136,3 +136,14 @@ export async function confirmBillingCheckout(sessionId?: string | null): Promise
   });
   return data;
 }
+
+export async function createBillingCheckoutSession(vars: {
+  planName: string;
+  billingCycle?: BillingCycle;
+}): Promise<{ url: string }> {
+  const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', {
+    planName: vars.planName,
+    billingCycle: vars.billingCycle ?? 'monthly',
+  });
+  return data;
+}

@@ -16,9 +16,8 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { useGroupDetail, useGroupHealth } from '../../services/adminService';
-import { useUsers } from '../../services/userService';
-import apiClient from '../../services/api/client';
+import { useGroupDetail, useGroupHealth, adminService } from '../../services/adminService';
+import { useUsers, userService } from '../../services/userService';
 import { getDocumentAccessUrl } from '../../services/chatApi';
 import { HealthBadge } from '../../components/ui/GroupCard';
 import { Loader } from '../../components/ui/Loader';
@@ -64,7 +63,7 @@ export const GroupDetails: React.FC = () => {
   const resendInviteMutation = useMutation({
     mutationFn: async (inviteId: string) => {
       if (!id) return;
-      await apiClient.post(`/admin/groups/${encodeURIComponent(id)}/invites/${encodeURIComponent(inviteId)}/resend`);
+      await userService.resendGroupInvite(id, inviteId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
@@ -91,14 +90,13 @@ export const GroupDetails: React.FC = () => {
       maxDocumentSensitivity?: string;
     }) => {
       if (!id) return;
-      const body: { role: string; maxDocumentSensitivity?: string } = { role: payload.role };
+      const body: { role: 'GROUP_ADMIN' | 'SEARCH_USER'; maxDocumentSensitivity?: string } = {
+        role: payload.role,
+      };
       if (payload.role === 'SEARCH_USER' && payload.maxDocumentSensitivity) {
         body.maxDocumentSensitivity = payload.maxDocumentSensitivity;
       }
-      await apiClient.put(
-        `/admin/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(payload.userEmail)}`,
-        body
-      );
+      await userService.updateGroupMemberRole(id, payload.userEmail, body);
     },
     onSuccess: (_, payload) => {
       queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
@@ -124,9 +122,7 @@ export const GroupDetails: React.FC = () => {
   const removeMemberMutation = useMutation({
     mutationFn: async (userEmail: string) => {
       if (!id) return;
-      await apiClient.delete(
-        `/admin/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(userEmail)}`
-      );
+      await userService.removeUserFromGroup(id, userEmail);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
@@ -149,9 +145,7 @@ export const GroupDetails: React.FC = () => {
   const updateSensitivityPolicyMutation = useMutation({
     mutationFn: async (levels: string[]) => {
       if (!id) return;
-      await apiClient.put(`/admin/groups/${encodeURIComponent(id)}/document-sensitivity-policy`, {
-        enabledDocumentSensitivityLevels: levels,
-      });
+      await adminService.updateGroupSensitivityPolicy(id, levels);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-detail', id] });

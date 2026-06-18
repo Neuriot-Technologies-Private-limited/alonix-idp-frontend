@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { EmailAttachmentPreview, EmailDetail } from '../services/connectorBrowserApi';
-import { normalizePipelineDocument } from '../services/adminService';
+import { mergePipeline, normalizePipelineDocument } from '../services/adminService';
 import {
   pipelineDocumentsQueryKey,
 } from './pipelineDocumentsCache';
@@ -23,6 +23,17 @@ function pipelineStageProcessing() {
 
 export function isConnectorPendingDocumentId(id: unknown): boolean {
   return String(id || '').startsWith(CONNECTOR_PENDING_ID_PREFIX);
+}
+
+export function parseConnectorPendingDocumentId(
+  id: unknown
+): { connectorId: string; fileName: string } | null {
+  const raw = String(id || '');
+  if (!isConnectorPendingDocumentId(raw)) return null;
+  const rest = raw.slice(CONNECTOR_PENDING_ID_PREFIX.length);
+  const sep = rest.indexOf('::');
+  if (sep < 0) return null;
+  return { connectorId: rest.slice(0, sep), fileName: rest.slice(sep + 2) };
 }
 
 export function resolveSelectedIngestFileNames(
@@ -104,11 +115,55 @@ export function optimisticAppendConnectorDocuments(
   });
 }
 
-export function clearOptimisticConnectorDocuments(queryClient: QueryClient, orgId?: string | null) {
+export function clearOptimisticConnectorDocuments(
+  queryClient: QueryClient,
+  orgId?: string | null,
+  fileNames?: string[]
+) {
   const key = pipelineDocumentsQueryKey(orgId, 'all');
   const prev = queryClient.getQueryData<Record<string, unknown>[]>(key);
   if (!prev?.length) return;
-  queryClient.setQueryData(key, prev.filter((d) => !isConnectorPendingDocumentId(d.id)));
+  const nameSet = fileNames?.length ? new Set(fileNames.map(String)) : null;
+  queryClient.setQueryData(key, prev.filter((d) => {
+    if (!isConnectorPendingDocumentId(d.id)) return true;
+    if (!nameSet) return false;
+    return !nameSet.has(String(d.fileName));
+  }));
+}
+
+export function failOptimisticConnectorDocuments(
+  queryClient: QueryClient,
+  fileNames: string[],
+  orgId?: string | null,
+  groupId?: string | null,
+  errorMessage = 'Connector ingest failed'
+) {
+  if (!fileNames.length) return;
+  const nameSet = new Set(fileNames.map(String));
+  const now = new Date().toISOString();
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
+  let changed = false;
+  const next = prev.map((d) => {
+    if (!isConnectorPendingDocumentId(d.id)) return d;
+    if (!nameSet.has(String(d.fileName))) return d;
+    changed = true;
+    const pipeline = mergePipeline(d.pipeline);
+    return normalizePipelineDocument({
+      ...d,
+      groupId: groupId || d.groupId || '',
+      pipeline: {
+        ...pipeline,
+        ingestion: {
+          status: 'error',
+          startTime: pipeline.ingestion.startTime || now,
+          endTime: now,
+          errorMessage,
+        },
+      },
+    });
+  });
+  if (changed) queryClient.setQueryData(key, next);
 }
 
 export function replaceOptimisticConnectorDocuments(
@@ -117,8 +172,12 @@ export function replaceOptimisticConnectorDocuments(
   orgId?: string | null,
   groupId?: string | null
 ) {
-  clearOptimisticConnectorDocuments(queryClient, orgId);
   if (!created.length) return;
+  clearOptimisticConnectorDocuments(
+    queryClient,
+    orgId,
+    created.map((row) => row.fileName)
+  );
 
   const now = new Date().toISOString();
   const key = pipelineDocumentsQueryKey(orgId, 'all');
@@ -168,4 +227,15 @@ export function ensureConnectorDocumentsInCache(
 
 export function hasConnectorPendingDocuments(docs: Record<string, unknown>[] | undefined): boolean {
   return Boolean(docs?.some((d) => isConnectorPendingDocumentId(d.id)));
+}
+
+export function listPendingConnectorFileNames(
+  queryClient: QueryClient,
+  orgId?: string | null
+): string[] {
+  const key = pipelineDocumentsQueryKey(orgId, 'all');
+  const prev = queryClient.getQueryData<Record<string, unknown>[]>(key) ?? [];
+  return prev
+    .filter((d) => isConnectorPendingDocumentId(d.id))
+    .map((d) => String(d.fileName));
 }

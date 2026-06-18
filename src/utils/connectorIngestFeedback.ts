@@ -1,18 +1,24 @@
 import type { QueryClient } from '@tanstack/react-query';
 import {
-  clearOptimisticConnectorDocuments,
   ensureConnectorDocumentsInCache,
+  failOptimisticConnectorDocuments,
   replaceOptimisticConnectorDocuments,
   type ConnectorIngestCreatedRow,
 } from './connectorIngestOptimistic';
 import { refreshPipelineDocuments } from './pipelineDocumentsCache';
+
+export type ConnectorIngestRefreshOptions = {
+  failedFileNames?: string[];
+  errorMessage?: string;
+};
 
 /** Refresh vault list after connector ingest so Documents → Connectors updates immediately. */
 export async function refreshDocumentsAfterConnectorIngest(
   queryClient: QueryClient,
   orgId?: string | null,
   created?: ConnectorIngestCreatedRow[],
-  groupId?: string | null
+  groupId?: string | null,
+  options?: ConnectorIngestRefreshOptions
 ) {
   const snapshot = created?.length ? [...created] : [];
 
@@ -24,7 +30,15 @@ export async function refreshDocumentsAfterConnectorIngest(
 
   if (snapshot.length) {
     ensureConnectorDocumentsInCache(queryClient, snapshot, orgId, groupId);
-  } else {
-    clearOptimisticConnectorDocuments(queryClient, orgId);
+  }
+
+  if (options?.failedFileNames?.length) {
+    failOptimisticConnectorDocuments(
+      queryClient,
+      options.failedFileNames,
+      orgId,
+      groupId,
+      options.errorMessage
+    );
   }
 }

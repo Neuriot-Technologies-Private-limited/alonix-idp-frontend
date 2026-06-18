@@ -7,7 +7,6 @@ import {
   ArrowUpRight, CheckCircle2, AlertTriangle, Loader2,
   TrendingUp, Calendar, Sparkles, BarChart3, X,
 } from 'lucide-react';
-import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { fmtBytes, productPlanDescription, stripePriceIdForCycle, type BillingCycle } from '../../utils/billingUtils';
@@ -16,6 +15,7 @@ import {
   fetchBillingConfig,
   fetchBillingSubscription,
   confirmBillingCheckout,
+  createBillingCheckoutSession,
   getNextUpgradePlan,
   planQuotaPills,
   type BillingPlan,
@@ -198,14 +198,10 @@ const SubscriptionPanel: React.FC = () => {
   });
 
   const checkoutMut = useMutation({
-    mutationFn: async (vars: { planName: string; billingCycle?: BillingCycle }) => {
+    mutationFn: (vars: { planName: string; billingCycle?: BillingCycle }) => {
       const { planName, billingCycle = 'monthly' } = vars;
       setUpgrading(planName);
-      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', {
-        planName,
-        billingCycle,
-      });
-      return data;
+      return createBillingCheckoutSession({ planName, billingCycle });
     },
     onSuccess: ({ url }) => {
       window.location.href = url;

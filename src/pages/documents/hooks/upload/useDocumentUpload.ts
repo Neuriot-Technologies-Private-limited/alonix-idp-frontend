@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../../../services/api/client';
-import { useGroupHealth } from '../../../../services/adminService';
+import { useGroupHealth, adminService } from '../../../../services/adminService';
 import { billingSubscriptionQueryKey } from '../../../../hooks/useOrgQuota';
 import {
   DOCUMENT_SENSITIVITY_HINTS,
@@ -59,14 +58,7 @@ export function useDocumentUpload(opts: {
   const { data: uploadGroupEnabledLevels = null } = useQuery({
     queryKey: ['group-sensitivity-policy', uploadTargetGroupId],
     enabled: Boolean(uploadTargetGroupId),
-    queryFn: async () => {
-      const { data } = await apiClient.get<{ enabledDocumentSensitivityLevels?: string[] | null }>(
-        `/groups/${encodeURIComponent(uploadTargetGroupId)}`
-      );
-      return Array.isArray(data.enabledDocumentSensitivityLevels)
-        ? data.enabledDocumentSensitivityLevels
-        : null;
-    },
+    queryFn: () => adminService.getGroupSensitivityPolicy(uploadTargetGroupId),
     staleTime: 60_000,
   });
 

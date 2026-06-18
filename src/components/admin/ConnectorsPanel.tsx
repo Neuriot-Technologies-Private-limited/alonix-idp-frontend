@@ -6,23 +6,23 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../services/api/client';
+import {
+  createOrgConnector,
+  deleteOrgConnector,
+  fetchConnectorDeletionImpact,
+  listOrgConnectors,
+  updateConnector,
+  type OrgConnector,
+} from '../../services/connectorBrowserApi';
+import { ConnectorDeletionImpactBody } from './ConnectorDeletionImpactBody';
 import { useAuthStore } from '../../stores/authStore';
-import { cn } from '../../utils/cn';
-import { updateConnector } from '../../services/connectorBrowserApi';
 import { quotaErrorMessage } from '../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
 import { useAlert } from '../alert';
+import { cn } from '../../utils/cn';
+import type { AxiosError } from 'axios';
 
-interface Connector {
-  _id: string;
-  name: string;
-  type: 'EMAIL' | 'BOX' | 'API' | 'SHAREPOINT' | 'SFTP';
-  status: 'ACTIVE' | 'PAUSED' | 'ERROR';
-  ingestHistoric: boolean;
-  lastHistoricSyncAt?: string | null;
-  config: Record<string, unknown>;
-}
+type Connector = OrgConnector;
 
 type ConnectorType = 'EMAIL' | 'SHAREPOINT' | 'SFTP';
 
@@ -41,15 +41,130 @@ export const ConnectorsPanel: React.FC = () => {
   const connectorBlocked = blocksUsage || atCap('connectors');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { alert: appAlert } = useAlert();
+  const { alert: appAlert, confirm: appConfirm } = useAlert();
+
+  const invalidateConnectorState = () => {
+    queryClient.invalidateQueries({ queryKey: ['connectors', orgId] });
+    void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
+  };
 
   // ── Modal state ──────────────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalSessionKey, setModalSessionKey] = useState(0);
   const [newType, setNewType] = useState<ConnectorType>('EMAIL');
   const [emailProvider, setEmailProvider] = useState<EmailProvider>('gmail');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sftpAuthType, setSftpAuthType] = useState<'password' | 'privateKey'>('password');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // ── Data ──────────────────────────────────────────────────────────────────
+  const { data: connectors = [], isLoading } = useQuery<Connector[]>({
+    queryKey: ['connectors', orgId],
+    queryFn: () => listOrgConnectors(orgId || undefined),
+    enabled: !!orgId,
+  });
+
+  // ── Mutations ─────────────────────────────────────────────────────────────
+  const createMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof createOrgConnector>[0]) =>
+      createOrgConnector(payload, orgId || undefined),
+    onSuccess: () => {
+      invalidateConnectorState();
+      setModalSessionKey((key) => key + 1);
+      setIsModalOpen(false);
+      appAlert({
+        variant: 'success',
+        title: 'Connector created',
+        description: 'You can now attach group mailboxes or browse files from Documents.',
+      });
+    },
+    onError: (err: unknown) => {
+      appAlert({
+        variant: 'danger',
+        title: 'Could not create connector',
+        description: quotaErrorMessage(err, 'Connector creation failed.'),
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteOrgConnector(id, orgId || undefined),
+    onSuccess: () => {
+      invalidateConnectorState();
+      setDeletingId(null);
+      appAlert({
+        variant: 'success',
+        title: 'Connector removed',
+        description: 'Connector quota has been freed. You can add a new one anytime.',
+      });
+    },
+    onError: (err: unknown) => {
+      setDeletingId(null);
+      const ax = err as AxiosError<{ error?: string; blockedReason?: string; code?: string }>;
+      const blocked = ax.response?.status === 409 || ax.response?.data?.code === 'CONNECTOR_IN_USE';
+      appAlert({
+        variant: blocked ? 'warning' : 'danger',
+        title: blocked ? 'Connector is still in use' : 'Could not remove connector',
+        description: blocked
+          ? ax.response?.data?.blockedReason ||
+            ax.response?.data?.error ||
+            'Disconnect workspace mailboxes and remove connector documents first.'
+          : quotaErrorMessage(err, 'Connector deletion failed.'),
+      });
+    },
+  });
+
+  const handleDeleteConnector = async (connector: Connector) => {
+    setDeletingId(connector._id);
+    try {
+      const impact = await fetchConnectorDeletionImpact(connector._id, orgId || undefined);
+
+      if (!impact.canDelete) {
+        await appAlert({
+          variant: 'warning',
+          title: 'Cannot remove connector yet',
+          description: (
+            <ConnectorDeletionImpactBody
+              impact={impact}
+              onOpenDocuments={() =>
+                navigate(
+                  `/documents?connectors=1&connectorId=${encodeURIComponent(connector._id)}`
+                )
+              }
+            />
+          ),
+          confirmLabel: 'Understood',
+        });
+        setDeletingId(null);
+        return;
+      }
+
+      const ok = await appConfirm({
+        variant: 'danger',
+        title: 'Remove connector?',
+        description: (
+          <>
+            <span className="font-semibold text-foreground">{connector.name}</span> has no linked
+            mailboxes or ingested documents. Removing it frees one connector slot on your plan.
+          </>
+        ),
+        confirmLabel: 'Remove connector',
+        cancelLabel: 'Keep',
+      });
+      if (!ok) {
+        setDeletingId(null);
+        return;
+      }
+      deleteMutation.mutate(connector._id);
+    } catch (err: unknown) {
+      setDeletingId(null);
+      appAlert({
+        variant: 'danger',
+        title: 'Could not check connector usage',
+        description: quotaErrorMessage(err, 'Failed to verify whether this connector can be removed.'),
+      });
+    }
+  };
 
   const openModal = () => {
     if (connectorBlocked) {
@@ -62,58 +177,17 @@ export const ConnectorsPanel: React.FC = () => {
     }
     setNewType('EMAIL');
     setEmailProvider('gmail');
+    createMutation.reset();
+    setModalSessionKey((key) => key + 1);
     setIsModalOpen(true);
   };
-
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const { data: connectors = [], isLoading } = useQuery<Connector[]>({
-    queryKey: ['connectors', orgId],
-    queryFn: async () => {
-      const { data } = await apiClient.get<Connector[]>(`/admin/orgs/${orgId}/connectors`);
-      return data;
-    },
-    enabled: !!orgId,
-  });
-
-  // ── Mutations ─────────────────────────────────────────────────────────────
-  const createMutation = useMutation({
-    mutationFn: async (payload: unknown) => {
-      const { data } = await apiClient.post(`/admin/orgs/${orgId}/connectors`, payload);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connectors', orgId] });
-      void queryClient.invalidateQueries({ queryKey: billingSubscriptionQueryKey(orgId) });
-      setIsModalOpen(false);
-    },
-    onError: (err: unknown) => {
-      appAlert({
-        variant: 'danger',
-        title: 'Could not create connector',
-        description: quotaErrorMessage(err, 'Connector creation failed.'),
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/admin/orgs/${orgId}/connectors/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connectors', orgId] });
-      setDeletingId(null);
-    },
-    onError: () => {
-      setDeletingId(null);
-    },
-  });
 
   const toggleAutoIngest = async (connector: Connector) => {
     const newVal = connector.config?.autoIngest === false ? true : false;
     setTogglingId(connector._id);
     try {
       await updateConnector(connector._id, { autoIngest: newVal });
-      queryClient.invalidateQueries({ queryKey: ['connectors', orgId] });
+      invalidateConnectorState();
     } finally {
       setTogglingId(null);
     }
@@ -225,6 +299,16 @@ export const ConnectorsPanel: React.FC = () => {
             <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
               Your pipeline currently relies only on manual web uploads.
             </p>
+            <button
+              type="button"
+              onClick={openModal}
+              disabled={connectorBlocked}
+              title={connectorBlocked ? capMessage('connectors') : undefined}
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/20 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add your first connector
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -316,9 +400,10 @@ export const ConnectorsPanel: React.FC = () => {
                   </button>
                   <button
                     id={`delete-connector-${c._id}`}
-                    onClick={() => { setDeletingId(c._id); deleteMutation.mutate(c._id); }}
+                    onClick={() => void handleDeleteConnector(c)}
                     disabled={deletingId === c._id}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-30"
+                    title="Remove connector"
+                    className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-30"
                   >
                     {deletingId === c._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                   </button>
@@ -338,14 +423,17 @@ export const ConnectorsPanel: React.FC = () => {
               <button
                 id="close-connector-modal"
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  createMutation.reset();
+                  setIsModalOpen(false);
+                }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 ×
               </button>
             </h3>
 
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form key={modalSessionKey} onSubmit={onSubmit} className="space-y-4">
               {/* Connector type toggle */}
               <div>
                 <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">

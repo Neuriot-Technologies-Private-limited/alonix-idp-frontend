@@ -17,6 +17,10 @@ import {
 } from '../../../../utils/pipelineDocumentsCache';
 import { refreshDocumentsAfterConnectorIngest } from '../../../../utils/connectorIngestFeedback';
 import type { ConnectorIngestCreatedRow } from '../../../../utils/connectorIngestOptimistic';
+import {
+  isConnectorPendingDocumentId,
+  parseConnectorPendingDocumentId,
+} from '../../../../utils/connectorIngestOptimistic';
 import { useAlert } from '../../../../components/alert';
 import type { DocumentRow } from '../../types/documentRow';
 
@@ -48,6 +52,17 @@ export function useDocumentPipeline(
   const runPipeline = async (docId: string, action: PipelineAction) => {
     const docRow = documents?.find((d: DocumentRow) => d.id === docId);
     if (docRow && !docCanManage(docRow)) return;
+    if (action === 'ingest' && isConnectorPendingDocumentId(docId)) {
+      const parsed = parseConnectorPendingDocumentId(docId);
+      await appAlert({
+        title: 'Re-ingest from connector',
+        description: parsed
+          ? `“${parsed.fileName}” was not saved to the vault yet. Open Connectors, find the email, and ingest the attachment again.`
+          : 'This connector file must be re-ingested from Connectors.',
+        variant: 'warning',
+      });
+      return;
+    }
     const gid = docRow?.groupId ? String(docRow.groupId) : undefined;
     const collectionName = (docRow?.group && String(docRow.group)) || gid || docId;
     const k = bustKey(docId, action);
@@ -97,6 +112,7 @@ export function useDocumentPipeline(
       for (const id of selectedIds) {
         const docItem = documents?.find((d: DocumentRow) => d.id === id);
         if (!docItem?.pipeline || !docCanManage(docItem)) continue;
+        if (action === 'ingest' && isConnectorPendingDocumentId(id)) continue;
         const p = docItem.pipeline;
         if (action === 'ingest' && (p.ingestion.status === 'processing' || p.ingestion.status === 'done'))
           continue;

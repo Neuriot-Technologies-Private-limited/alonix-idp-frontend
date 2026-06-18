@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { membershipForGroup } from '../../../../core/rbac/capabilities';
 import { mergePipeline } from '../../../../services/adminService';
-import apiClient from '../../../../services/api/client';
+import { listOrgConnectors, type OrgConnector } from '../../../../services/connectorBrowserApi';
 import { resolveCustodianDisplay } from '../../../../utils/custodianDisplay';
 import {
   buildConnectorBreakdown,
@@ -10,6 +10,7 @@ import {
   resolveConnectorSourceType,
   type ConnectorListItem,
 } from '../../../../utils/connectorDocumentSource';
+import { isConnectorPendingDocumentId } from '../../../../utils/connectorIngestOptimistic';
 import { useUsers } from '../../../../services/userService';
 import { useRbac } from '../../../../hooks/useRbac';
 import { useAuthStore } from '../../../../stores/authStore';
@@ -146,20 +147,15 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     if (!hasBulkActions) setSelectedIds(new Set());
   }, [hasBulkActions]);
 
-  const { data: connectors = [] } = useQuery<ConnectorListItem[]>({
+  const { data: connectors = [] } = useQuery<OrgConnector[]>({
     queryKey: ['connectors', orgId],
-    queryFn: async () => {
-      const { data } = await apiClient.get<ConnectorListItem[]>(
-        `/admin/orgs/${encodeURIComponent(String(orgId))}/connectors`
-      );
-      return data;
-    },
+    queryFn: () => listOrgConnectors(orgId || undefined),
     enabled: Boolean(orgId),
     staleTime: 60_000,
   });
 
   const connectorById = React.useMemo(
-    () => new Map(connectors.map((c) => [String(c._id), c])),
+    () => new Map(connectors.map((c) => [String(c._id), c as ConnectorListItem])),
     [connectors]
   );
 
@@ -236,6 +232,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   );
 
   const bulkIngestCount = selectedDocs.filter((d: DocumentRow) => {
+    if (isConnectorPendingDocumentId(d.id)) return false;
     const p = mergePipeline(d.pipeline);
     return p.ingestion.status !== 'processing' && p.ingestion.status !== 'done';
   }).length;

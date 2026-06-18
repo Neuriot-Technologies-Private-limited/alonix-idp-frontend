@@ -22,7 +22,8 @@ import { useAuthStore } from '../../../stores/authStore';
 import { triggerIngest } from '../../../services/chatApi';
 import { refreshDocumentsAfterConnectorIngest } from '../../../utils/connectorIngestFeedback';
 import {
-  clearOptimisticConnectorDocuments,
+  failOptimisticConnectorDocuments,
+  listPendingConnectorFileNames,
   optimisticAppendConnectorDocuments,
   resolveSelectedIngestFileNames,
 } from '../../../utils/connectorIngestOptimistic';
@@ -204,10 +205,13 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     if (!isPollingIngest) return;
     const safetyStop = window.setTimeout(() => {
       setIsPollingIngest(false);
-      void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId, undefined, activeGroupId, {
+        failedFileNames: listPendingConnectorFileNames(queryClient, orgId),
+        errorMessage: 'Connector ingest timed out',
+      });
     }, 90_000);
     return () => window.clearTimeout(safetyStop);
-  }, [isPollingIngest, queryClient, orgId]);
+  }, [activeGroupId, isPollingIngest, queryClient, orgId]);
 
   useEffect(() => {
     if (!isPollingIngest || !ingestFeedback || !emailDetail) return;
@@ -215,8 +219,18 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     const hasIngested = emailDetail.ingestion.items.some((item) => item.status === 'ingested');
     if (ingestFeedback.mode === 'queued' && !hasIngested) return;
     setIsPollingIngest(false);
-    void refreshDocumentsAfterConnectorIngest(queryClient, orgId);
+    const failedNames = emailDetail.ingestion.items
+      .filter((item) => item.status === 'failed' || item.status === 'not_ingested')
+      .map((item) => item.fileName);
+    const failedError =
+      emailDetail.ingestion.items.find((item) => item.errorMessage)?.errorMessage ||
+      'Connector ingest failed';
+    void refreshDocumentsAfterConnectorIngest(queryClient, orgId, undefined, activeGroupId, {
+      failedFileNames: failedNames,
+      errorMessage: failedError,
+    });
   }, [
+    activeGroupId,
     emailDetail,
     hasPendingIngestion,
     ingestFeedback,
@@ -267,7 +281,11 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   const retryFailedMutation = useMutation({
     mutationFn: async () => {
       for (const item of failedIngestionItems) {
-        await triggerIngest(item.documentId!, { collectionName: item.fileName }, null);
+        await triggerIngest(
+          item.documentId!,
+          { collectionName: item.fileName },
+          activeGroupId
+        );
       }
     },
     onSuccess: async () => {
@@ -293,7 +311,12 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
   }, [emailDetail]);
 
   const handleIngestSuccess = useCallback(
-    (result: EmailIngestResult, selectedForIngest: number, ingestAll: boolean) => {
+    (
+      result: EmailIngestResult,
+      selectedForIngest: number,
+      ingestAll: boolean,
+      selectedFileNames: string[]
+    ) => {
       setIngestError('');
       const queued = result.status === 'queued';
       const processed = result.processed ?? 0;
@@ -317,7 +340,16 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
         connectorType: 'EMAIL',
         existing: doc.existing,
       }));
-      void refreshDocumentsAfterConnectorIngest(queryClient, orgId, created, activeGroupId);
+      const createdNames = new Set(created.map((doc) => doc.fileName));
+      const failedNames = queued ? [] : selectedFileNames.filter((name) => !createdNames.has(name));
+      const failedError =
+        result.skippedDetails?.find((detail) => detail.error)?.error ||
+        result.error ||
+        'Connector ingest failed';
+      void refreshDocumentsAfterConnectorIngest(queryClient, orgId, created, activeGroupId, {
+        failedFileNames: failedNames,
+        errorMessage: failedError,
+      });
 
       if (created.length > 0 || processed > 0) {
         onViewIngestedDocuments?.(connectorId);
@@ -379,12 +411,14 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
       );
       return { fileNames };
     },
-    onSuccess: ({ result, selectedForIngest, ingestAll }) => {
-      handleIngestSuccess(result, selectedForIngest, ingestAll);
+    onSuccess: ({ result, selectedForIngest, ingestAll }, _payload, context) => {
+      handleIngestSuccess(result, selectedForIngest, ingestAll, context?.fileNames ?? []);
     },
-    onError: (err: unknown) => {
-      clearOptimisticConnectorDocuments(queryClient, orgId);
-      setIngestError(quotaErrorMessage(err, 'Failed to ingest attachments.'));
+    onError: (err: unknown, _payload, context) => {
+      const fileNames = context?.fileNames ?? [];
+      const message = quotaErrorMessage(err, 'Failed to ingest attachments.');
+      failOptimisticConnectorDocuments(queryClient, fileNames, orgId, activeGroupId, message);
+      setIngestError(message);
     },
   });
 

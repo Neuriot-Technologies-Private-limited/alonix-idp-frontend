@@ -6,7 +6,6 @@ import {
   CheckCircle2, AlertTriangle, ArrowUpRight, Loader2, Crown,
   BarChart3, Calendar, ArrowLeft,
 } from 'lucide-react';
-import apiClient from '../../services/api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +15,7 @@ import {
   fetchBillingPlans,
   fetchBillingConfig,
   fetchBillingSubscription,
+  createBillingCheckoutSession,
   getNextUpgradePlan,
   planQuotaPills,
   upgradePitch,
@@ -152,14 +152,8 @@ export const BillingPage: React.FC = () => {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async (vars: { planName: string; billingCycle?: BillingCycle }) => {
-      const { planName, billingCycle = 'monthly' } = vars;
-      const { data } = await apiClient.post<{ url: string }>('/billing/checkout-session', {
-        planName,
-        billingCycle,
-      });
-      return data;
-    },
+    mutationFn: (vars: { planName: string; billingCycle?: BillingCycle }) =>
+      createBillingCheckoutSession(vars),
     onSuccess: ({ url }) => {
       window.location.href = url;
     },
