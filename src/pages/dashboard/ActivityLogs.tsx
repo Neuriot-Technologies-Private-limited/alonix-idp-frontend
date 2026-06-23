@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Download, Search, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, Search, Loader2 } from 'lucide-react';
 import { ActivityFeed } from '../../components/admin/ActivityFeed';
 import { useRbac } from '../../hooks/useRbac';
 import {
@@ -9,7 +9,7 @@ import {
   useAuditLogs,
   type AuditLogsQuery,
 } from '../../services/adminService';
-import { useAlert } from '../../components/alert';
+import { ReportExportMenu } from '../../components/reports/ReportExportMenu';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 
@@ -36,7 +36,6 @@ export const ActivityLogs: React.FC = () => {
   const navState = (location.state as ActivityNavState | null) || {};
   const { orgRole, activeGroupRole } = useRbac();
   const role = (orgRole || activeGroupRole || undefined) as string;
-  const { alert: appAlert } = useAlert();
   const { t } = useTranslation('dashboard');
 
   const handleBack = () => {
@@ -56,7 +55,6 @@ export const ActivityLogs: React.FC = () => {
   const [preset, setPreset] = React.useState<DatePreset>('30d');
   const [actorEmail, setActorEmail] = React.useState('');
   const [searchText, setSearchText] = React.useState('');
-  const [exporting, setExporting] = React.useState(false);
   const usersFilterRef = React.useRef<HTMLElement>(null);
 
   React.useLayoutEffect(() => {
@@ -93,7 +91,10 @@ export const ActivityLogs: React.FC = () => {
       (l) =>
         l.user.toLowerCase().includes(q) ||
         l.action.toLowerCase().includes(q) ||
-        (l.target || '').toLowerCase().includes(q)
+        (l.actionLabel || '').toLowerCase().includes(q) ||
+        (l.target || '').toLowerCase().includes(q) ||
+        (l.targetName || '').toLowerCase().includes(q) ||
+        (l.groupName || '').toLowerCase().includes(q)
     );
   }, [logs, searchText]);
 
@@ -116,27 +117,6 @@ export const ActivityLogs: React.FC = () => {
     setActorEmail((prev) => (prev === email ? '' : email));
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const blob = await adminService.exportActivityCsv(auditQuery);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `activity-export-${Date.now()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e: unknown) {
-      const err = e as { message?: string };
-      await appAlert({
-        variant: 'danger',
-        title: 'Export failed',
-        description: err.message || 'Could not export activity log.',
-      });
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div className="w-full max-w-6xl mx-auto pb-16 animate-in fade-in duration-500 space-y-6">
@@ -153,11 +133,13 @@ export const ActivityLogs: React.FC = () => {
 
       <section
         className={cn(
-          'relative overflow-hidden rounded-3xl border border-border/20 dark:border-border/10 p-6 sm:p-8 shadow-2xl shadow-black/20',
+          'relative overflow-visible rounded-3xl border border-border/20 dark:border-border/10 p-6 sm:p-8 shadow-2xl shadow-black/20',
           'bg-gradient-to-br from-primary/15 via-surface-highest/20 to-background'
         )}
       >
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl" aria-hidden>
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+        </div>
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
@@ -192,15 +174,11 @@ export const ActivityLogs: React.FC = () => {
               placeholder={t('page.filterByUserPlaceholder')}
               className="w-full sm:w-48 rounded-xl border border-border/10 bg-background/80 py-2.5 px-3 text-sm"
             />
-            <button
-              type="button"
-              onClick={() => void handleExport()}
-              disabled={exporting}
-              className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/15 disabled:opacity-50"
-            >
-              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Export
-            </button>
+            <ReportExportMenu
+              from={range.from}
+              to={range.to}
+              actorEmail={actorEmail || undefined}
+            />
           </div>
         </div>
       </section>

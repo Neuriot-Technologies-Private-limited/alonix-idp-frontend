@@ -20,6 +20,7 @@ import { Dashboard } from './pages/dashboard/Dashboard';
 import { GroupManagement } from './pages/groups/GroupManagement';
 import { UserManagement } from './pages/users/UserManagement';
 import { ActivityLogs } from './pages/dashboard/ActivityLogs';
+import { ReportsPage } from './pages/reports/ReportsPage';
 import { GroupDetails } from './pages/groups/GroupDetails';
 
 import { DocumentsPage } from './pages/documents/DocumentsPage';
@@ -184,6 +185,7 @@ function App() {
                 <Route element={<RoleProtectedRoute requiredOrgRole="COMPANY_ADMIN" />}>
                   <Route path="/org-settings" element={<OrgSettingsPage />} />
                   <Route path="/activity" element={<ActivityLogs />} />
+                  <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/settings/billing" element={<BillingSettingsRoute />} />
                 </Route>
 

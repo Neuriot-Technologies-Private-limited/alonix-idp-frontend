@@ -86,8 +86,8 @@ export const ActivityFeed: React.FC<{
                   <p className="text-[13px] leading-relaxed text-muted-foreground dark:text-foreground/80">
                     <span className="font-bold text-foreground">{log.user}</span>{' '}
                     <span className="text-muted-foreground">{
-                      // Format the action text (e.g. CHAT_QUESTION_ASKED -> asked a question in)
                       (() => {
+                        if (log.actionLabel) return log.actionLabel.toLowerCase();
                         const actionMap: Record<string, string> = {
                           'CHAT_QUESTION_ASKED': 'asked a question in',
                           'GROUP_MEMBER_ROLE_UPDATED': 'updated the role of',
@@ -106,11 +106,10 @@ export const ActivityFeed: React.FC<{
                       })()
                     }</span>{' '}
                     <span className="font-semibold text-foreground">{
-                      // Format the target text (e.g. CHAT_SESSION:uuid -> chat session (uuid))
                       (() => {
-                        if (!log.target) return '';
-                        
-                        // Use metadata for cleaner labels
+                        const resolvedTarget = log.targetName || log.target;
+                        if (!resolvedTarget) return '';
+
                         if (log.metadata) {
                           const meta = log.metadata;
                           const query = typeof meta.query === 'string' ? meta.query : '';
@@ -152,14 +151,20 @@ export const ActivityFeed: React.FC<{
                           }
                         }
 
-                        if (log.target.includes(':')) {
-                          const [type, id] = log.target.split(':');
+                        if (resolvedTarget.includes(':') && /^[A-Z_]+:/.test(resolvedTarget)) {
+                          const [type, id] = resolvedTarget.split(':');
                           const readableType = type.toLowerCase().replace(/_/g, ' ');
                           return `${readableType} (${id.slice(0, 8)}...)`;
                         }
-                        return log.target;
+                        return resolvedTarget;
                       })()
                     }</span>
+                    {log.groupName ? (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        in <span className="font-semibold text-foreground">{log.groupName}</span>
+                      </span>
+                    ) : null}
                   </p>
                   <div className="mt-2.5 flex items-center gap-2">
                     <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 dark:text-muted-foreground/40 font-display">

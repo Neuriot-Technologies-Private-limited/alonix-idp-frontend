@@ -8,6 +8,7 @@ import {
   Zap,
   ArrowUpRight,
   Activity,
+  BarChart3,
 } from 'lucide-react';
 import { useDashboardState, type GroupHealth } from '../../services/adminService';
 import { cn } from '../../utils/cn';
@@ -174,8 +175,11 @@ export const Dashboard: React.FC = () => {
             isCompanyAdmin
               ? (stats?.ingestionTendency ?? {
                   value: ingestionValue > 0 ? 'Live' : 'Idle',
-                  label: ingestionValue > 0 ? 'Processing' : 'No active jobs',
-                  isPositive: ingestionValue > 0,
+                  label:
+                    stats?.pipeline && stats.pipeline.successRatePercent < 80
+                      ? `⚠ ${stats.pipeline.successRatePercent}% success`
+                      : ingestionValue > 0 ? 'Processing' : 'No active jobs',
+                  isPositive: !(stats?.pipeline && stats.pipeline.successRatePercent < 80) && ingestionValue > 0,
                 })
               : {
                   value: 'Live',
@@ -380,6 +384,7 @@ export const Dashboard: React.FC = () => {
               ...(hasAnyGroupAdmin ? [{ label: 'Invite User', path: '/users', icon: Users }] : []),
               { label: 'View Groups', path: '/groups', icon: Database },
               { label: 'Browse Documents', path: '/documents', icon: FileText },
+              ...(isCompanyAdmin ? [{ label: 'View Analytics', path: '/reports', icon: BarChart3 }] : []),
             ].map(({ label, path, icon: Icon }) => (
               <button
                 key={label}

@@ -29,6 +29,7 @@ import enBilling from './locales/en/billing.json';
 import enUsers from './locales/en/users.json';
 import enDocuments from './locales/en/documents.json';
 import enGroups from './locales/en/groups.json';
+import enReports from './locales/en/reports.json';
 
 i18n
   .use(LanguageDetector)
@@ -47,11 +48,11 @@ i18n
         users: enUsers,
         documents: enDocuments,
         groups: enGroups,
+        reports: enReports,
       },
     },
-    // Default namespace — used when no namespace prefix given to t()
     defaultNS: 'common',
-    ns: ['common', 'landing', 'auth', 'dashboard', 'chat', 'profile', 'orgSettings', 'billing', 'users', 'documents', 'groups'],
+    ns: ['common', 'landing', 'auth', 'dashboard', 'chat', 'profile', 'orgSettings', 'billing', 'users', 'documents', 'groups', 'reports'],
     fallbackLng: 'en',
     supportedLngs: ['en'],
     interpolation: {

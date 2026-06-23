@@ -1,0 +1,72 @@
+{
+  "page": {
+    "badge": "Reports & Insights",
+    "title": "Reports & Analytics",
+    "subtitle": "Monitor usage, pipeline health, and workspace activity across your organization.",
+    "backToDashboard": "Back to Dashboard",
+    "viewReports": "View workspace reports",
+    "viewFullAuditLog": "View full audit log"
+  },
+  "dateRangePicker": {
+    "label": "Date range",
+    "presets": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "month": "This month"
+    }
+  },
+  "kpi": {
+    "documentUploads": "Documents Uploaded",
+    "storageAdded": "Storage Added",
+    "auditEvents": "Audit Events",
+    "activeUsers": "Active Users"
+  },
+  "pipeline": {
+    "heading": "Pipeline Metrics",
+    "totalDocs": "Total Documents",
+    "successRate": "Success Rate",
+    "failed": "Failed Docs",
+    "ingestDone": "Ingest Done",
+    "extractDone": "Extract Done",
+    "jobsProcessing": "Jobs Processing"
+  },
+  "quota": {
+    "heading": "Organization Quota Usage",
+    "documents": "Documents / month",
+    "questions": "Questions / month",
+    "storage": "Storage",
+    "users": "Users",
+    "connectors": "Connectors"
+  },
+  "charts": {
+    "loading": "Loading data…",
+    "emptyActivity": "No activity data for this period.",
+    "emptyPipeline": "No pipeline data available.",
+    "emptyUsers": "No user activity data for this period.",
+    "activitySeriesTitle": "Activity Over Time",
+    "pipelineTitle": "Pipeline Success vs Failed",
+    "topUsersTitle": "Most Active Users",
+    "auditEventsLabel": "Audit Events",
+    "documentUploadsLabel": "Document Uploads",
+    "successLabel": "Success",
+    "failedLabel": "Failed",
+    "eventCountLabel": "Events",
+    "pipelineStages": {
+      "ingest": "Ingest",
+      "extract": "Extract",
+      "classify": "Classify"
+    }
+  },
+  "export": {
+    "button": "Export",
+    "activitySection": "Activity log",
+    "metricsSection": "Metrics & compliance",
+    "csv": "CSV",
+    "pdf": "PDF",
+    "excel": "Excel",
+    "format": "Export format",
+    "errorTitle": "Export failed",
+    "errorDescription": "Could not generate the export file."
+  }
+}

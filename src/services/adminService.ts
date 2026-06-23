@@ -60,6 +60,15 @@ export interface AuditLogsResult {
   limit: number;
 }
 
+export interface SiemStatus {
+  enabled: boolean;
+  configured: boolean;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  eventsForwarded: number;
+  eventsFailed: number;
+}
+
 export interface ActivitySeriesPoint {
   period: string;
   auditEvents: number;
@@ -156,11 +165,15 @@ export interface AuditLog {
   id: string;
   user: string;
   actorEmail?: string;
+  actorName?: string;
   action: string;
+  actionLabel?: string;
   target: string;
+  targetName?: string;
   targetType?: string;
   targetId?: string;
   groupId?: string | null;
+  groupName?: string;
   timestamp: string;
   timestampDisplay?: string;
   type: 'invite' | 'ingestion' | 'creation' | 'warning' | 'info';
@@ -564,6 +577,11 @@ export const adminService = {
     }
   },
 
+  getSiemStatus: async (): Promise<SiemStatus> => {
+    const { data } = await apiClient.get<SiemStatus>('/health/siem');
+    return data;
+  },
+
   getOrgAiSettings: async (): Promise<OrgAiSettings> => {
     const orgId = requireOrgId();
     const { data } = await apiClient.get<{ settings: OrgAiSettings }>(
@@ -579,6 +597,51 @@ export const adminService = {
       input
     );
     return data.settings;
+  },
+
+  exportActivityPdf: async (query: AuditLogsQuery = {}): Promise<Blob> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<Blob>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/reports/activity.pdf`,
+      { params: query, responseType: 'blob' }
+    );
+    return data;
+  },
+
+  exportActivityExcel: async (query: AuditLogsQuery = {}): Promise<Blob> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<Blob>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/reports/activity.xlsx`,
+      { params: query, responseType: 'blob' }
+    );
+    return data;
+  },
+
+  exportMetricsCsv: async (query?: { from?: string; to?: string }): Promise<Blob> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<Blob>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/reports/metrics.csv`,
+      { params: query, responseType: 'blob' }
+    );
+    return data;
+  },
+
+  exportMetricsPdf: async (query?: { from?: string; to?: string }): Promise<Blob> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<Blob>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/reports/metrics.pdf`,
+      { params: query, responseType: 'blob' }
+    );
+    return data;
+  },
+
+  exportMetricsExcel: async (query?: { from?: string; to?: string }): Promise<Blob> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<Blob>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/reports/metrics.xlsx`,
+      { params: query, responseType: 'blob' }
+    );
+    return data;
   },
 
   getGroupSensitivityPolicy: async (groupId: string): Promise<string[] | null> => {
@@ -669,3 +732,76 @@ export const useGroupDetail = (id: string) => {
     enabled: !!id && !!orgId,
   });
 };
+
+export const useSiemStatus = () => {
+  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
+  return useQuery({
+    queryKey: ['siem-status'],
+    queryFn: adminService.getSiemStatus,
+    enabled: isCompanyAdmin,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+};
+
+export const useActivitySeries = (
+  query: { from?: string; to?: string; granularity?: 'day' | 'month'; groupId?: string },
+  opts?: { enabled?: boolean }
+) => {
+  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
+  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
+  return useQuery({
+    queryKey: ['activity-series', orgId, query],
+    queryFn: () => adminService.getActivitySeries(query),
+    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useUsageSummary = (
+  query?: { from?: string; to?: string },
+  opts?: { enabled?: boolean }
+) => {
+  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
+  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
+  return useQuery({
+    queryKey: ['usage-summary', orgId, query],
+    queryFn: () => adminService.getUsageSummaryReport(query),
+    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
+    staleTime: 60 * 1000,
+  });
+};
+
+export const usePipelineMetrics = (opts?: { enabled?: boolean }) => {
+  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
+  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
+  return useQuery({
+    queryKey: ['pipeline-metrics', orgId],
+    queryFn: adminService.getPipelineMetrics,
+    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useMetricsByUser = (
+  query?: { from?: string; to?: string; limit?: number },
+  opts?: { enabled?: boolean }
+) => {
+  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
+  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
+  return useQuery({
+    queryKey: ['metrics-by-user', orgId, query],
+    queryFn: () => adminService.getMetricsByUser(query),
+    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
+    staleTime: 60 * 1000,
+  });
+};
+
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

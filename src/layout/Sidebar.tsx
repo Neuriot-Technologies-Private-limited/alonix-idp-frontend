@@ -8,6 +8,8 @@ import {
   FolderTree,
   Building2,
   Bot,
+  Clock,
+  BarChart3,
 } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import { useRbac } from '../hooks/useRbac';
@@ -60,7 +62,7 @@ const Sidebar: React.FC = () => {
       label: 'Documents',
       path: '/documents',
       capability: 'GROUP_DOC_VIEW',
-      show: true // Everyone has access to /documents, launcher handles details
+      show: true,
     },
     {
       icon: Bot,
@@ -73,6 +75,21 @@ const Sidebar: React.FC = () => {
       (item) =>
         item.show !== false && (!item.capability || hasCapability(item.capability as string))
     );
+
+  const governanceItems: NavItem[] = [
+    {
+      icon: Clock,
+      label: 'Activity',
+      path: '/activity',
+      show: isCompanyAdmin,
+    },
+    {
+      icon: BarChart3,
+      label: 'Reports',
+      path: '/reports',
+      show: isCompanyAdmin,
+    },
+  ].filter((item) => item.show !== false);
 
   const renderNavItems = (items: NavItem[], sectionLabel?: string) => (
     <div className="space-y-1 mb-6">
@@ -183,6 +200,7 @@ const Sidebar: React.FC = () => {
         <div className="flex-1 px-4 overflow-y-auto overflow-x-hidden pt-2">
           {adminItems.length > 0 &&
             renderNavItems(adminItems, isCompanyAdmin || hasAnyGroupAdmin ? 'Administration' : 'Workspace')}
+          {governanceItems.length > 0 && renderNavItems(governanceItems, 'Governance')}
         </div>
 
       </aside>

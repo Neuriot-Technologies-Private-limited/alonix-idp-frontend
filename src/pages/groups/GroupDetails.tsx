@@ -15,6 +15,7 @@ import {
   Trash2,
   AlertCircle,
   Loader2,
+  BarChart3,
 } from 'lucide-react';
 import { useGroupDetail, useGroupHealth, adminService } from '../../services/adminService';
 import { useUsers, userService } from '../../services/userService';
@@ -392,7 +393,6 @@ export const GroupDetails: React.FC = () => {
               <div className="bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-5 rounded-xl space-y-3 shadow-sm shadow-black/5 dark:shadow-black/20">
                 <div className="flex justify-between items-start">
                   <div className="p-2 rounded-lg bg-info/10 text-info"><FileText className="w-4 h-4" /></div>
-                  <span className="text-[9px] font-black text-success bg-success/10 px-1.5 py-0.5 rounded-full">+12%</span>
                 </div>
                 <div>
                   <p className="text-2xl font-black">{group.docs}</p>
@@ -423,23 +423,24 @@ export const GroupDetails: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Chart Simulation */}
-              <div className="md:col-span-2 lg:col-span-3 bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-6 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground/40">Ingest Pulse</h3>
+              {isCompanyAdmin && (
+                <div className="md:col-span-2 lg:col-span-3 bg-gradient-to-br from-surface-highest/24 via-surface-highest/10 to-transparent border border-border/35 dark:border-border/50 p-6 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground/40">Workspace Analytics</h3>
+                    <p className="text-[10px] text-muted-foreground/50 font-medium">
+                      View detailed reports and analytics for this workspace.
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/reports?groupId=${group.id}`)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/15 transition-all"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    View workspace reports
+                  </button>
                 </div>
-                <div className="h-[100px] w-full flex items-end gap-1 px-1">
-                  {[40, 60, 35, 75, 45, 90, 55, 65, 30, 85, 95, 45, 60, 70, 50, 80, 40, 60, 30, 70].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-primary/20 hover:bg-primary transition-all rounded-t-sm"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           )}
 
