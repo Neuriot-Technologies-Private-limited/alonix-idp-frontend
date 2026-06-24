@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../../utils/cn';
 import type { ConversationPair, NormSource } from '../types/chatConversation';
 import { parseHtmlWithSources } from '../utils/chatSources';
+import { clarificationOptionLetter } from '../utils/clarificationOptionLetter';
 
 interface ChatMessagePairProps {
   pair: ConversationPair;
@@ -9,6 +10,66 @@ interface ChatMessagePairProps {
   answerLabel: string;
   clarificationLabel: string;
   onSourceClick: (e: React.MouseEvent, source: NormSource) => Promise<void>;
+  clarificationOptionsInteractive?: boolean;
+  onClarificationOptionSelect?: (option: string) => void;
+  onClarificationCustomInput?: () => void;
+  clarificationOptionsDisabled?: boolean;
+}
+
+function ClarificationOptionRow({
+  letter,
+  label,
+  description,
+  interactive,
+  disabled,
+  onClick,
+}: {
+  letter: string;
+  label: string;
+  description?: string;
+  interactive: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const clickable = interactive && !disabled;
+  return (
+    <button
+      type="button"
+      role="option"
+      disabled={!clickable}
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
+        clickable
+          ? 'cursor-pointer border-amber-500/35 bg-amber-500/5 hover:border-amber-500/55 hover:bg-amber-500/12'
+          : 'cursor-default border-border/40 bg-surface-highest/10'
+      )}
+    >
+      <span
+        className={cn(
+          'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold',
+          clickable
+            ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200'
+            : 'bg-surface-highest/20 text-muted-foreground'
+        )}
+      >
+        {letter}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            'block text-sm font-medium leading-snug',
+            clickable ? 'text-foreground' : 'text-muted-foreground'
+          )}
+        >
+          {label}
+        </span>
+        {description ? (
+          <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{description}</span>
+        ) : null}
+      </span>
+    </button>
+  );
 }
 
 export const ChatMessagePair: React.FC<ChatMessagePairProps> = ({
@@ -17,9 +78,15 @@ export const ChatMessagePair: React.FC<ChatMessagePairProps> = ({
   answerLabel,
   clarificationLabel,
   onSourceClick,
+  clarificationOptionsInteractive = false,
+  onClarificationOptionSelect,
+  onClarificationCustomInput,
+  clarificationOptionsDisabled = false,
 }) => {
   const { user: uq, ai } = pair;
   const isClarification = ai.responseKind === 'clarification';
+  const options = ai.clarificationOptions ?? [];
+  const showOptions = isClarification && options.length > 0;
   const html =
     ai.sourcesMap && Object.keys(ai.sourcesMap).length > 0 && ai.rawAnswer
       ? parseHtmlWithSources(ai.text, ai.sourcesMap)
@@ -81,6 +148,32 @@ export const ChatMessagePair: React.FC<ChatMessagePairProps> = ({
             pill.setAttribute('title-set', 'true');
           }}
         />
+        {showOptions && (
+          <div
+            className="mt-4 flex flex-col gap-2"
+            role="listbox"
+            aria-label="Clarification options"
+          >
+            {options.map((option, index) => (
+              <ClarificationOptionRow
+                key={option}
+                letter={clarificationOptionLetter(index)}
+                label={option}
+                interactive={clarificationOptionsInteractive}
+                disabled={clarificationOptionsDisabled}
+                onClick={() => onClarificationOptionSelect?.(option)}
+              />
+            ))}
+            <ClarificationOptionRow
+              letter={clarificationOptionLetter(options.length)}
+              label="Custom input"
+              description="Type your answer in the box below"
+              interactive={clarificationOptionsInteractive}
+              disabled={clarificationOptionsDisabled}
+              onClick={() => onClarificationCustomInput?.()}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

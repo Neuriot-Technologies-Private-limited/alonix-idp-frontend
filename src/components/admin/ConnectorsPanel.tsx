@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Mail, Box, Plus, Trash2, Webhook, Loader2,
   Clock, FolderOpen, CheckCircle2,
-  Server, Eye, ToggleLeft, ToggleRight, ChevronDown,
+  Server, Eye, ToggleLeft, ToggleRight, ChevronDown, Pencil, Link2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   createOrgConnector,
   deleteOrgConnector,
   fetchConnectorDeletionImpact,
+  fetchSharepointOAuthConfig,
+  getSharepointOAuthStartUrl,
   listOrgConnectors,
   updateConnector,
   type OrgConnector,
+  type UpdateOrgConnectorPayload,
 } from '../../services/connectorBrowserApi';
 import { ConnectorDeletionImpactBody } from './ConnectorDeletionImpactBody';
+import { SharePointOAuthSitePicker } from './SharePointOAuthSitePicker';
 import { useAuthStore } from '../../stores/authStore';
 import { quotaErrorMessage } from '../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
@@ -50,14 +54,43 @@ export const ConnectorsPanel: React.FC = () => {
 
   // ── Modal state ──────────────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingConnector, setEditingConnector] = useState<Connector | null>(null);
   const [modalSessionKey, setModalSessionKey] = useState(0);
   const [newType, setNewType] = useState<ConnectorType>('EMAIL');
   const [emailProvider, setEmailProvider] = useState<EmailProvider>('gmail');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sftpAuthType, setSftpAuthType] = useState<'password' | 'privateKey'>('password');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [showAdvancedSharepoint, setShowAdvancedSharepoint] = useState(false);
+  const [oauthSessionId, setOauthSessionId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // ── Data ──────────────────────────────────────────────────────────────────
+  const { data: sharepointOAuthConfig } = useQuery({
+    queryKey: ['sharepoint-oauth-config', orgId],
+    queryFn: () => fetchSharepointOAuthConfig(orgId || undefined),
+    enabled: !!orgId,
+  });
+
+  useEffect(() => {
+    const oauthResult = searchParams.get('sharepoint_oauth');
+    const session = searchParams.get('session');
+    const message = searchParams.get('message');
+    if (oauthResult === 'success' && session) {
+      setOauthSessionId(session);
+      searchParams.delete('sharepoint_oauth');
+      searchParams.delete('session');
+      setSearchParams(searchParams, { replace: true });
+    } else if (oauthResult === 'error') {
+      void appAlert({
+        variant: 'danger',
+        title: 'SharePoint connection failed',
+        description: message || 'Microsoft authorization was not completed.',
+      });
+      searchParams.delete('sharepoint_oauth');
+      searchParams.delete('message');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, appAlert]);
   const { data: connectors = [], isLoading } = useQuery<Connector[]>({
     queryKey: ['connectors', orgId],
     queryFn: () => listOrgConnectors(orgId || undefined),
@@ -70,8 +103,7 @@ export const ConnectorsPanel: React.FC = () => {
       createOrgConnector(payload, orgId || undefined),
     onSuccess: () => {
       invalidateConnectorState();
-      setModalSessionKey((key) => key + 1);
-      setIsModalOpen(false);
+      closeModal();
       appAlert({
         variant: 'success',
         title: 'Connector created',
@@ -83,6 +115,27 @@ export const ConnectorsPanel: React.FC = () => {
         variant: 'danger',
         title: 'Could not create connector',
         description: quotaErrorMessage(err, 'Connector creation failed.'),
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateOrgConnectorPayload }) =>
+      updateConnector(id, payload, orgId || undefined),
+    onSuccess: () => {
+      invalidateConnectorState();
+      closeModal();
+      appAlert({
+        variant: 'success',
+        title: 'Connector updated',
+        description: 'Connector settings and credentials were saved.',
+      });
+    },
+    onError: (err: unknown) => {
+      appAlert({
+        variant: 'danger',
+        title: 'Could not update connector',
+        description: quotaErrorMessage(err, 'Connector update failed.'),
       });
     },
   });
@@ -166,6 +219,13 @@ export const ConnectorsPanel: React.FC = () => {
     }
   };
 
+  const closeModal = () => {
+    createMutation.reset();
+    updateMutation.reset();
+    setEditingConnector(null);
+    setIsModalOpen(false);
+  };
+
   const openModal = () => {
     if (connectorBlocked) {
       appAlert({
@@ -175,12 +235,54 @@ export const ConnectorsPanel: React.FC = () => {
       });
       return;
     }
+    setEditingConnector(null);
     setNewType('EMAIL');
     setEmailProvider('gmail');
+    setSftpAuthType('password');
+    setShowAdvancedSharepoint(false);
     createMutation.reset();
+    updateMutation.reset();
     setModalSessionKey((key) => key + 1);
     setIsModalOpen(true);
   };
+
+  const openEditModal = (connector: Connector) => {
+    setEditingConnector(connector);
+    setNewType(connector.type as ConnectorType);
+    setShowAdvancedSharepoint(
+      connector.type === 'SHAREPOINT' &&
+        connector.config?.authMode !== 'managed' &&
+        connector.config?.authMode !== 'alonix_oauth'
+    );
+    if (connector.type === 'EMAIL') {
+      const provider = connector.config?.provider as EmailProvider | undefined;
+      setEmailProvider(provider && provider in EMAIL_PROVIDER_PRESETS ? provider : 'custom');
+    }
+    if (connector.type === 'SFTP') {
+      setSftpAuthType(
+        connector.config?.authType === 'privateKey' ? 'privateKey' : 'password'
+      );
+    }
+    createMutation.reset();
+    updateMutation.reset();
+    setModalSessionKey((key) => key + 1);
+    setIsModalOpen(true);
+  };
+
+  const startSharepointOAuth = () => {
+    if (connectorBlocked) {
+      appAlert({
+        variant: 'warning',
+        title: 'Connector limit reached',
+        description: capMessage('connectors'),
+      });
+      return;
+    }
+    window.location.href = getSharepointOAuthStartUrl(orgId || undefined);
+  };
+
+  const isManagedSharepoint = (c: Connector) =>
+    c.config?.authMode === 'managed' || c.config?.authMode === 'alonix_oauth';
 
   const toggleAutoIngest = async (connector: Connector) => {
     const newVal = connector.config?.autoIngest === false ? true : false;
@@ -197,7 +299,41 @@ export const ConnectorsPanel: React.FC = () => {
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
+    const name = String(formData.get('name') || '').trim();
+
+    if (editingConnector) {
+      const updates: UpdateOrgConnectorPayload = { name };
+
+      if (editingConnector.type === 'EMAIL') {
+        const preset = EMAIL_PROVIDER_PRESETS[emailProvider];
+        updates.imapHost = String(formData.get('imapHost') || preset.imapHost).trim();
+        const imapPortRaw = String(formData.get('imapPort') || String(preset.imapPort)).trim();
+        if (imapPortRaw) updates.imapPort = parseInt(imapPortRaw, 10);
+        updates.provider = emailProvider;
+      } else if (editingConnector.type === 'SHAREPOINT') {
+        updates.siteUrl = String(formData.get('siteUrl') || '').trim();
+        updates.libraryName = String(formData.get('libraryName') || '').trim();
+        if (!isManagedSharepoint(editingConnector)) {
+          updates.tenantId = String(formData.get('tenantId') || '').trim();
+          updates.clientId = String(formData.get('clientId') || '').trim();
+          const secret = String(formData.get('clientSecret') || '').trim();
+          if (secret) updates.clientSecret = secret;
+        }
+      } else if (editingConnector.type === 'SFTP') {
+        updates.host = String(formData.get('host') || '').trim();
+        updates.port = parseInt(String(formData.get('port') || '22'), 10);
+        updates.username = String(formData.get('username') || '').trim();
+        updates.remotePath = String(formData.get('remotePath') || '/').trim();
+        updates.authType = sftpAuthType;
+        const password = String(formData.get('password') || '').trim();
+        const privateKey = String(formData.get('privateKey') || '').trim();
+        if (password) updates.password = password;
+        if (privateKey) updates.privateKey = privateKey;
+      }
+
+      updateMutation.mutate({ id: editingConnector._id, payload: updates });
+      return;
+    }
 
     let config: Record<string, unknown> = {};
 
@@ -272,17 +408,31 @@ export const ConnectorsPanel: React.FC = () => {
               Configure dynamic pipelines to ingest documents from Email, SharePoint, SFTP, or Webhooks.
             </p>
           </div>
-          <button
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            {sharepointOAuthConfig?.enabled && (
+              <button
+                type="button"
+                onClick={startSharepointOAuth}
+                disabled={connectorBlocked}
+                title={connectorBlocked ? capMessage('connectors') : undefined}
+                className="flex items-center justify-center gap-2 rounded-full bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 transition-all hover:bg-emerald-500/25 disabled:opacity-50"
+              >
+                <Link2 className="h-4 w-4" />
+                Connect SharePoint
+              </button>
+            )}
+            <button
             id="add-connector-btn"
             type="button"
             onClick={openModal}
             disabled={connectorBlocked}
             title={connectorBlocked ? capMessage('connectors') : undefined}
-            className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+            className="flex items-center justify-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
           >
             <Plus className="h-4 w-4" />
             Add Connector
           </button>
+          </div>
         </div>
 
         {/* Connector list */}
@@ -391,6 +541,14 @@ export const ConnectorsPanel: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
+                    id={`edit-connector-${c._id}`}
+                    onClick={() => openEditModal(c)}
+                    title="Edit connector"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
                     id={`browse-connector-${c._id}`}
                     onClick={() => navigate(`/documents?connectors=1&connectorId=${encodeURIComponent(c._id)}`)}
                     title="Browse files"
@@ -419,22 +577,24 @@ export const ConnectorsPanel: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-3xl border border-border/20 bg-surface-lowest shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-black mb-4 flex items-center justify-between">
-              Create New Connector
+              {editingConnector ? 'Edit Connector' : 'Create New Connector'}
               <button
                 id="close-connector-modal"
                 type="button"
-                onClick={() => {
-                  createMutation.reset();
-                  setIsModalOpen(false);
-                }}
+                onClick={closeModal}
                 className="text-muted-foreground hover:text-foreground"
               >
                 ×
               </button>
             </h3>
 
-            <form key={modalSessionKey} onSubmit={onSubmit} className="space-y-4">
+            <form
+              key={`${modalSessionKey}-${editingConnector?._id ?? 'new'}`}
+              onSubmit={onSubmit}
+              className="space-y-4"
+            >
               {/* Connector type toggle */}
+              {!editingConnector && (
               <div>
                 <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
                   Type
@@ -458,6 +618,14 @@ export const ConnectorsPanel: React.FC = () => {
                   ))}
                 </div>
               </div>
+              )}
+
+              {editingConnector && (
+                <div className="rounded-xl border border-border/20 bg-surface-highest/10 px-4 py-3 text-sm">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Type</span>
+                  <p className="font-semibold text-foreground mt-1">{editingConnector.type}</p>
+                </div>
+              )}
 
               {/* Display name */}
               <div>
@@ -468,6 +636,7 @@ export const ConnectorsPanel: React.FC = () => {
                   required
                   id="connector-name"
                   name="name"
+                  defaultValue={editingConnector?.name || ''}
                   className="w-full rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="e.g. HR SharePoint Library"
                 />
@@ -521,7 +690,11 @@ export const ConnectorsPanel: React.FC = () => {
                       name="imapHost"
                       type="text"
                       key={emailProvider}
-                      defaultValue={EMAIL_PROVIDER_PRESETS[emailProvider].imapHost}
+                      defaultValue={
+                        editingConnector?.type === 'EMAIL'
+                          ? String(editingConnector.config?.imapHost || EMAIL_PROVIDER_PRESETS[emailProvider].imapHost)
+                          : EMAIL_PROVIDER_PRESETS[emailProvider].imapHost
+                      }
                       placeholder="e.g. imap.gmail.com"
                       className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono"
                     />
@@ -540,7 +713,11 @@ export const ConnectorsPanel: React.FC = () => {
                         min={1}
                         max={65535}
                         key={`port-${emailProvider}`}
-                        defaultValue={EMAIL_PROVIDER_PRESETS[emailProvider].imapPort}
+                        defaultValue={
+                          editingConnector?.type === 'EMAIL'
+                            ? String(editingConnector.config?.imapPort || EMAIL_PROVIDER_PRESETS[emailProvider].imapPort)
+                            : EMAIL_PROVIDER_PRESETS[emailProvider].imapPort
+                        }
                         placeholder="993"
                         className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm pr-10"
                       />
@@ -564,83 +741,138 @@ export const ConnectorsPanel: React.FC = () => {
                   <div className="flex items-center gap-2 mb-2">
                     <FolderOpen className="h-4 w-4 text-emerald-500" />
                     <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      MICROSOFT SHAREPOINT CONFIGURATION
+                      MICROSOFT SHAREPOINT
                     </span>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
-                      Azure Tenant ID
-                    </label>
-                    <input
-                      required
-                      id="connector-tenant-id"
-                      name="tenantId"
-                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
-                      App (Client) ID
-                    </label>
-                    <input
-                      required
-                      id="connector-client-id"
-                      name="clientId"
-                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
-                      Client Secret
-                    </label>
-                    <input
-                      required
-                      id="connector-client-secret"
-                      name="clientSecret"
-                      type="password"
-                      placeholder="Client secret value"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
-                      SharePoint Site URL
-                    </label>
-                    <input
-                      required
-                      id="connector-site-url"
-                      name="siteUrl"
-                      type="url"
-                      placeholder="https://contoso.sharepoint.com/sites/MySite"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
-                      Library / Folder Name <span className="font-normal">(optional)</span>
-                    </label>
-                    <input
-                      id="connector-library-name"
-                      name="libraryName"
-                      placeholder="Documents (leave blank for root)"
-                      className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-[10px] text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>
-                      SharePoint is polled every 15 minutes by default. The client secret is
-                      encrypted at rest — never stored in plain text.
-                    </span>
-                  </div>
+                  {editingConnector && isManagedSharepoint(editingConnector) ? (
+                    <>
+                      <p className="text-[10px] text-muted-foreground">
+                        Connected via Microsoft 365. Update site URL or library below; credentials are managed by Alonix.
+                      </p>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          SharePoint Site URL
+                        </label>
+                        <input
+                          required
+                          id="connector-site-url"
+                          name="siteUrl"
+                          type="url"
+                          defaultValue={String(editingConnector.config?.siteUrl || '')}
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          Library / Folder Name <span className="font-normal">(optional)</span>
+                        </label>
+                        <input
+                          id="connector-library-name"
+                          name="libraryName"
+                          defaultValue={String(editingConnector.config?.libraryName || '')}
+                          placeholder="Documents (leave blank for root)"
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </>
+                  ) : !editingConnector && sharepointOAuthConfig?.enabled && !showAdvancedSharepoint ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Use <strong className="text-foreground">Connect SharePoint</strong> above to sign in with Microsoft and pick a site — no Azure app setup required.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAdvancedSharepoint(true)}
+                        className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                      >
+                        Advanced: use your own Azure app →
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {!editingConnector && sharepointOAuthConfig?.enabled && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvancedSharepoint(false)}
+                          className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"
+                        >
+                          ← Back to Connect with Microsoft
+                        </button>
+                      )}
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          Azure Tenant ID
+                        </label>
+                        <input
+                          required={!editingConnector}
+                          id="connector-tenant-id"
+                          name="tenantId"
+                          defaultValue={editingConnector?.type === 'SHAREPOINT' ? String(editingConnector.config?.tenantId || '') : ''}
+                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          App (Client) ID
+                        </label>
+                        <input
+                          required={!editingConnector}
+                          id="connector-client-id"
+                          name="clientId"
+                          defaultValue={editingConnector?.type === 'SHAREPOINT' ? String(editingConnector.config?.clientId || '') : ''}
+                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          Client Secret {editingConnector ? <span className="font-normal">(leave blank to keep current)</span> : null}
+                        </label>
+                        <input
+                          required={!editingConnector}
+                          id="connector-client-secret"
+                          name="clientSecret"
+                          type="password"
+                          placeholder={editingConnector ? 'Enter new secret value to rotate' : 'Client secret value'}
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          SharePoint Site URL
+                        </label>
+                        <input
+                          required={!editingConnector}
+                          id="connector-site-url"
+                          name="siteUrl"
+                          type="url"
+                          defaultValue={editingConnector?.type === 'SHAREPOINT' ? String(editingConnector.config?.siteUrl || '') : ''}
+                          placeholder="https://contoso.sharepoint.com/sites/MySite"
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          Library / Folder Name <span className="font-normal">(optional)</span>
+                        </label>
+                        <input
+                          id="connector-library-name"
+                          name="libraryName"
+                          defaultValue={editingConnector?.type === 'SHAREPOINT' ? String(editingConnector.config?.libraryName || '') : ''}
+                          placeholder="Documents (leave blank for root)"
+                          className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-[10px] text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>
+                          Advanced setup: use the Azure secret <strong className="text-foreground">Value</strong>, not the Secret ID.
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -655,23 +887,26 @@ export const ConnectorsPanel: React.FC = () => {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2">
                       <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Host</label>
-                      <input required id="connector-sftp-host" name="host" placeholder="files.company.com"
+                      <input required={!editingConnector} id="connector-sftp-host" name="host" placeholder="files.company.com"
+                        defaultValue={editingConnector?.type === 'SFTP' ? String(editingConnector.config?.host || '') : ''}
                         className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm" />
                     </div>
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Port</label>
-                      <input id="connector-sftp-port" name="port" defaultValue="22" type="number"
+                      <input id="connector-sftp-port" name="port" defaultValue={editingConnector?.type === 'SFTP' ? String(editingConnector.config?.port || '22') : '22'} type="number"
                         className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm" />
                     </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Username</label>
-                    <input required id="connector-sftp-username" name="username" placeholder="sftpuser"
+                    <input required={!editingConnector} id="connector-sftp-username" name="username" placeholder="sftpuser"
+                      defaultValue={editingConnector?.type === 'SFTP' ? String(editingConnector.config?.username || '') : ''}
                       className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm" />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Remote Path</label>
-                    <input required id="connector-sftp-path" name="remotePath" placeholder="/invoices/inbox"
+                    <input required={!editingConnector} id="connector-sftp-path" name="remotePath" placeholder="/invoices/inbox"
+                      defaultValue={editingConnector?.type === 'SFTP' ? String(editingConnector.config?.remotePath || '/') : ''}
                       className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm font-mono" />
                   </div>
                   <div>
@@ -694,14 +929,18 @@ export const ConnectorsPanel: React.FC = () => {
                   </div>
                   {sftpAuthType === 'password' ? (
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Password</label>
-                      <input required id="connector-sftp-password" name="password" type="password" placeholder="••••••••"
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                        Password {editingConnector ? <span className="font-normal">(leave blank to keep current)</span> : null}
+                      </label>
+                      <input required={!editingConnector} id="connector-sftp-password" name="password" type="password" placeholder="••••••••"
                         className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm" />
                     </div>
                   ) : (
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">SSH Private Key (PEM)</label>
-                      <textarea required id="connector-sftp-privatekey" name="privateKey" rows={5}
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                        SSH Private Key (PEM) {editingConnector ? <span className="font-normal">(leave blank to keep current)</span> : null}
+                      </label>
+                      <textarea required={!editingConnector} id="connector-sftp-privatekey" name="privateKey" rows={5}
                         placeholder={"-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"}
                         className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-xs font-mono resize-none" />
                     </div>
@@ -717,20 +956,43 @@ export const ConnectorsPanel: React.FC = () => {
 
                 id="save-connector-btn"
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={
+                  createMutation.isPending ||
+                  updateMutation.isPending ||
+                  (!editingConnector && newType === 'SHAREPOINT' && sharepointOAuthConfig?.enabled && !showAdvancedSharepoint)
+                }
                 className="w-full mt-4 flex justify-center py-3 rounded-xl bg-foreground text-background font-black uppercase tracking-wider text-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Connection'}
+                {(createMutation.isPending || updateMutation.isPending)
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : editingConnector ? 'Save Changes' : 'Save Connection'}
               </button>
 
-              {createMutation.isError && (
+              {(createMutation.isError || updateMutation.isError) && (
                 <p className="text-xs text-destructive text-center mt-1">
-                  Failed to save connector. Please try again.
+                  {editingConnector ? 'Failed to update connector. Please try again.' : 'Failed to save connector. Please try again.'}
                 </p>
               )}
             </form>
           </div>
         </div>
+      )}
+
+      {oauthSessionId && (
+        <SharePointOAuthSitePicker
+          sessionId={oauthSessionId}
+          orgId={orgId || undefined}
+          onClose={() => setOauthSessionId(null)}
+          onSuccess={() => {
+            setOauthSessionId(null);
+            invalidateConnectorState();
+            appAlert({
+              variant: 'success',
+              title: 'SharePoint connected',
+              description: 'Your connector is active and will sync on the next poll.',
+            });
+          }}
+        />
       )}
     </section>
   );

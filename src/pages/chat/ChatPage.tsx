@@ -78,16 +78,29 @@ const ChatPage: React.FC = () => {
           ref={chatScrollRef}
           className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col overflow-y-auto overscroll-contain scroll-pb-28 px-4 pb-6 sm:px-6 lg:px-8"
         >
-          {sessions.conversationPairs.map((pair, idx) => (
-            <ChatMessagePair
-              key={idx}
-              pair={pair}
-              questionLabel={t('question')}
-              answerLabel={t('answer')}
-              clarificationLabel="Clarification needed"
-              onSourceClick={handleSourceClick}
-            />
-          ))}
+          {sessions.conversationPairs.map((pair, idx) => {
+            const isLastPair = idx === sessions.conversationPairs.length - 1;
+            const isInteractiveClarification =
+              isLastPair &&
+              pair.ai.responseKind === 'clarification' &&
+              (pair.ai.clarificationOptions?.length ?? 0) > 0;
+            return (
+              <ChatMessagePair
+                key={idx}
+                pair={pair}
+                questionLabel={t('question')}
+                answerLabel={t('answer')}
+                clarificationLabel="Clarification needed"
+                onSourceClick={handleSourceClick}
+                clarificationOptionsInteractive={isInteractiveClarification}
+                clarificationOptionsDisabled={composer.isResponseLoading || qaBlocked}
+                onClarificationOptionSelect={(option) =>
+                  void composer.submitClarificationOption(option)
+                }
+                onClarificationCustomInput={() => composer.focusComposer()}
+              />
+            );
+          })}
 
           {composer.isResponseLoading && <ChatThinkingIndicator label={t('thinking')} />}
         </main>
@@ -97,6 +110,7 @@ const ChatPage: React.FC = () => {
           isResponseLoading={composer.isResponseLoading}
           submitDisabled={qaBlocked}
           submitDisabledReason={qaBlocked ? capMessage('questionsMonth') : undefined}
+          inputRef={composer.inputRef}
           onChange={composer.setText}
           onSubmit={composer.submitHandler}
         />

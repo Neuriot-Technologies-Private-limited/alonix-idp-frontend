@@ -20,6 +20,8 @@ export interface ConversationPair {
     sourcesMap: Record<string, NormSource>;
     rawAnswer: string;
     responseKind?: 'answer' | 'clarification';
+    /** Live clarification turns only — not restored from history. */
+    clarificationOptions?: string[];
   };
 }
 

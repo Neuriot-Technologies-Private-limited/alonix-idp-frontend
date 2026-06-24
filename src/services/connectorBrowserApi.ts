@@ -148,6 +148,27 @@ export interface CreateOrgConnectorPayload {
   config: Record<string, unknown>;
 }
 
+export interface UpdateOrgConnectorPayload {
+  name?: string;
+  autoIngest?: boolean;
+  pollIntervalMs?: number;
+  remotePath?: string;
+  imapHost?: string;
+  imapPort?: number;
+  provider?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  authType?: 'password' | 'privateKey';
+  password?: string;
+  privateKey?: string;
+  tenantId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  siteUrl?: string;
+  libraryName?: string;
+}
+
 export interface Mailbox {
   _id: string;
   connectorId: string;
@@ -183,6 +204,32 @@ export interface IngestResult {
   path?: string;
   messageId?: string;
   error?: string;
+}
+
+export interface SharePointOAuthConfig {
+  enabled: boolean;
+}
+
+export interface SharePointOAuthSite {
+  id: string;
+  name: string;
+  webUrl: string;
+  hostname?: string;
+}
+
+export interface SharePointOAuthDrive {
+  id: string;
+  name: string;
+  webUrl?: string;
+  driveType?: string;
+}
+
+export interface CompleteSharePointOAuthPayload {
+  name: string;
+  siteUrl: string;
+  siteId: string;
+  libraryName?: string;
+  driveName?: string;
 }
 
 // resolveOrgId reads from Zustand store state (NOT a React hook — safe to call outside components)
@@ -350,10 +397,15 @@ export async function testSftpConnection(connectorId: string): Promise<TestConne
 
 export async function updateConnector(
   connectorId: string,
-  updates: { name?: string; autoIngest?: boolean; pollIntervalMs?: number; remotePath?: string }
-): Promise<void> {
-  const orgId = resolveOrgId();
-  await apiClient.patch(`/admin/orgs/${orgId}/connectors/${connectorId}`, updates);
+  updates: UpdateOrgConnectorPayload,
+  orgId?: string
+): Promise<OrgConnector> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.patch<OrgConnector>(
+    `/admin/orgs/${scopedOrgId}/connectors/${connectorId}`,
+    updates
+  );
+  return data;
 }
 
 export async function fetchEmailDetail(
@@ -410,5 +462,66 @@ export async function listMailboxIngestions(
   }>(`/admin/orgs/${orgId}/mailboxes/${encodeURIComponent(mailboxId)}/ingestions`, {
     params: { limit },
   });
+  return data;
+}
+
+function apiBaseForRedirect(): string {
+  const raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (!raw || raw === '/') return '/api';
+  if (raw.endsWith('/api') || raw.endsWith('/api/')) return raw.replace(/\/$/, '');
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return `${raw.replace(/\/$/, '')}/api`;
+  }
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+export function getSharepointOAuthStartUrl(orgId?: string): string {
+  const scopedOrgId = orgId || resolveOrgId();
+  return `${apiBaseForRedirect()}/admin/orgs/${scopedOrgId}/connectors/sharepoint/oauth/start`;
+}
+
+export async function fetchSharepointOAuthConfig(orgId?: string): Promise<SharePointOAuthConfig> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.get<SharePointOAuthConfig>(
+    `/admin/orgs/${scopedOrgId}/connectors/sharepoint/oauth/config`
+  );
+  return data;
+}
+
+export async function listSharepointOAuthSites(
+  sessionId: string,
+  search = '',
+  orgId?: string
+): Promise<{ tenantId: string; sites: SharePointOAuthSite[] }> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.get<{ tenantId: string; sites: SharePointOAuthSite[] }>(
+    `/admin/orgs/${scopedOrgId}/connectors/sharepoint/oauth/session/${encodeURIComponent(sessionId)}/sites`,
+    { params: search ? { search } : undefined }
+  );
+  return data;
+}
+
+export async function listSharepointOAuthDrives(
+  sessionId: string,
+  siteId: string,
+  orgId?: string
+): Promise<{ drives: SharePointOAuthDrive[] }> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.get<{ drives: SharePointOAuthDrive[] }>(
+    `/admin/orgs/${scopedOrgId}/connectors/sharepoint/oauth/session/${encodeURIComponent(sessionId)}/sites/${encodeURIComponent(siteId)}/drives`
+  );
+  return data;
+}
+
+export async function completeSharepointOAuth(
+  sessionId: string,
+  payload: CompleteSharePointOAuthPayload,
+  orgId?: string
+): Promise<OrgConnector> {
+  const scopedOrgId = orgId || resolveOrgId();
+  const { data } = await apiClient.post<OrgConnector>(
+    `/admin/orgs/${scopedOrgId}/connectors/sharepoint/oauth/session/${encodeURIComponent(sessionId)}/complete`,
+    payload
+  );
   return data;
 }

@@ -8,6 +8,7 @@ type ChatComposerProps = {
   isResponseLoading: boolean;
   submitDisabled?: boolean;
   submitDisabledReason?: string;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
   onChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 };
@@ -17,6 +18,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   isResponseLoading,
   submitDisabled = false,
   submitDisabledReason,
+  inputRef,
   onChange,
   onSubmit,
 }) => {
@@ -32,6 +34,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         onSubmit={onSubmit}
       >
         <input
+          ref={inputRef}
           type="text"
           spellCheck={false}
           placeholder="Ask something…"

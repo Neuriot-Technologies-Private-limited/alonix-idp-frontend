@@ -181,6 +181,15 @@ export interface AskResponseDto {
   query_id?: string;
   answer?: string;
   response_kind?: ChatResponseKind;
+  responseKind?: ChatResponseKind;
+  options?: string[];
+  clarification_options?: string[];
+  clarification_question?: string;
+  original_query?: string;
+  rewritten_query?: string;
+  rewrittenQuery?: string;
+  status?: string;
+  message?: string;
   sources?: unknown[] | Record<string, unknown>;
   classification?: unknown;
   is_valid?: boolean;

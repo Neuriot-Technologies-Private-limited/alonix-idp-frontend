@@ -25,11 +25,16 @@ export function mapApiAnswerToPair(
   query: string,
   answer: string,
   sources: unknown,
-  responseKind: 'answer' | 'clarification'
+  responseKind: 'answer' | 'clarification',
+  clarificationOptions?: string[]
 ): ConversationPair {
   const { sources: sourcesArray, sourcesMap } = normalizeSourcesPayload(
     responseKind === 'clarification' ? null : sources
   );
+  const options =
+    responseKind === 'clarification' && clarificationOptions && clarificationOptions.length > 0
+      ? clarificationOptions
+      : undefined;
   return {
     user: { text: query },
     ai: {
@@ -38,6 +43,7 @@ export function mapApiAnswerToPair(
       sourcesMap,
       rawAnswer: answer,
       responseKind,
+      clarificationOptions: options,
     },
   };
 }
