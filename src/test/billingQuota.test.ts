@@ -131,6 +131,39 @@ describe('quotaErrorMessage', () => {
     expect(quotaErrorMessage(err)).toBe('Forbidden');
   });
 
+  it('returns queue-unavailable message instead of generic axios 503 text', () => {
+    const err = {
+      response: {
+        status: 503,
+        data: {
+          error: 'QUEUE_UNAVAILABLE',
+          message: 'SFTP ingest is temporarily unavailable because the job queue is not running.',
+        },
+      },
+      message: 'Request failed with status code 503',
+    } as unknown as AxiosError;
+    expect(quotaErrorMessage(err, 'Failed to queue ingest.')).toBe(
+      'SFTP ingest is temporarily unavailable because the job queue is not running.'
+    );
+  });
+
+  it('uses human-readable error field when message is absent', () => {
+    const err = makeAxiosError(503, {
+      error: 'SFTP queue unavailable — Redis may be down',
+    });
+    expect(quotaErrorMessage(err, 'Failed to queue ingest.')).toBe(
+      'SFTP queue unavailable — Redis may be down'
+    );
+  });
+
+  it('returns fallback instead of generic axios status message', () => {
+    const err = {
+      response: { status: 503, data: { error: 'QUEUE_UNAVAILABLE' } },
+      message: 'Request failed with status code 503',
+    } as unknown as AxiosError;
+    expect(quotaErrorMessage(err, 'Ingest queue is down.')).toBe('Ingest queue is down.');
+  });
+
   it('returns axios .message for error without response data message', () => {
     const err = {
       response: { status: 500, data: {} },

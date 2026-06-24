@@ -11,6 +11,8 @@ export const QUOTA_ERROR_CODES = new Set([
   'BILLING_UNAVAILABLE',
 ]);
 
+export const SERVICE_UNAVAILABLE_CODES = new Set(['QUEUE_UNAVAILABLE']);
+
 export type QuotaErrorPayload = {
   error?: string;
   message?: string;
@@ -19,9 +21,25 @@ export type QuotaErrorPayload = {
   plan?: string;
 };
 
-export function parseQuotaError(err: unknown): QuotaErrorPayload | null {
+export type ApiErrorPayload = {
+  error?: string;
+  message?: string;
+};
+
+const GENERIC_AXIOS_STATUS_RE = /^Request failed with status code \d+$/;
+
+function isMachineErrorCode(value: string): boolean {
+  return /^[A-Z][A-Z0-9_]*$/.test(value);
+}
+
+function asAxiosError(err: unknown): AxiosError<ApiErrorPayload> | null {
   if (err == null || typeof err !== 'object') return null;
-  const ax = err as AxiosError<QuotaErrorPayload>;
+  return err as AxiosError<ApiErrorPayload>;
+}
+
+export function parseQuotaError(err: unknown): QuotaErrorPayload | null {
+  const ax = asAxiosError(err);
+  if (!ax) return null;
   const status = ax.response?.status;
   const data = ax.response?.data;
   if (!data?.error || (status !== 402 && status !== 503)) return null;
@@ -29,14 +47,40 @@ export function parseQuotaError(err: unknown): QuotaErrorPayload | null {
   return data;
 }
 
+export function parseServiceUnavailable(err: unknown): ApiErrorPayload | null {
+  const ax = asAxiosError(err);
+  if (!ax || ax.response?.status !== 503) return null;
+  const data = ax.response?.data;
+  if (!data) return null;
+  if (data.error && SERVICE_UNAVAILABLE_CODES.has(data.error)) return data;
+  if (data.message) return data;
+  if (typeof data.error === 'string' && !isMachineErrorCode(data.error)) return data;
+  return null;
+}
+
+/** User-facing message for API errors (queue down, validation, etc.). */
+export function apiErrorMessage(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  const service = parseServiceUnavailable(err);
+  if (service?.message) return service.message;
+
+  const ax = asAxiosError(err);
+  if (!ax) return fallback;
+
+  const data = ax.response?.data;
+  if (data?.message) return data.message;
+  if (typeof data?.error === 'string' && !isMachineErrorCode(data.error)) {
+    return data.error;
+  }
+
+  const axMsg = ax.message?.trim();
+  if (axMsg && !GENERIC_AXIOS_STATUS_RE.test(axMsg)) return axMsg;
+  return fallback;
+}
+
 /** User-facing message with optional upgrade hint for billing limits. */
 export function quotaErrorMessage(err: unknown, fallback = 'Plan limit reached.'): string {
   const q = parseQuotaError(err);
-  if (!q) {
-    if (err == null || typeof err !== 'object') return fallback;
-    const ax = err as AxiosError<{ message?: string; error?: string }>;
-    return ax.response?.data?.message || ax.message || fallback;
-  }
+  if (!q) return apiErrorMessage(err, fallback);
   if (isEnterpriseBuild()) {
     return q.message || fallback;
   }
