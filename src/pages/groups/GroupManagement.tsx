@@ -7,7 +7,8 @@ import {
   List as ListIcon,
   UserPlus,
 } from 'lucide-react';
-import { useGroupHealth, type GroupHealth } from '../../services/adminService';
+import { useGroupHealth } from '../../hooks/queries/admin';
+import type { GroupHealth } from '../../services/adminService';
 import { useUsers } from '../../services/userService';
 import { useRbac } from '../../hooks/useRbac';
 import { Loader } from '../../components/ui/Loader';

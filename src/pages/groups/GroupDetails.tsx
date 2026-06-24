@@ -17,7 +17,8 @@ import {
   Loader2,
   BarChart3,
 } from 'lucide-react';
-import { useGroupDetail, useGroupHealth, adminService } from '../../services/adminService';
+import { useGroupDetail, useGroupHealth } from '../../hooks/queries/admin';
+import { adminService } from '../../services/adminService';
 import { useUsers, userService } from '../../services/userService';
 import { getDocumentAccessUrl } from '../../services/chatApi';
 import { HealthBadge } from '../../components/ui/GroupCard';

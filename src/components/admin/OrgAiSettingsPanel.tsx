@@ -5,8 +5,8 @@ import {
   adminService,
   type AiProvider,
   type OrgAiSettings,
-  useOrgAiSettings,
 } from '../../services/adminService';
+import { useOrgAiSettings } from '../../hooks/queries/admin';
 
 function ToggleSwitch({
   checked,

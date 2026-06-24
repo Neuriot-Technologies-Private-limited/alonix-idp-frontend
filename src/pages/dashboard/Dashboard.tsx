@@ -10,7 +10,8 @@ import {
   Activity,
   BarChart3,
 } from 'lucide-react';
-import { useDashboardState, type GroupHealth } from '../../services/adminService';
+import { useDashboardState } from '../../hooks/queries/admin';
+import type { GroupHealth } from '../../services/adminService';
 import { cn } from '../../utils/cn';
 import { useAuthStore } from '../../stores/authStore';
 import { useRbac } from '../../hooks/useRbac';

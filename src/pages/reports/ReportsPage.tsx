@@ -11,7 +11,7 @@ import { TopUsersChart } from '../../components/reports/TopUsersChart';
 import { ReportExportMenu } from '../../components/reports/ReportExportMenu';
 import { StatCard } from '../../components/ui/StatCard';
 import { MetricStateCard, MetricStateGrid } from '../../components/ui/MetricStateCard';
-import { useActivitySeries, useUsageSummary, usePipelineMetrics, useMetricsByUser } from '../../services/adminService';
+import { useActivitySeries, useUsageSummary, usePipelineMetrics, useMetricsByUser } from '../../hooks/queries/admin';
 import { useOrgQuota } from '../../hooks/useOrgQuota';
 
 function formatBytes(bytes: number): string {

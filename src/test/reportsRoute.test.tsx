@@ -22,16 +22,12 @@ vi.mock('../hooks/useOrgQuota', () => ({
   }),
 }));
 
-vi.mock('../services/adminService', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../services/adminService')>();
-  return {
-    ...original,
-    useActivitySeries: () => ({ data: { series: [{ period: '2025-01-01', auditEvents: 5, documentUploads: 3 }], from: '', to: '', granularity: 'day' }, isLoading: false }),
-    useUsageSummary: () => ({ data: { documentUploads: 42, storageBytesAdded: 1048576, auditEvents: 120, activeUsers: 7 }, isLoading: false }),
-    usePipelineMetrics: () => ({ data: { totalDocuments: 100, ingestCompleted: 90, ingestFailed: 5, extractCompleted: 85, classifyCompleted: 80, failedDocuments: 10, successRatePercent: 90, jobsProcessing: 2, pipelineBusy: 1 }, isLoading: false }),
-    useMetricsByUser: () => ({ data: { users: [{ actorEmail: 'test@example.com', eventCount: 15 }], from: '', to: '' }, isLoading: false }),
-  };
-});
+vi.mock('../hooks/queries/admin', () => ({
+  useActivitySeries: () => ({ data: { series: [{ period: '2025-01-01', auditEvents: 5, documentUploads: 3 }], from: '', to: '', granularity: 'day' }, isLoading: false }),
+  useUsageSummary: () => ({ data: { documentUploads: 42, storageBytesAdded: 1048576, auditEvents: 120, activeUsers: 7 }, isLoading: false }),
+  usePipelineMetrics: () => ({ data: { totalDocuments: 100, ingestCompleted: 90, ingestFailed: 5, extractCompleted: 85, classifyCompleted: 80, failedDocuments: 10, successRatePercent: 90, jobsProcessing: 2, pipelineBusy: 1 }, isLoading: false }),
+  useMetricsByUser: () => ({ data: { users: [{ actorEmail: 'test@example.com', eventCount: 15 }], from: '', to: '' }, isLoading: false }),
+}));
 
 import { useRbac } from '../hooks/useRbac';
 import type { AuthContextPayload } from '../types/auth';

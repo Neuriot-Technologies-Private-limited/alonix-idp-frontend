@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
 import { getOrgPipelineDocuments } from './chatApi';
@@ -661,142 +660,6 @@ export const adminService = {
 
 };
 
-export const useDashboardState = () => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const activeGroupId = useAuthStore((s) => s.context?.activeGroupId ?? '');
-  return useQuery({
-    queryKey: ['dashboard-state', orgId, activeGroupId],
-    queryFn: adminService.getDashboardState,
-    enabled: !!orgId,
-    staleTime: 60 * 1000,
-  });
-};
-
-export const useAdminStats = () => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  return useQuery({
-    queryKey: ['admin-stats', orgId],
-    queryFn: adminService.getStats,
-    enabled: !!orgId,
-  });
-};
-
-export const useGroupHealth = () => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  return useQuery({
-    queryKey: ['group-health', orgId],
-    queryFn: adminService.getGroupHealth,
-    enabled: !!orgId,
-  });
-};
-
-export const useAuditLogs = (
-  query: AuditLogsQuery = {},
-  opts?: { enabled?: boolean }
-) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['audit-logs', orgId, query],
-    queryFn: () => adminService.getAuditLogs(query),
-    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
-  });
-};
-
-export const useUsers = () => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['users', orgId],
-    queryFn: adminService.getUsers,
-    enabled: !!orgId && isCompanyAdmin,
-  });
-};
-
-export const useOrgAiSettings = (opts?: { enabled?: boolean }) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['org-ai-settings', orgId],
-    queryFn: adminService.getOrgAiSettings,
-    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
-    staleTime: 60 * 1000,
-  });
-};
-
-export const useGroupDetail = (id: string) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  return useQuery({
-    queryKey: ['group-detail', id, orgId],
-    queryFn: () => adminService.getGroupDetail(id),
-    enabled: !!id && !!orgId,
-  });
-};
-
-export const useSiemStatus = () => {
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['siem-status'],
-    queryFn: adminService.getSiemStatus,
-    enabled: isCompanyAdmin,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
-  });
-};
-
-export const useActivitySeries = (
-  query: { from?: string; to?: string; granularity?: 'day' | 'month'; groupId?: string },
-  opts?: { enabled?: boolean }
-) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['activity-series', orgId, query],
-    queryFn: () => adminService.getActivitySeries(query),
-    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
-    staleTime: 60 * 1000,
-  });
-};
-
-export const useUsageSummary = (
-  query?: { from?: string; to?: string },
-  opts?: { enabled?: boolean }
-) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['usage-summary', orgId, query],
-    queryFn: () => adminService.getUsageSummaryReport(query),
-    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
-    staleTime: 60 * 1000,
-  });
-};
-
-export const usePipelineMetrics = (opts?: { enabled?: boolean }) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['pipeline-metrics', orgId],
-    queryFn: adminService.getPipelineMetrics,
-    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
-    staleTime: 30 * 1000,
-  });
-};
-
-export const useMetricsByUser = (
-  query?: { from?: string; to?: string; limit?: number },
-  opts?: { enabled?: boolean }
-) => {
-  const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
-  const isCompanyAdmin = useAuthStore((s) => s.context?.orgRole === 'COMPANY_ADMIN');
-  return useQuery({
-    queryKey: ['metrics-by-user', orgId, query],
-    queryFn: () => adminService.getMetricsByUser(query),
-    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
-    staleTime: 60 * 1000,
-  });
-};
-
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -805,3 +668,19 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** @deprecated Prefer importing from `hooks/queries/admin` */
+export {
+  useDashboardState,
+  useAdminStats,
+  useSiemStatus,
+  useOrgAiSettings,
+  useUsers,
+  useAuditLogs,
+  useGroupHealth,
+  useGroupDetail,
+  useActivitySeries,
+  useUsageSummary,
+  usePipelineMetrics,
+  useMetricsByUser,
+} from '../hooks/queries/admin';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, AlertTriangle, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { useSiemStatus } from '../../services/adminService';
+import { useSiemStatus } from '../../hooks/queries/admin';
 import { cn } from '../../utils/cn';
 
 function formatTimestamp(iso: string | null): string {

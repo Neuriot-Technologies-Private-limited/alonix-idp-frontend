@@ -1,5 +1,6 @@
 import React from 'react';
-import { useAuditLogs, type AuditLog } from '../../services/adminService';
+import { useAuditLogs } from '../../hooks/queries/admin';
+import type { AuditLog } from '../../services/adminService';
 import { Skeleton } from '../ui/Skeleton';
 import {
   UserPlus,

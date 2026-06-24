@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { UserPlus, Mail, Users, UserCheck, ChevronDown, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUsers, userService, isPendingInviteUser, type User } from '../../services/userService';
-import { useGroupHealth } from '../../services/adminService';
+import { useGroupHealth } from '../../hooks/queries/admin';
 import { InviteUsersToGroupModal } from '../groups/modals/InviteUsersToGroupModal';
 import { Loader } from '../../components/ui/Loader';
 import { cn } from '../../utils/cn';

@@ -8,7 +8,7 @@ import OrgAiSettingsPanel from '../../components/admin/OrgAiSettingsPanel';
 import SubscriptionPanel from '../../components/admin/SubscriptionPanel';
 import SiemStatusPanel from '../../components/admin/SiemStatusPanel';
 import { useAuthStore } from '../../stores/authStore';
-import { useDashboardState } from '../../services/adminService';
+import { useDashboardState } from '../../hooks/queries/admin';
 import { StatCard } from '../../components/ui/StatCard';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../brand/useBrand';

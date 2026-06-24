@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useGroupHealth, adminService } from '../../../../services/adminService';
+import { useGroupHealth } from '../../../../hooks/queries/admin';
+import { adminService } from '../../../../services/adminService';
 import { billingSubscriptionQueryKey } from '../../../../hooks/useOrgQuota';
 import {
   DOCUMENT_SENSITIVITY_HINTS,

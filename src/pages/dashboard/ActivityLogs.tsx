@@ -6,9 +6,9 @@ import { ActivityFeed } from '../../components/admin/ActivityFeed';
 import { useRbac } from '../../hooks/useRbac';
 import {
   adminService,
-  useAuditLogs,
   type AuditLogsQuery,
 } from '../../services/adminService';
+import { useAuditLogs } from '../../hooks/queries/admin';
 import { ReportExportMenu } from '../../components/reports/ReportExportMenu';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
