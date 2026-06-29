@@ -110,10 +110,24 @@ jobs:
           TARGET_SITE="$FIREBASE_HOSTING_SITE"
           npx -y firebase-tools@latest target:apply hosting "$TARGET_ALIAS" "$TARGET_SITE" \
             --project "$FIREBASE_PROJECT_ID"
-          npx -y firebase-tools@latest deploy \
-            --only "hosting:${TARGET_ALIAS}" \
-            --project "$FIREBASE_PROJECT_ID" \
-            --non-interactive
+          set +e
+          DEPLOY_OUTPUT="$(
+            npx -y firebase-tools@latest deploy \
+              --only "hosting:${TARGET_ALIAS}" \
+              --project "$FIREBASE_PROJECT_ID" \
+              --non-interactive 2>&1
+          )"
+          DEPLOY_EXIT=$?
+          set -e
+          printf '%s\n' "$DEPLOY_OUTPUT"
+          if [ "$DEPLOY_EXIT" -ne 0 ]; then
+            if printf '%s' "$DEPLOY_OUTPUT" | grep -qi 'current active version'; then
+              echo "Hosting is already serving this build (no-op release). Treating deploy as success."
+              DEPLOY_EXIT=0
+            else
+              exit "$DEPLOY_EXIT"
+            fi
+          fi
           echo "Live URL: https://${TARGET_SITE}.web.app"
           echo "Live URL (fallback): https://${TARGET_SITE}.firebaseapp.com"
 
