@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FolderOpen, Loader2, Search } from 'lucide-react';
+import { FolderOpen, Loader2, Search, History, Zap } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   completeSharepointOAuth,
@@ -29,6 +29,7 @@ export const SharePointOAuthSitePicker: React.FC<Props> = ({
   const [selectedSite, setSelectedSite] = useState<SharePointOAuthSite | null>(null);
   const [selectedDrive, setSelectedDrive] = useState<SharePointOAuthDrive | null>(null);
   const [connectorName, setConnectorName] = useState('');
+  const [ingestionMode, setIngestionMode] = useState<'new-only' | 'historic'>('new-only');
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -57,6 +58,7 @@ export const SharePointOAuthSitePicker: React.FC<Props> = ({
           siteId: selectedSite!.id,
           driveName: selectedDrive?.name,
           libraryName: selectedDrive?.name,
+          ingestHistoric: ingestionMode === 'historic',
         },
         orgId
       ),
@@ -157,6 +159,52 @@ export const SharePointOAuthSitePicker: React.FC<Props> = ({
             )}
           </div>
         )}
+
+        <div className="mb-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            Ingestion scope
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              id="sharepoint-oauth-ingestion-new-only"
+              onClick={() => setIngestionMode('new-only')}
+              className={cn(
+                'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+                ingestionMode === 'new-only'
+                  ? 'border-emerald-500/40 bg-emerald-500/8 ring-1 ring-emerald-500/25'
+                  : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Zap className={cn('h-3 w-3', ingestionMode === 'new-only' ? 'text-emerald-500' : 'text-muted-foreground')} />
+                <span className={cn('text-[10px] font-bold', ingestionMode === 'new-only' ? 'text-emerald-500' : 'text-foreground')}>
+                  New only
+                </span>
+              </div>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">Only files added after setup.</p>
+            </button>
+            <button
+              type="button"
+              id="sharepoint-oauth-ingestion-historic"
+              onClick={() => setIngestionMode('historic')}
+              className={cn(
+                'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+                ingestionMode === 'historic'
+                  ? 'border-violet/40 bg-violet/8 ring-1 ring-violet/25'
+                  : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <History className={cn('h-3 w-3', ingestionMode === 'historic' ? 'text-violet' : 'text-muted-foreground')} />
+                <span className={cn('text-[10px] font-bold', ingestionMode === 'historic' ? 'text-violet' : 'text-foreground')}>
+                  + Existing files
+                </span>
+              </div>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">Backfill files already in the library.</p>
+            </button>
+          </div>
+        </div>
 
         <div className="mb-4">
           <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">

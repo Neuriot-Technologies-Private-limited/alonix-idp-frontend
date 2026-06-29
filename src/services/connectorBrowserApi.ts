@@ -135,7 +135,7 @@ export interface ConnectorIngestionRecord {
 export interface OrgConnector {
   _id: string;
   name: string;
-  type: 'EMAIL' | 'BOX' | 'API' | 'SHAREPOINT' | 'SFTP';
+  type: 'EMAIL' | 'API' | 'SHAREPOINT' | 'SFTP';
   status: 'ACTIVE' | 'PAUSED' | 'ERROR';
   ingestHistoric: boolean;
   lastHistoricSyncAt?: string | null;
@@ -146,6 +146,7 @@ export interface CreateOrgConnectorPayload {
   name: string;
   type: string;
   config: Record<string, unknown>;
+  ingestHistoric?: boolean;
 }
 
 export interface UpdateOrgConnectorPayload {
@@ -208,6 +209,7 @@ export interface IngestResult {
 
 export interface SharePointOAuthConfig {
   enabled: boolean;
+  redirectUri?: string;
 }
 
 export interface SharePointOAuthSite {
@@ -230,6 +232,7 @@ export interface CompleteSharePointOAuthPayload {
   siteId: string;
   libraryName?: string;
   driveName?: string;
+  ingestHistoric?: boolean;
 }
 
 // resolveOrgId reads from Zustand store state (NOT a React hook — safe to call outside components)

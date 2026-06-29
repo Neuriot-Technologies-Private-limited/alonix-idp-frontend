@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Mail, Box, Plus, Trash2, Webhook, Loader2,
+  Mail, Plus, Trash2, Webhook, Loader2,
   Clock, FolderOpen, CheckCircle2,
   Server, Eye, ToggleLeft, ToggleRight, ChevronDown, Pencil, Link2,
+  History, Zap,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -19,6 +20,7 @@ import {
 } from '../../services/connectorBrowserApi';
 import { ConnectorDeletionImpactBody } from './ConnectorDeletionImpactBody';
 import { SharePointOAuthSitePicker } from './SharePointOAuthSitePicker';
+import { SharePointConnectorSetup } from './SharePointConnectorSetup';
 import { useAuthStore } from '../../stores/authStore';
 import { quotaErrorMessage } from '../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
@@ -29,6 +31,9 @@ import type { AxiosError } from 'axios';
 type Connector = OrgConnector;
 
 type ConnectorType = 'EMAIL' | 'SHAREPOINT' | 'SFTP';
+
+type SftpIngestionMode = 'new-only' | 'historic';
+type SharepointIngestionMode = 'new-only' | 'historic';
 
 type EmailProvider = 'gmail' | 'outlook' | 'custom';
 
@@ -60,8 +65,11 @@ export const ConnectorsPanel: React.FC = () => {
   const [emailProvider, setEmailProvider] = useState<EmailProvider>('gmail');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sftpAuthType, setSftpAuthType] = useState<'password' | 'privateKey'>('password');
+  const [sftpIngestionMode, setSftpIngestionMode] = useState<SftpIngestionMode>('new-only');
+  const [sharepointIngestionMode, setSharepointIngestionMode] = useState<SharepointIngestionMode>('new-only');
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [showAdvancedSharepoint, setShowAdvancedSharepoint] = useState(false);
+  const [showSharepointAzureSetup, setShowSharepointAzureSetup] = useState(true);
   const [oauthSessionId, setOauthSessionId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -70,6 +78,11 @@ export const ConnectorsPanel: React.FC = () => {
     queryFn: () => fetchSharepointOAuthConfig(orgId || undefined),
     enabled: !!orgId,
   });
+
+  useEffect(() => {
+    if (!isModalOpen || editingConnector || newType !== 'SHAREPOINT') return;
+    setShowSharepointAzureSetup(!sharepointOAuthConfig?.enabled);
+  }, [isModalOpen, editingConnector, newType, sharepointOAuthConfig?.enabled]);
 
   useEffect(() => {
     const oauthResult = searchParams.get('sharepoint_oauth');
@@ -239,7 +252,10 @@ export const ConnectorsPanel: React.FC = () => {
     setNewType('EMAIL');
     setEmailProvider('gmail');
     setSftpAuthType('password');
+    setSftpIngestionMode('new-only');
+    setSharepointIngestionMode('new-only');
     setShowAdvancedSharepoint(false);
+    setShowSharepointAzureSetup(true);
     createMutation.reset();
     updateMutation.reset();
     setModalSessionKey((key) => key + 1);
@@ -351,6 +367,7 @@ export const ConnectorsPanel: React.FC = () => {
         tenantId: formData.get('tenantId'), clientId: formData.get('clientId'),
         clientSecret: formData.get('clientSecret'), siteUrl: formData.get('siteUrl'),
         libraryName: formData.get('libraryName') || undefined,
+        autoIngest: true,
       };
     } else if (newType === 'SFTP') {
       config = {
@@ -364,14 +381,19 @@ export const ConnectorsPanel: React.FC = () => {
       };
     }
 
-    createMutation.mutate({ name, type: newType, config });
+    createMutation.mutate({
+      name,
+      type: newType,
+      config,
+      ...(newType === 'SFTP' ? { ingestHistoric: sftpIngestionMode === 'historic' } : {}),
+      ...(newType === 'SHAREPOINT' ? { ingestHistoric: sharepointIngestionMode === 'historic' } : {}),
+    });
   };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getIcon = (type: string) => {
     switch (type) {
       case 'EMAIL':      return <Mail className="h-5 w-5 text-info" />;
-      case 'BOX':        return <Box className="h-5 w-5 text-primary" />;
       case 'SHAREPOINT': return <FolderOpen className="h-5 w-5 text-emerald-500" />;
       case 'SFTP':       return <Server className="h-5 w-5 text-amber-400" />;
       default:           return <Webhook className="h-5 w-5 text-foreground" />;
@@ -409,18 +431,6 @@ export const ConnectorsPanel: React.FC = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-            {sharepointOAuthConfig?.enabled && (
-              <button
-                type="button"
-                onClick={startSharepointOAuth}
-                disabled={connectorBlocked}
-                title={connectorBlocked ? capMessage('connectors') : undefined}
-                className="flex items-center justify-center gap-2 rounded-full bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 transition-all hover:bg-emerald-500/25 disabled:opacity-50"
-              >
-                <Link2 className="h-4 w-4" />
-                Connect SharePoint
-              </button>
-            )}
             <button
             id="add-connector-btn"
             type="button"
@@ -605,7 +615,10 @@ export const ConnectorsPanel: React.FC = () => {
                       type="button"
                       key={t}
                       id={`connector-type-${t.toLowerCase()}`}
-                      onClick={() => setNewType(t)}
+                      onClick={() => {
+                        setNewType(t);
+                        if (t === 'SHAREPOINT') setShowAdvancedSharepoint(false);
+                      }}
                       className={cn(
                         'flex-1 min-w-[80px] py-2 rounded-xl text-sm font-bold border transition-all',
                         newType === t
@@ -776,18 +789,46 @@ export const ConnectorsPanel: React.FC = () => {
                         />
                       </div>
                     </>
-                  ) : !editingConnector && sharepointOAuthConfig?.enabled && !showAdvancedSharepoint ? (
+                  ) : !editingConnector && !showAdvancedSharepoint ? (
                     <>
-                      <p className="text-xs text-muted-foreground">
-                        Use <strong className="text-foreground">Connect SharePoint</strong> above to sign in with Microsoft and pick a site — no Azure app setup required.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setShowAdvancedSharepoint(true)}
-                        className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                      >
-                        Advanced: use your own Azure app →
-                      </button>
+                      {(showSharepointAzureSetup || !sharepointOAuthConfig?.enabled) && (
+                        <SharePointConnectorSetup
+                          fallbackRedirectUri={sharepointOAuthConfig?.redirectUri}
+                          showCancel={Boolean(sharepointOAuthConfig?.enabled)}
+                          onCancel={() => setShowSharepointAzureSetup(false)}
+                          onSaved={() => setShowSharepointAzureSetup(false)}
+                        />
+                      )}
+
+                      {sharepointOAuthConfig?.enabled && !showSharepointAzureSetup ? (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            Step 2 — Sign in with Microsoft to pick a SharePoint site.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={startSharepointOAuth}
+                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 px-4 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400 transition-all hover:bg-emerald-500/25"
+                          >
+                            <Link2 className="h-4 w-4" />
+                            Connect with Microsoft
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowSharepointAzureSetup(true)}
+                            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                          >
+                            Update Azure app credentials →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowAdvancedSharepoint(true)}
+                            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                          >
+                            Advanced: per-connector Azure app →
+                          </button>
+                        </>
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -865,10 +906,57 @@ export const ConnectorsPanel: React.FC = () => {
                           className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-sm"
                         />
                       </div>
+                      {!editingConnector && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Ingestion scope
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              id="sharepoint-ingestion-new-only"
+                              onClick={() => setSharepointIngestionMode('new-only')}
+                              className={cn(
+                                'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+                                sharepointIngestionMode === 'new-only'
+                                  ? 'border-emerald-500/40 bg-emerald-500/8 ring-1 ring-emerald-500/25'
+                                  : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Zap className={cn('h-3 w-3', sharepointIngestionMode === 'new-only' ? 'text-emerald-500' : 'text-muted-foreground')} />
+                                <span className={cn('text-[10px] font-bold', sharepointIngestionMode === 'new-only' ? 'text-emerald-500' : 'text-foreground')}>
+                                  New only
+                                </span>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground leading-relaxed">Only files added after setup.</p>
+                            </button>
+                            <button
+                              type="button"
+                              id="sharepoint-ingestion-historic"
+                              onClick={() => setSharepointIngestionMode('historic')}
+                              className={cn(
+                                'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+                                sharepointIngestionMode === 'historic'
+                                  ? 'border-violet/40 bg-violet/8 ring-1 ring-violet/25'
+                                  : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <History className={cn('h-3 w-3', sharepointIngestionMode === 'historic' ? 'text-violet' : 'text-muted-foreground')} />
+                                <span className={cn('text-[10px] font-bold', sharepointIngestionMode === 'historic' ? 'text-violet' : 'text-foreground')}>
+                                  + Existing files
+                                </span>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground leading-relaxed">Backfill files already in the library.</p>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-[10px] text-muted-foreground">
                         <Clock className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
                         <span>
-                          Advanced setup: use the Azure secret <strong className="text-foreground">Value</strong>, not the Secret ID.
+                          Advanced setup: use the Azure secret <strong className="text-foreground">Value</strong>, not the Secret ID. Auto-sync runs every 1 hour.
                         </span>
                       </div>
                     </>
@@ -945,28 +1033,79 @@ export const ConnectorsPanel: React.FC = () => {
                         className="w-full rounded-lg border border-border/20 bg-background px-3 py-2 text-xs font-mono resize-none" />
                     </div>
                   )}
+                  {!editingConnector && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                        Ingestion scope
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          id="sftp-ingestion-new-only"
+                          onClick={() => setSftpIngestionMode('new-only')}
+                          className={cn(
+                            'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+                            sftpIngestionMode === 'new-only'
+                              ? 'border-amber-500/40 bg-amber-500/8 ring-1 ring-amber-500/25'
+                              : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Zap className={cn('h-3 w-3', sftpIngestionMode === 'new-only' ? 'text-amber-400' : 'text-muted-foreground')} />
+                            <span className={cn('text-[10px] font-bold', sftpIngestionMode === 'new-only' ? 'text-amber-400' : 'text-foreground')}>
+                              New only
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground leading-relaxed">Only files added after setup.</p>
+                        </button>
+                        <button
+                          type="button"
+                          id="sftp-ingestion-historic"
+                          onClick={() => setSftpIngestionMode('historic')}
+                          className={cn(
+                            'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+                            sftpIngestionMode === 'historic'
+                              ? 'border-violet/40 bg-violet/8 ring-1 ring-violet/25'
+                              : 'border-border/20 bg-surface-highest/10 hover:border-border/40'
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <History className={cn('h-3 w-3', sftpIngestionMode === 'historic' ? 'text-violet' : 'text-muted-foreground')} />
+                            <span className={cn('text-[10px] font-bold', sftpIngestionMode === 'historic' ? 'text-violet' : 'text-foreground')}>
+                              + Existing files
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground leading-relaxed">Backfill files already on the server.</p>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5 text-[10px] text-muted-foreground">
                     <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <span>All credentials are encrypted at rest. Files are never deleted from your server after ingestion.</span>
+                    <span>
+                      All credentials are encrypted at rest. Auto-sync runs every 1 hour. Files are never deleted from your server after ingestion.
+                    </span>
                   </div>
                 </div>
               )}
 
-              <button
-
-                id="save-connector-btn"
-                type="submit"
-                disabled={
-                  createMutation.isPending ||
-                  updateMutation.isPending ||
-                  (!editingConnector && newType === 'SHAREPOINT' && sharepointOAuthConfig?.enabled && !showAdvancedSharepoint)
-                }
-                className="w-full mt-4 flex justify-center py-3 rounded-xl bg-foreground text-background font-black uppercase tracking-wider text-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                {(createMutation.isPending || updateMutation.isPending)
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : editingConnector ? 'Save Changes' : 'Save Connection'}
-              </button>
+              {!(
+                !editingConnector &&
+                newType === 'SHAREPOINT' &&
+                sharepointOAuthConfig?.enabled &&
+                !showAdvancedSharepoint
+              ) && (
+                <button
+                  id="save-connector-btn"
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="w-full mt-4 flex justify-center py-3 rounded-xl bg-foreground text-background font-black uppercase tracking-wider text-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  {(createMutation.isPending || updateMutation.isPending)
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : editingConnector ? 'Save Changes' : 'Save Connection'}
+                </button>
+              )}
 
               {(createMutation.isError || updateMutation.isError) && (
                 <p className="text-xs text-destructive text-center mt-1">

@@ -28,9 +28,7 @@ const CONNECTOR_TYPE_LABELS: Record<string, string> = {
   EMAIL: 'Email',
   SFTP: 'SFTP',
   SHAREPOINT: 'SharePoint',
-  BOX: 'Box',
   API: 'API',
-  FAX: 'Fax',
 };
 
 export function connectorTypeLabel(type: string): string {
@@ -38,7 +36,7 @@ export function connectorTypeLabel(type: string): string {
   return CONNECTOR_TYPE_LABELS[key] || key || 'Connector';
 }
 
-const CONNECTOR_SOURCE_TYPES = new Set(['EMAIL', 'SFTP', 'SHAREPOINT', 'BOX', 'API', 'FAX']);
+const CONNECTOR_SOURCE_TYPES = new Set(['EMAIL', 'SFTP', 'SHAREPOINT', 'API']);
 
 function isSystemConnectorRef(value: unknown): boolean {
   return String(value || '').trim().toUpperCase() === 'SYSTEM_CONNECTOR';

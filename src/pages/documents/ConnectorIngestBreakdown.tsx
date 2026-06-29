@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Server, FolderOpen, Network, Box, Plug } from 'lucide-react';
+import { Mail, Server, FolderOpen, Network, Plug } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import type { ConnectorNameBreakdown, ConnectorTypeBreakdown } from '../../utils/connectorDocumentSource';
@@ -19,7 +19,6 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   EMAIL: Mail,
   SFTP: Server,
   SHAREPOINT: FolderOpen,
-  BOX: Box,
   API: Plug,
 };
 

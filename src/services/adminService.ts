@@ -230,6 +230,24 @@ export interface UpdateOrgAiSettingsInput {
   openSourceApiKey?: string;
 }
 
+export type SharePointCredentialSource = 'org' | 'env' | null;
+
+export interface OrgSharePointSettings {
+  orgId: string;
+  orgConfigured?: boolean;
+  configured: boolean;
+  clientId: string;
+  hasClientSecret: boolean;
+  redirectUri: string;
+  credentialSource: SharePointCredentialSource;
+  updatedAt: string | null;
+}
+
+export interface UpdateOrgSharePointSettingsInput {
+  clientId?: string;
+  clientSecret?: string;
+}
+
 export type CreateGroupResult =
   | { ok: true; group: { id: string; name: string; users: number; docs: number; status: string; statusLabel: string } }
   | { ok: false; error: string };
@@ -596,6 +614,33 @@ export const adminService = {
       input
     );
     return data.settings;
+  },
+
+  getOrgSharePointSettings: async (): Promise<OrgSharePointSettings> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.get<{ settings: OrgSharePointSettings }>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/sharepoint-settings`
+    );
+    return data.settings;
+  },
+
+  updateOrgSharePointSettings: async (
+    input: UpdateOrgSharePointSettingsInput
+  ): Promise<OrgSharePointSettings> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.put<{ settings: OrgSharePointSettings }>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/sharepoint-settings`,
+      input
+    );
+    return data.settings;
+  },
+
+  testOrgSharePointSettings: async (): Promise<{ ok: boolean; message: string }> => {
+    const orgId = requireOrgId();
+    const { data } = await apiClient.post<{ ok: boolean; message: string }>(
+      `/admin/orgs/${encodeURIComponent(orgId)}/sharepoint-settings/test`
+    );
+    return data;
   },
 
   exportActivityPdf: async (query: AuditLogsQuery = {}): Promise<Blob> => {

@@ -3,7 +3,7 @@ import {
   Network, Mail, FolderOpen, Server, ChevronRight, Home,
   File, Folder, Loader2, AlertCircle, RefreshCw,
   Zap, CheckCircle2, Search, LayoutGrid, X,
-  Box, Plug,
+  Plug,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { browseConnector, ingestFile, listMailboxes, listMailboxesForGroup, listOrgConnectors } from '../../services/connectorBrowserApi';
@@ -29,7 +29,6 @@ const TYPE_META: Record<string, { icon: React.ReactNode; color: string; label: s
   EMAIL:      { icon: <Mail className="w-4 h-4" />,       color: 'text-sky-400 bg-sky-400/10',     label: 'Email' },
   SHAREPOINT: { icon: <FolderOpen className="w-4 h-4" />, color: 'text-emerald-400 bg-emerald-400/10', label: 'SharePoint' },
   SFTP:       { icon: <Server className="w-4 h-4" />,     color: 'text-amber-400 bg-amber-400/10', label: 'SFTP' },
-  BOX:        { icon: <Box className="w-4 h-4" />,       color: 'text-blue-300 bg-blue-400/10',   label: 'Box' },
   API:        { icon: <Plug className="w-4 h-4" />,      color: 'text-cyan-300 bg-cyan-400/10',    label: 'API' },
 };
 

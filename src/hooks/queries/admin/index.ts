@@ -3,6 +3,7 @@ export {
   useAdminStats,
   useSiemStatus,
   useOrgAiSettings,
+  useOrgSharePointSettings,
   useUsers,
   useAuditLogs,
 } from './useAdminOrgQueries';

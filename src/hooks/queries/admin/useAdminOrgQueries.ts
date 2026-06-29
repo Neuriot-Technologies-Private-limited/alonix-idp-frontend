@@ -56,6 +56,17 @@ export const useOrgAiSettings = (opts?: { enabled?: boolean }) => {
   });
 };
 
+export const useOrgSharePointSettings = (opts?: { enabled?: boolean }) => {
+  const orgId = useOrgId();
+  const isCompanyAdmin = useIsCompanyAdmin();
+  return useQuery({
+    queryKey: ['org-sharepoint-settings', orgId],
+    queryFn: adminService.getOrgSharePointSettings,
+    enabled: opts?.enabled !== false && !!orgId && isCompanyAdmin,
+    staleTime: 60 * 1000,
+  });
+};
+
 export const useUsers = () => {
   const orgId = useOrgId();
   const isCompanyAdmin = useIsCompanyAdmin();
