@@ -83,7 +83,8 @@ export function useChatComposer({
             apiResponse.answer || '',
             responseKind === 'clarification' ? null : apiResponse.sources,
             responseKind,
-            clarificationOptions
+            clarificationOptions,
+            apiResponse.query_id
           ),
         ]);
         setText('');

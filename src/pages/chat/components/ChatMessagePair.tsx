@@ -72,7 +72,7 @@ function ClarificationOptionRow({
   );
 }
 
-export const ChatMessagePair: React.FC<ChatMessagePairProps> = ({
+export const ChatMessagePair = React.memo(function ChatMessagePair({
   pair,
   questionLabel,
   answerLabel,
@@ -82,7 +82,7 @@ export const ChatMessagePair: React.FC<ChatMessagePairProps> = ({
   onClarificationOptionSelect,
   onClarificationCustomInput,
   clarificationOptionsDisabled = false,
-}) => {
+}: ChatMessagePairProps) {
   const { user: uq, ai } = pair;
   const isClarification = ai.responseKind === 'clarification';
   const options = ai.clarificationOptions ?? [];
@@ -177,4 +177,4 @@ export const ChatMessagePair: React.FC<ChatMessagePairProps> = ({
       </div>
     </div>
   );
-};
+});

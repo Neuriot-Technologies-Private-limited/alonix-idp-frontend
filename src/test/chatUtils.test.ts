@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeSourcesPayload } from '../pages/chat/utils/chatSources';
-import { mapApiAnswerToPair } from '../pages/chat/utils/mapChatMessages';
+import { mapApiAnswerToPair, mapHistoryMessageToPair, resolvePairId } from '../pages/chat/utils/mapChatMessages';
 import {
   extractClarificationOptions,
   resolveResponseKind,
@@ -21,10 +21,34 @@ describe('chatSources', () => {
 describe('mapChatMessages', () => {
   it('mapApiAnswerToPair builds clarification pair without sources', () => {
     const pair = mapApiAnswerToPair('What date?', 'Please specify the year.', null, 'clarification');
+    expect(pair.pairId).toBeTruthy();
     expect(pair.user.text).toBe('What date?');
     expect(pair.ai.responseKind).toBe('clarification');
     expect(pair.ai.sources).toHaveLength(0);
     expect(pair.ai.clarificationOptions).toBeUndefined();
+  });
+
+  it('mapApiAnswerToPair uses query_id when provided', () => {
+    const pair = mapApiAnswerToPair('Q', 'A', null, 'answer', undefined, '507f1f77bcf86cd799439012');
+    expect(pair.pairId).toBe('507f1f77bcf86cd799439012');
+  });
+
+  it('mapHistoryMessageToPair uses query_id from history payload', () => {
+    const pair = mapHistoryMessageToPair({
+      query_id: 'abc123',
+      query: 'Hello',
+      answer: 'Hi',
+    });
+    expect(pair.pairId).toBe('abc123');
+    expect(pair.user.text).toBe('Hello');
+  });
+
+  it('resolvePairId prefers query_id then falls back', () => {
+    expect(resolvePairId({ query_id: 'q1' })).toBe('q1');
+    expect(resolvePairId({}, 'fallback-id')).toBe('fallback-id');
+    expect(resolvePairId({})).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
   });
 
   it('mapApiAnswerToPair attaches clarification options when provided', () => {

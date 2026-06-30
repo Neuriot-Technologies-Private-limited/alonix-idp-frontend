@@ -546,11 +546,12 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
               </div>
             ) : (
               <div className="divide-y divide-border/5">
-                {filteredItems.map((item, idx) => {
+                {filteredItems.map((item) => {
                   const isActive = selectedItem?.path === item.path && selectedItem?.id === item.id;
+                  const itemKey = item.id ?? item.path ?? item.name;
                   return (
                     <button
-                      key={`${item.path}-${idx}`}
+                      key={itemKey}
                       type="button"
                       onClick={() => {
                         if (item.type === 'folder') {

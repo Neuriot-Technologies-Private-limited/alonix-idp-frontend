@@ -86,7 +86,7 @@ const ChatPage: React.FC = () => {
               (pair.ai.clarificationOptions?.length ?? 0) > 0;
             return (
               <ChatMessagePair
-                key={idx}
+                key={pair.pairId}
                 pair={pair}
                 questionLabel={t('question')}
                 answerLabel={t('answer')}
@@ -94,10 +94,12 @@ const ChatPage: React.FC = () => {
                 onSourceClick={handleSourceClick}
                 clarificationOptionsInteractive={isInteractiveClarification}
                 clarificationOptionsDisabled={composer.isResponseLoading || qaBlocked}
-                onClarificationOptionSelect={(option) =>
-                  void composer.submitClarificationOption(option)
+                onClarificationOptionSelect={
+                  isInteractiveClarification ? composer.submitClarificationOption : undefined
                 }
-                onClarificationCustomInput={() => composer.focusComposer()}
+                onClarificationCustomInput={
+                  isInteractiveClarification ? composer.focusComposer : undefined
+                }
               />
             );
           })}

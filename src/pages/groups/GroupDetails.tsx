@@ -796,8 +796,8 @@ export const GroupDetails: React.FC = () => {
               </div>
 
               <div className="relative space-y-8 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[1px] before:bg-border/20">
-                {group.recentActivity.map((activity, i) => (
-                  <div key={i} className="relative pl-10 group/timeline">
+                {group.recentActivity.map((activity) => (
+                  <div key={activity.id} className="relative pl-10 group/timeline">
                     <div className={`
                         absolute left-0 top-1 w-6 h-6 rounded-md border-2 border-background flex items-center justify-center
                         ${activity.type === 'success' ? 'bg-success text-success-foreground' :

@@ -13,6 +13,8 @@ export interface NormSource {
 }
 
 export interface ConversationPair {
+  /** Stable React key — from API `query_id` when available. */
+  pairId: string;
   user: { text: string };
   ai: {
     text: string;
