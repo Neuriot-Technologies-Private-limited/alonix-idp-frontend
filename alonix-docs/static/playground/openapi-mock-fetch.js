@@ -2,8 +2,6 @@
  * Browser-side OpenAPI mock — returns example responses without Prism or a VM.
  */
 (function (global) {
-  var MOCK_HOST = 'playground.mock';
-
   function pathToRegex(openApiPath) {
     var pattern = openApiPath.replace(/\{[^}]+\}/g, '[^/]+').replace(/\//g, '\\/');
     return new RegExp('^' + pattern + '$');
@@ -13,6 +11,18 @@
     var path = pathname || '/';
     if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
     return path;
+  }
+
+  function requestUrl(input) {
+    if (typeof input === 'string') return input;
+    if (input && typeof input.url === 'string') return input.url;
+    return String(input);
+  }
+
+  function requestMethod(input, init) {
+    if (init && init.method) return init.method;
+    if (input && typeof input.method === 'string') return input.method;
+    return 'GET';
   }
 
   function findRoute(fixtures, method, pathname) {
@@ -52,10 +62,12 @@
     }
   }
 
-  function isMockApiRequest(url) {
+  function isMockApiRequest(url, mockServerUrl) {
     try {
       var u = new URL(url, global.location.href);
-      if (u.hostname === MOCK_HOST) return true;
+      var mock = new URL(mockServerUrl, global.location.href);
+      if (u.origin === mock.origin && u.pathname.indexOf(mock.pathname) === 0) return true;
+      if (u.hostname === 'playground.mock') return true;
       if (u.hostname === 'localhost' && u.port === '4010') return true;
       if (u.hostname === '127.0.0.1' && u.port === '4010') return true;
     } catch (e) {
@@ -64,28 +76,44 @@
     return false;
   }
 
-  function createOpenApiMockFetch(fixtures, specUrl) {
-    var nativeFetch = global.fetch.bind(global);
+  function apiPathFromMockUrl(requestUrlStr, mockServerUrl) {
+    var u = new URL(requestUrlStr, global.location.href);
+    var mock = new URL(mockServerUrl, global.location.href);
+    var prefix = mock.pathname.replace(/\/$/, '');
+    var path = u.pathname;
+    if (path.indexOf(prefix) === 0) {
+      path = path.slice(prefix.length) || '/';
+    }
+    return normalizePath(path);
+  }
+
+  function getMockServerUrl() {
+    return new URL('mock-api', global.location.href).href.replace(/\/$/, '');
+  }
+
+  function createOpenApiMockFetch(fixtures, specUrl, mockServerUrl) {
+    var nativeFetch = global.__alonixNativeFetch || global.fetch.bind(global);
+    var mockBase = mockServerUrl || getMockServerUrl();
 
     return function customFetch(input, init) {
-      var url = typeof input === 'string' ? input : input && input.url ? input.url : String(input);
+      var url = requestUrl(input);
 
       if (isSpecRequest(url, specUrl)) {
         return nativeFetch(input, init);
       }
 
-      if (!isMockApiRequest(url)) {
+      if (!isMockApiRequest(url, mockBase)) {
         return nativeFetch(input, init);
       }
 
-      var requestUrl = new URL(url, global.location.href);
-      var method = (init && init.method) || 'GET';
-      var route = findRoute(fixtures, method, requestUrl.pathname);
+      var method = requestMethod(input, init);
+      var apiPath = apiPathFromMockUrl(url, mockBase);
+      var route = findRoute(fixtures, method, apiPath);
 
       if (!route) {
         return Promise.resolve(
           jsonResponse(404, {
-            message: 'No mock example for ' + method.toUpperCase() + ' ' + requestUrl.pathname,
+            message: 'No mock example for ' + method.toUpperCase() + ' ' + apiPath,
           })
         );
       }
@@ -94,13 +122,25 @@
     };
   }
 
+  function installMockFetch(fixtures, specUrl, mockServerUrl) {
+    var mockFetch = createOpenApiMockFetch(fixtures, specUrl, mockServerUrl);
+    if (!global.__alonixNativeFetch) {
+      global.__alonixNativeFetch = global.fetch.bind(global);
+    }
+    global.fetch = function (input, init) {
+      return mockFetch(input, init);
+    };
+    return mockFetch;
+  }
+
   global.OpenApiMockFetch = {
-    MOCK_HOST: MOCK_HOST,
-    mockServerUrl: 'https://' + MOCK_HOST,
+    getMockServerUrl: getMockServerUrl,
     createOpenApiMockFetch: createOpenApiMockFetch,
+    installMockFetch: installMockFetch,
     loadFixtures: function (fixturesUrl) {
-      return global.fetch(fixturesUrl).then(function (res) {
-        if (!res.ok) throw new Error('Failed to load mock fixtures');
+      var nativeFetch = global.__alonixNativeFetch || global.fetch.bind(global);
+      return nativeFetch(fixturesUrl).then(function (res) {
+        if (!res.ok) throw new Error('Failed to load mock fixtures (' + res.status + ')');
         return res.json();
       });
     },

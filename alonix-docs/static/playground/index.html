@@ -90,7 +90,7 @@
         var specUrl = params.get('spec') || '/openapi.yaml';
         var mode = params.get('mode') || 'mock';
         var isMock = mode !== 'sandbox';
-        var mockUrl = OpenApiMockFetch.mockServerUrl;
+        var mockUrl = OpenApiMockFetch.getMockServerUrl();
         var sandboxUrl = params.get('sandboxUrl') || 'http://localhost:5005/api';
         var defaultServer = isMock ? mockUrl : params.get('server') || sandboxUrl;
         var opPath = params.get('path');
@@ -111,6 +111,7 @@
             url: specUrl,
             servers: servers,
             customFetch: customFetch,
+            fetch: customFetch,
             authentication: {
               preferredSecurityScheme: 'bearerAuth',
               securitySchemes: {
@@ -155,7 +156,8 @@
         if (isMock) {
           OpenApiMockFetch.loadFixtures(fixturesUrl)
             .then(function (fixtures) {
-              mountScalar(OpenApiMockFetch.createOpenApiMockFetch(fixtures, specUrl));
+              var customFetch = OpenApiMockFetch.installMockFetch(fixtures, specUrl, mockUrl);
+              mountScalar(customFetch);
             })
             .catch(function (err) {
               showError(err && err.message ? err.message : String(err));
