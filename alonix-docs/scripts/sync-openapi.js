@@ -14,7 +14,13 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('yaml');
 
-const backendRoot = path.resolve(__dirname, '..', '..', 'alonix-idp-node-backend');
+const backendCandidates = [
+  path.resolve(__dirname, '..', '..', '..', 'alonix-idp-node-backend'),
+  path.resolve(__dirname, '..', '..', 'alonix-idp-node-backend'),
+];
+const backendRoot =
+  backendCandidates.find((candidate) => fs.existsSync(path.join(candidate, 'openapi', 'openapi.json'))) ||
+  backendCandidates[0];
 const backendJson = path.join(backendRoot, 'openapi', 'openapi.json');
 const docsYaml = path.resolve(__dirname, '..', 'static', 'openapi.yaml');
 const docsOnlyYaml = path.resolve(__dirname, '..', 'static', 'openapi.docs-only.yaml');

@@ -17,6 +17,7 @@
     "build:1glance:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise tsc -b && vite build --mode 1glance",
     "build:findoutai": "tsc -b && vite build --mode findoutai",
     "build:findoutai:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise tsc -b && vite build --mode findoutai",
+    "build:firebase": "bash scripts/build-firebase-with-docs.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",

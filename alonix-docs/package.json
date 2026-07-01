@@ -14,6 +14,7 @@
     "generate:api-docs": "node scripts/generate-api-docs.js",
     "mock": "node scripts/start-mock.js",
     "dev:mock": "concurrently -k -n mock,docs -c blue,green \"npm run mock\" \"npm run start\"",
+    "build:ci": "npm run generate:api-docs && docusaurus build",
     "prebuild": "npm run sync:openapi && npm run generate:api-docs",
     "pregenerate:api-docs": "node -e \"const fs=require('fs');if(!fs.existsSync('static/openapi.yaml')){console.error('Run npm run sync:openapi first');process.exit(1)}\""
   },

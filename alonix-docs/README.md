@@ -162,17 +162,27 @@ Docs ship at **`https://<your-app-domain>/docs/`** via the frontend Firebase wor
 
 | Setting | Example | Purpose |
 |---------|---------|---------|
-| `vars.ALONIX_DOCS_REPOSITORY` | `your-org/alonix-docs` | Docs repo checked out in CI |
 | `vars.PUBLIC_APP_URL` | `https://app.yourdomain.com` | Canonical URL + smoke tests |
-| `secrets.DOCS_REPO_TOKEN` | PAT (optional) | If docs repo is private and not same org |
+
+Docs live in **`alonix-idp-frontend/alonix-docs/`** on the same `develop` branch — no separate docs repo required.
 
 **CI pipeline** (`alonix-idp-frontend/.github/workflows/firebase-hosting.yml`):
 
 1. `security` — gitleaks, tests, audit  
-2. `build-docs` — Docusaurus build with `DOCUSAURUS_BASE_URL=/docs/`  
-3. `deploy` — Vite app + merge docs into `dist/docs/` + Firebase deploy  
-4. `deploy-docs` — smoke test `/docs/`, `/docs/api-playground`, `/docs/openapi.yaml`  
-5. `notify-slack`
+2. `deploy` — build docs + app, merge into `dist/docs/`, Firebase deploy  
+3. `deploy-docs` — smoke test `/docs/`, `/docs/api-playground`, `/docs/openapi.yaml`  
+4. `notify-slack`
+
+### Local build before push (matches CI)
+
+From `alonix-idp-frontend/`:
+
+```bash
+export VITE_API_BASE_URL=https://your-api.example.com/api
+npm run build:firebase
+```
+
+This builds the app, builds docs at `/docs/`, and merges into `dist/docs/`.
 
 ```bash
 # Manual production docs build (matches CI)

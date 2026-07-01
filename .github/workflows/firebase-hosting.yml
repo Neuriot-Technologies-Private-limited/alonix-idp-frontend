@@ -42,7 +42,7 @@ jobs:
       - name: Scan for secrets (Gitleaks)
         run: |
           gitleaks version
-          gitleaks detect --source . --verbose
+          gitleaks detect --source . --config .gitleaks.toml --verbose
 
       - uses: actions/setup-node@v6
         with:
@@ -53,67 +53,45 @@ jobs:
       - name: npm audit (fail on high+)
         run: npm audit --audit-level=high
 
-  build-docs:
-    name: Build docs (Help Center)
-    needs: security
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout docs repository
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ vars.ALONIX_DOCS_REPOSITORY }}
-          ref: ${{ vars.ALONIX_DOCS_BRANCH || 'main' }}
-          path: alonix-docs
-          token: ${{ secrets.DOCS_REPO_TOKEN || secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: alonix-docs/package-lock.json
-
-      - name: Install docs dependencies
-        working-directory: alonix-docs
-        run: npm ci
-
-      - name: Sync OpenAPI from backend
-        working-directory: alonix-docs
-        run: npm run sync:openapi
-        continue-on-error: true
-
-      - name: Build docs for /docs subpath
-        working-directory: alonix-docs
-        env:
-          DOCUSAURUS_BASE_URL: /docs/
-          DOCUSAURUS_SITE_URL: ${{ vars.PUBLIC_APP_URL }}
-          DOCUSAURUS_API_MODE: mock
-          DOCUSAURUS_API_MOCK_URL: http://localhost:4010
-        run: npm run build
-
-      - name: Upload docs build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: alonix-docs-build
-          path: alonix-docs/build
-          retention-days: 7
-
   deploy:
-    needs: [security, build-docs]
+    name: Deploy app + /docs
+    needs: security
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
+      - name: Verify alonix-docs is present
+        run: |
+          test -f alonix-docs/package.json || {
+            echo "alonix-docs/ is missing from this commit. Add the Help Center folder before deploy."
+            exit 1
+          }
+
+      - name: Setup Node.js (docs)
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: alonix-docs/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build docs (Help Center)
+        working-directory: alonix-docs
+        env:
+          DOCUSAURUS_BASE_URL: /docs/
+          DOCUSAURUS_SITE_URL: ${{ vars.PUBLIC_APP_URL }}
+          DOCUSAURUS_API_MODE: mock
+          DOCUSAURUS_API_MOCK_URL: http://localhost:4010
+        run: |
+          npm ci
+          npm run build:ci
+
+      - name: Setup Node.js (app)
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
 
       - name: Build app
         env:
@@ -124,18 +102,14 @@ jobs:
             exit 1
           fi
           printf "VITE_API_BASE_URL=%s\n" "$VITE_API_BASE_URL" > .env.production
+          npm ci
           npm run build:findoutai
-
-      - name: Download docs build
-        uses: actions/download-artifact@v4
-        with:
-          name: alonix-docs-build
-          path: .docs-build
 
       - name: Merge docs into dist
         run: |
           chmod +x scripts/merge-docs-into-dist.sh
-          ./scripts/merge-docs-into-dist.sh .docs-build dist
+          ./scripts/merge-docs-into-dist.sh alonix-docs/build dist
+          test -f dist/docs/index.html
 
       - name: Authenticate Firebase service account
         env:
