@@ -24,13 +24,8 @@ export default function ServerModeBanner(): React.JSX.Element {
       <span className={styles.text}>
         {isMock ? (
           <>
-            Requests go to the <strong>Prism mock server</strong> at{' '}
-            <code>{fields.mockUrl ?? 'http://localhost:4010'}</code> — responses are{' '}
-            <strong>example data only</strong> (your credentials are not checked). Safe for demos.
-            For real API responses, switch the server dropdown in the playground to{' '}
-            <strong>Sandbox backend</strong> and run the backend on{' '}
-            <code>{fields.sandboxUrl ?? 'http://localhost:5005/api'}</code>, or set{' '}
-            <code>DOCUSAURUS_API_MODE=sandbox</code> in <code>.env</code> and restart docs.
+            Responses come from <strong>OpenAPI examples in your browser</strong> — no live server
+            required. Credentials are not checked; data is for demos only. Safe on deployed docs.
           </>
         ) : (
           <>

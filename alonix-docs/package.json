@@ -12,12 +12,13 @@
     "clear": "docusaurus clear",
     "typecheck": "tsc --noEmit",
     "sync:openapi": "node scripts/sync-openapi.js",
+    "generate:mock-fixtures": "node scripts/generate-mock-fixtures.js",
     "generate:api-docs": "node scripts/generate-api-docs.js",
     "mock": "node scripts/start-mock.js",
     "dev:mock": "concurrently -k -n mock,docs -c blue,green \"npm run mock\" \"npm run start\"",
-    "prestart": "npm run sync:brand",
-    "build:ci": "npm run sync:brand && npm run generate:api-docs && docusaurus build",
-    "prebuild": "npm run sync:brand && npm run sync:openapi && npm run generate:api-docs",
+    "prestart": "npm run sync:brand && npm run generate:mock-fixtures",
+    "build:ci": "npm run sync:brand && npm run generate:mock-fixtures && npm run generate:api-docs && docusaurus build",
+    "prebuild": "npm run sync:brand && npm run sync:openapi && npm run generate:mock-fixtures && npm run generate:api-docs",
     "pregenerate:api-docs": "node -e \"const fs=require('fs');if(!fs.existsSync('static/openapi.yaml')){console.error('Run npm run sync:openapi first');process.exit(1)}\""
   },
   "dependencies": {

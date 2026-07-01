@@ -44,11 +44,9 @@
     <div id="error" role="alert">
       <h1>API Playground failed to load</h1>
       <p id="error-detail"></p>
-      <p>
-        Start the mock API with <code>npm run dev:mock</code> from <code>alonix-docs</code>, or
-        point sandbox mode at a running backend on <code>http://localhost:5005/api</code>.
-      </p>
+      <p>Check your network connection and reload the page.</p>
     </div>
+    <script src="./openapi-mock-fetch.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.28.25"></script>
     <script>
       (function () {
@@ -83,61 +81,89 @@
           return;
         }
 
+        if (!window.OpenApiMockFetch) {
+          showError('Mock helper failed to load.');
+          return;
+        }
+
         var params = new URLSearchParams(window.location.search);
         var specUrl = params.get('spec') || '/openapi.yaml';
-        var defaultServer = params.get('server') || 'http://localhost:4010';
+        var mode = params.get('mode') || 'mock';
+        var isMock = mode !== 'sandbox';
+        var mockUrl = OpenApiMockFetch.mockServerUrl;
+        var sandboxUrl = params.get('sandboxUrl') || 'http://localhost:5005/api';
+        var defaultServer = isMock ? mockUrl : params.get('server') || sandboxUrl;
         var opPath = params.get('path');
         var opMethod = params.get('method');
         var storedToken = readStoredToken();
+        var fixturesUrl = new URL('./mock-fixtures.json', window.location.href).href;
 
-        var config = {
-          url: specUrl,
-          servers: [
-            { url: defaultServer, description: 'Active target' },
-            { url: 'http://localhost:4010', description: 'Mock (Prism)' },
-            { url: 'http://localhost:5005/api', description: 'Sandbox backend' },
-          ],
-          authentication: {
-            preferredSecurityScheme: 'bearerAuth',
-            securitySchemes: {
-              bearerAuth: {
-                token: storedToken,
+        function mountScalar(customFetch) {
+          var servers = isMock
+            ? [{url: mockUrl, description: 'Mock (OpenAPI examples — browser)'}]
+            : [
+                {url: defaultServer, description: 'Active target'},
+                {url: mockUrl, description: 'Mock (OpenAPI examples)'},
+                {url: sandboxUrl, description: 'Sandbox backend'},
+              ];
+
+          var config = {
+            url: specUrl,
+            servers: servers,
+            customFetch: customFetch,
+            authentication: {
+              preferredSecurityScheme: 'bearerAuth',
+              securitySchemes: {
+                bearerAuth: {
+                  token: storedToken,
+                },
               },
             },
-          },
-          layout: 'modern',
-          deepLinking: true,
-          showSidebar: true,
-          hideModels: false,
-          defaultOpenAllTags: false,
-          onBeforeRequest: function (ctx) {
-            var requestBuilder = ctx.requestBuilder;
-            if (!requestBuilder) return;
-
-            // Persist bearer token when user authorizes in Scalar
-            var securities = requestBuilder.security || [];
-            for (var i = 0; i < securities.length; i++) {
-              var sec = securities[i];
-              if (sec && sec.format === 'bearer' && sec.value) {
-                storeToken(sec.value);
-                break;
+            layout: 'modern',
+            deepLinking: true,
+            showSidebar: true,
+            hideModels: false,
+            defaultOpenAllTags: false,
+            onBeforeRequest: function (ctx) {
+              var requestBuilder = ctx.requestBuilder;
+              if (!requestBuilder) return;
+              var securities = requestBuilder.security || [];
+              for (var i = 0; i < securities.length; i++) {
+                var sec = securities[i];
+                if (sec && sec.format === 'bearer' && sec.value) {
+                  storeToken(sec.value);
+                  break;
+                }
               }
-            }
-          },
-        };
-
-        if (opPath && opMethod) {
-          config.initialOperation = {
-            path: opPath.startsWith('/') ? opPath : '/' + opPath,
-            method: opMethod.toLowerCase(),
+            },
           };
+
+          if (opPath && opMethod) {
+            config.initialOperation = {
+              path: opPath.startsWith('/') ? opPath : '/' + opPath,
+              method: opMethod.toLowerCase(),
+            };
+          }
+
+          try {
+            Scalar.createApiReference('#app', config);
+          } catch (err) {
+            showError(err && err.message ? err.message : String(err));
+          }
         }
 
-        try {
-          Scalar.createApiReference('#app', config);
-        } catch (err) {
-          showError(err && err.message ? err.message : String(err));
+        if (isMock) {
+          OpenApiMockFetch.loadFixtures(fixturesUrl)
+            .then(function (fixtures) {
+              mountScalar(OpenApiMockFetch.createOpenApiMockFetch(fixtures, specUrl));
+            })
+            .catch(function (err) {
+              showError(err && err.message ? err.message : String(err));
+            });
+          return;
         }
+
+        mountScalar(window.fetch.bind(window));
       })();
     </script>
   </body>

@@ -14,7 +14,7 @@ const {applyBrandTokens, resolveBrandSlug, loadBrandEnv, toBrandConfig} =
   require('./scripts/brand-env') as typeof import('./scripts/brand-env');
 
 const apiMode = process.env.DOCUSAURUS_API_MODE ?? 'mock';
-const mockUrl = process.env.DOCUSAURUS_API_MOCK_URL ?? 'http://localhost:4010';
+const mockUrl = process.env.DOCUSAURUS_API_MOCK_URL?.trim() || 'https://playground.mock';
 const sandboxUrl =
   process.env.DOCUSAURUS_API_SANDBOX_URL ?? 'http://localhost:5005/api';
 

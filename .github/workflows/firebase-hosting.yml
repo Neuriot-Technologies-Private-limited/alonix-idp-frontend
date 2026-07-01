@@ -101,7 +101,6 @@ jobs:
           DOCUSAURUS_BASE_URL: /docs/
           DOCUSAURUS_SITE_URL: ${{ steps.docs-site-url.outputs.url }}
           DOCUSAURUS_API_MODE: mock
-          DOCUSAURUS_API_MOCK_URL: http://localhost:4010
         run: |
           npm ci
           npm run build:ci

@@ -1,0 +1,1114 @@
+{
+  "generatedAt": "2026-07-01T06:57:45.493Z",
+  "routes": [
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/users/{userId}",
+      "status": 200,
+      "body": {
+        "message": "User updated"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/admin/orgs/{orgId}/users/{userId}",
+      "status": 200,
+      "body": {
+        "message": "User updated"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/admin/orgs/{orgId}/users/{userId}",
+      "status": 200,
+      "body": {
+        "message": "User updated"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/admin/orgs/{orgId}/users/{userId}",
+      "status": 200,
+      "body": {
+        "message": "User removed"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/groups",
+      "status": 200,
+      "body": {
+        "message": "Groups with membershipRole"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/groups",
+      "status": 201,
+      "body": {
+        "message": "Group created"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/users",
+      "status": 200,
+      "body": {
+        "message": "Users array with orgRole and workspaces"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/dashboard-state",
+      "status": 200,
+      "body": {
+        "message": "Stats, groups, pipeline preview, optional audit"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/stats",
+      "status": 200,
+      "body": {
+        "message": "totals and tendencies"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/metrics/summary",
+      "status": 200,
+      "body": {
+        "message": "Full metrics summary"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/metrics/activity-series",
+      "status": 200,
+      "body": {
+        "message": "Series data"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/metrics/by-user",
+      "status": 200,
+      "body": {
+        "message": "Per-user rows"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/metrics/pipeline",
+      "status": 200,
+      "body": {
+        "message": "Pipeline counts"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/audit-logs",
+      "status": 200,
+      "body": {
+        "message": "logs, total, skip, limit"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/groups/{groupId}/audit-logs",
+      "status": 200,
+      "body": {
+        "message": "Scoped audit logs"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/activity",
+      "status": 200,
+      "body": {
+        "message": "CSV file"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/activity.pdf",
+      "status": 200,
+      "body": {
+        "message": "PDF file"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/activity.xlsx",
+      "status": 200,
+      "body": {
+        "message": "XLSX file"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/metrics.csv",
+      "status": 200,
+      "body": {
+        "message": "CSV file"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/metrics.pdf",
+      "status": 200,
+      "body": {
+        "message": "PDF file"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/metrics.xlsx",
+      "status": 200,
+      "body": {
+        "message": "XLSX file"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/reports/usage-summary",
+      "status": 200,
+      "body": {
+        "message": "Usage report JSON"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/ai-settings",
+      "status": 200,
+      "body": {
+        "message": "settings object"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/admin/orgs/{orgId}/ai-settings",
+      "status": 200,
+      "body": {
+        "message": "Updated settings"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/sharepoint-settings",
+      "status": 200,
+      "body": {
+        "message": "SharePoint settings"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/admin/orgs/{orgId}/sharepoint-settings",
+      "status": 200,
+      "body": {
+        "message": "Settings saved"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/sharepoint-settings/test",
+      "status": 200,
+      "body": {
+        "message": "Connection test result"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/groups/{groupId}/members",
+      "status": 200,
+      "body": {
+        "message": "members array"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/groups/{groupId}/members",
+      "status": 201,
+      "body": {
+        "message": "Membership created/updated"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/admin/groups/{groupId}/members/{userEmail}",
+      "status": 200,
+      "body": {
+        "message": "Membership updated"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/admin/groups/{groupId}/members/{userEmail}",
+      "status": 200,
+      "body": {
+        "message": "Membership removed"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/groups/{groupId}/invites",
+      "status": 200,
+      "body": {
+        "message": "invites array"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/groups/{groupId}/invites/{inviteId}/resend",
+      "status": 200,
+      "body": {
+        "message": "Invite resent"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/admin/groups/{groupId}/document-sensitivity-policy",
+      "status": 200,
+      "body": {
+        "message": "Updated group"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/billing/plans",
+      "status": 200,
+      "body": {
+        "message": "Array of plan tiers"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/billing/config",
+      "status": 200,
+      "body": {
+        "message": "stripeConfigured, checkoutReady, plan price hints"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/billing/stripe-health",
+      "status": 200,
+      "body": {
+        "message": "Stripe health check passed"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/billing/subscription",
+      "status": 200,
+      "body": {
+        "message": "plan, subscription status, usage, limits"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/billing/confirm-checkout",
+      "status": 200,
+      "body": {
+        "message": "Updated subscription payload (same as GET /billing/subscription)"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/billing/checkout-session",
+      "status": 200,
+      "body": {
+        "message": "Checkout URL"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/billing/portal-session",
+      "status": 200,
+      "body": {
+        "message": "Portal URL"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/billing/webhook",
+      "status": 200,
+      "body": {
+        "message": "Event received"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/chats/qa/ask",
+      "status": 200,
+      "body": {
+        "message": "Answer and session metadata"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/chats/qa/ask",
+      "status": 200,
+      "body": {
+        "message": "Answer"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/chats/sessions",
+      "status": 200,
+      "body": {
+        "message": "Sessions list"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/chats/sessions",
+      "status": 200,
+      "body": {
+        "message": "Sessions list"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/chats/session/{sessionId}",
+      "status": 200,
+      "body": {
+        "message": "Messages array"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/chats/session/{sessionId}",
+      "status": 200,
+      "body": {
+        "message": "Messages"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/chats/delete",
+      "status": 200,
+      "body": {
+        "message": "Deleted"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/groups/{groupId}/chats/delete",
+      "status": 200,
+      "body": {
+        "message": "Deleted"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors",
+      "status": 200,
+      "body": {
+        "message": "Sanitized connector list (secrets stripped)"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/connectors",
+      "status": 201,
+      "body": {
+        "message": "Connector created"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/admin/orgs/{orgId}/connectors/{id}",
+      "status": 200,
+      "body": {
+        "message": "Updated connector"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/admin/orgs/{orgId}/connectors/{id}",
+      "status": 200,
+      "body": {
+        "message": "Deleted"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/test",
+      "status": 200,
+      "body": {
+        "message": "Connection success with preview"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/browse",
+      "status": 200,
+      "body": {
+        "message": "Directory listing"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/ingest",
+      "status": 202,
+      "body": {
+        "message": "Ingestion queued"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/connectors/credential-wrap-key",
+      "status": 200,
+      "body": {
+        "message": "wrapKeyId, key, expiresInSec"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/mailboxes",
+      "status": 200,
+      "body": {
+        "message": "Mailbox list with connector metadata"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/deletion-impact",
+      "status": 200,
+      "body": {
+        "message": "Mailboxes and document counts affected"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/mailboxes",
+      "status": 200,
+      "body": {
+        "message": "Mailboxes for connector"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/mailboxes",
+      "status": 201,
+      "body": {
+        "message": "Mailbox created"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}",
+      "status": 200,
+      "body": {
+        "message": "Mailbox updated"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}",
+      "status": 200,
+      "body": {
+        "message": "Mailbox deleted"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse",
+      "status": 200,
+      "body": {
+        "message": "Email folder listing"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/documents/upload",
+      "status": 201,
+      "body": {
+        "message": "Document created"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/documents/upload",
+      "status": 201,
+      "body": {
+        "message": "Document created"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/documents/org",
+      "status": 200,
+      "body": {
+        "message": "Pipeline rows for accessible groups"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/documents/org",
+      "status": 200,
+      "body": {
+        "message": "Pipeline rows"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/documents/user/{userEmail}",
+      "status": 200,
+      "body": {
+        "message": "Document list"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/documents/user/{userEmail}",
+      "status": 200,
+      "body": {
+        "message": "Document list"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/documents/{id}",
+      "status": 200,
+      "body": {
+        "message": "Document"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/documents/{id}",
+      "status": 200,
+      "body": {
+        "message": "Deleted"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/documents/{id}",
+      "status": 200,
+      "body": {
+        "message": "Document"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/groups/{groupId}/documents/{id}",
+      "status": 200,
+      "body": {
+        "message": "Deleted"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/documents/source-url",
+      "status": 200,
+      "body": {
+        "message": "Presigned URL"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/documents/source-url",
+      "status": 200,
+      "body": {
+        "message": "Presigned URL"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/documents/batch/ingest",
+      "status": 202,
+      "body": {
+        "message": "Batch queued"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/documents/batch/ingest",
+      "status": 202,
+      "body": {
+        "message": "Batch queued"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/documents/{id}/ingest",
+      "status": 202,
+      "body": {
+        "message": "Ingestion queued"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/documents/{id}/ingest",
+      "status": 202,
+      "body": {
+        "message": "Ingestion queued"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/documents/{id}/extract",
+      "status": 202,
+      "body": {
+        "message": "Extraction started"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/documents/{id}/extract",
+      "status": 202,
+      "body": {
+        "message": "Extraction started"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/documents/{id}/classify",
+      "status": 202,
+      "body": {
+        "message": "Classification started"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups/{groupId}/documents/{id}/classify",
+      "status": 202,
+      "body": {
+        "message": "Classification started"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/documents/{id}/results",
+      "status": 200,
+      "body": {
+        "message": "Results payload"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/documents/{id}/results",
+      "status": 200,
+      "body": {
+        "message": "Results payload"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/documents/jobs/{jobId}",
+      "status": 200,
+      "body": {
+        "message": "Job status and optional resultData"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/documents/jobs/{jobId}",
+      "status": 200,
+      "body": {
+        "message": "Job status"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/documents/{id}/extraction-review",
+      "status": 200,
+      "body": {
+        "message": "Review saved"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/groups/{groupId}/documents/{id}/extraction-review",
+      "status": 200,
+      "body": {
+        "message": "Review saved"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/documents/{id}/classification-review",
+      "status": 200,
+      "body": {
+        "message": "Review saved"
+      }
+    },
+    {
+      "method": "patch",
+      "path": "/groups/{groupId}/documents/{id}/classification-review",
+      "status": 200,
+      "body": {
+        "message": "Review saved"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups",
+      "status": 200,
+      "body": {
+        "message": "Array of groups"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/groups",
+      "status": 201,
+      "body": {
+        "message": "Group created"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}",
+      "status": 200,
+      "body": {
+        "message": "Group document"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/groups/{groupId}",
+      "status": 200,
+      "body": {
+        "message": "Cascade delete counts"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/groups/{groupId}/users",
+      "status": 200,
+      "body": {
+        "message": "User list"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/",
+      "status": 200,
+      "body": {
+        "message": "Welcome to the Bot-API"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/internal/audit-events",
+      "status": 200,
+      "body": {
+        "accepted": true,
+        "duplicate": true,
+        "id": "665f1a2b3c4d5e6f7a8b9c0d"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}",
+      "status": 200,
+      "body": {
+        "message": "Email detail payload"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest",
+      "status": 200,
+      "body": {
+        "message": "Ingestion completed synchronously"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions",
+      "status": 200,
+      "body": {
+        "message": "Ingestion history items"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/setup/initialize",
+      "status": 201,
+      "body": {
+        "message": "Enterprise setup complete"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/sharepoint/oauth/callback",
+      "status": 200,
+      "body": {
+        "message": "OK"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/sharepoint/oauth/config",
+      "status": 200,
+      "body": {
+        "message": "enabled flag and redirectUri"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/sharepoint/oauth/start",
+      "status": 200,
+      "body": {
+        "message": "OK"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/sharepoint/oauth/session/{sessionId}/sites",
+      "status": 200,
+      "body": {
+        "message": "tenantId and sites array"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/admin/orgs/{orgId}/connectors/sharepoint/oauth/session/{sessionId}/sites/{siteId}/drives",
+      "status": 200,
+      "body": {
+        "message": "drives array"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/admin/orgs/{orgId}/connectors/sharepoint/oauth/session/{sessionId}/complete",
+      "status": 201,
+      "body": {
+        "message": "SHAREPOINT connector created"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/onboard",
+      "status": 201,
+      "body": {
+        "message": "Organization and admin user created"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/onboard-invite",
+      "status": 201,
+      "body": {
+        "message": "Account created from invitation"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/users/invite-details",
+      "status": 200,
+      "body": {
+        "message": "Invite metadata"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/invite-details",
+      "status": 200,
+      "body": {
+        "message": "Invite metadata"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/invite-to-group",
+      "status": 201,
+      "body": {
+        "message": "Invitation sent"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/verify-email",
+      "status": 200,
+      "body": {
+        "message": "Email verified"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/resend-verification",
+      "status": 200,
+      "body": {
+        "message": "Generic success (does not reveal if account exists)"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/forgot-password",
+      "status": 200,
+      "body": {
+        "message": "Reset initiated (opaque response)"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/reset-password",
+      "status": 200,
+      "body": {
+        "message": "Password updated"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/change-password",
+      "status": 200,
+      "body": {
+        "message": "Password changed"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/login",
+      "status": 200,
+      "body": {
+        "message": "Login successful",
+        "token": "mock.jwt.token.from.login.response",
+        "user": {
+          "_id": "66f1abcd1234567890ef1234",
+          "id": "66f1abcd1234567890ef1234",
+          "email": "demo.admin@alonix.example",
+          "name": "Demo Admin",
+          "username": "demo.admin@alonix.example",
+          "avatarUrl": null,
+          "orgId": "507f1f77bcf86cd799439011",
+          "groupId": "507f1f77bcf86cd799439012"
+        },
+        "context": {
+          "orgId": "mock-string",
+          "orgRole": "mock-string",
+          "activeGroupId": "mock-string",
+          "groups": [
+            {
+              "groupId": "mock-string",
+              "groupName": "mock-string",
+              "role": "mock-string"
+            }
+          ]
+        },
+        "csrfToken": "csrf_mock_token_abc123"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/logout",
+      "status": 200,
+      "body": {
+        "message": "Logged out successfully"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/users/me/data/export",
+      "status": 200,
+      "body": {
+        "message": "JSON export (profile, chats, audit as actor)"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/users/me/data",
+      "status": 200,
+      "body": {
+        "message": "Data erased; session cookies cleared"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/users/me/context",
+      "status": 200,
+      "body": {
+        "message": "Org/group RBAC context"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/users/me/avatar",
+      "status": 200,
+      "body": {
+        "message": "Avatar uploaded"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/users/me/avatar",
+      "status": 200,
+      "body": {
+        "message": "Avatar removed"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/users/update/{userId}",
+      "status": 200,
+      "body": {
+        "message": "User updated"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/webhooks/jobs/{jobId}/callback",
+      "status": 200,
+      "body": {
+        "message": "Callback accepted"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/auth/login",
+      "status": 200,
+      "body": {
+        "message": "Login successful",
+        "token": "mock.jwt.token.from.login.response",
+        "user": {
+          "_id": "66f1abcd1234567890ef1234",
+          "id": "66f1abcd1234567890ef1234",
+          "email": "demo.admin@alonix.example",
+          "name": "Demo Admin",
+          "username": "demo.admin@alonix.example",
+          "avatarUrl": null,
+          "orgId": "507f1f77bcf86cd799439011",
+          "groupId": "507f1f77bcf86cd799439012"
+        },
+        "context": {
+          "orgId": "507f1f77bcf86cd799439011",
+          "orgRole": "COMPANY_ADMIN",
+          "activeGroupId": "507f1f77bcf86cd799439012",
+          "groups": [
+            {
+              "groupId": "507f1f77bcf86cd799439012",
+              "groupName": "Default Workspace",
+              "role": "GROUP_ADMIN"
+            }
+          ]
+        },
+        "csrfToken": "csrf_mock_token_abc123"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/users/me",
+      "status": 200,
+      "body": {
+        "user": {
+          "_id": "66f1abcd1234567890ef1234",
+          "email": "demo.admin@alonix.example",
+          "name": "Demo Admin",
+          "orgId": "507f1f77bcf86cd799439011"
+        },
+        "context": {
+          "orgId": "507f1f77bcf86cd799439011",
+          "orgRole": "COMPANY_ADMIN",
+          "activeGroupId": "507f1f77bcf86cd799439012"
+        },
+        "csrfToken": "csrf_mock_token_abc123"
+      }
+    }
+  ]
+}

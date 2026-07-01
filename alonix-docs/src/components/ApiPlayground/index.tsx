@@ -23,6 +23,8 @@ function PlaygroundFrame(): React.JSX.Element {
       spec: api.openApiUrl,
       server: api.activeServerUrl,
       mode: api.mode,
+      mockUrl: api.mockUrl,
+      sandboxUrl: api.sandboxUrl,
     });
 
     const search = new URLSearchParams(location.search);

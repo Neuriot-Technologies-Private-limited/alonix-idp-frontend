@@ -18,7 +18,10 @@ export type ApiCustomFields = {
   sandboxUrl?: string;
 };
 
-const DEFAULT_MOCK_URL = 'http://localhost:4010';
+/** In-browser mock — works on static hosting without Prism on localhost. */
+export const BROWSER_MOCK_URL = 'https://playground.mock';
+
+const DEFAULT_MOCK_URL = BROWSER_MOCK_URL;
 const DEFAULT_SANDBOX_URL = 'http://localhost:5005/api';
 
 export function buildApiConfig(fields?: ApiCustomFields): ApiConfig {
