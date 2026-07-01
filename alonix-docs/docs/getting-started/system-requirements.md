@@ -1,6 +1,6 @@
 ---
 title: System Requirements
-description: Browser, network, and device requirements for using Alonix in production and during evaluation.
+description: Browser, network, and device requirements for using {{brandName}} in production and during evaluation.
 sidebar_position: 1
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 1
 
 ## Overview
 
-Alonix runs entirely in your web browser. There is no desktop installer required for end users. This page lists what you need for a smooth experience.
+{{brandName}} runs entirely in your web browser. There is no desktop installer required for end users. This page lists what you need for a smooth experience.
 
 ## Purpose
 
@@ -31,23 +31,23 @@ Verify your environment before signup or rollout so users avoid browser compatib
 | Safari (macOS / iOS) | Latest two major versions |
 
 :::warning Internet Explorer is not supported
-Alonix requires a modern browser with JavaScript enabled.
+{{brandName}} requires a modern browser with JavaScript enabled.
 :::
 
 ### 2. Enable cookies and JavaScript
 
-Alonix uses secure session cookies for login. Ensure your browser:
+{{brandName}} uses secure session cookies for login. Ensure your browser:
 
 - Has JavaScript enabled
-- Allows cookies for your Alonix domain
+- Allows cookies for your {{brandName}} domain
 - Is not blocking third-party scripts required by your SSO provider (if applicable)
 
 ### 3. Check network requirements
 
 | Requirement | Details |
 |-------------|---------|
-| HTTPS | Production Alonix is served over HTTPS. Do not bypass certificate warnings. |
-| Firewall | Allow outbound HTTPS to your Alonix URL (SaaS or company-hosted). |
+| HTTPS | Production {{brandName}} is served over HTTPS. Do not bypass certificate warnings. |
+| Firewall | Allow outbound HTTPS to your {{brandName}} URL (SaaS or company-hosted). |
 | File upload size | Large uploads may take longer on slow connections. Contact your admin for org limits. |
 | Connectors | Email, SFTP, and SharePoint connectors run server-side; end users only need browser access. |
 
@@ -60,22 +60,22 @@ Alonix uses secure session cookies for login. Ensure your browser:
 | Mobile | Supported for search and chat; admin tasks best on larger screens |
 | Display | 1280×720 minimum; 1920×1080 recommended for dashboards |
 
-[Screenshot – Alonix login page displayed correctly in a supported browser]
+[Screenshot – {{brandName}} login page displayed correctly in a supported browser]
 
 ## Expected Results
 
-Your device and network meet Alonix requirements. You can proceed to [Creating Your Account](/docs/getting-started/creating-account) or [Logging In](/docs/getting-started/logging-in).
+Your device and network meet {{brandName}} requirements. You can proceed to [Creating Your Account](/docs/getting-started/creating-account) or [Logging In](/docs/getting-started/logging-in).
 
 ## Tips
 
 - Use a wired or stable Wi‑Fi connection when uploading large document batches.
-- If your company uses a VPN, test Alonix both on and off VPN during pilot rollout.
+- If your company uses a VPN, test {{brandName}} both on and off VPN during pilot rollout.
 - Keep your browser updated—security patches also improve compatibility.
 
 ## Best Practices
 
 - Standardize on one supported browser for your team during onboarding.
-- Whitelist your Alonix URL in corporate proxy and DLP tools before go-live.
+- Whitelist your {{brandName}} URL in corporate proxy and DLP tools before go-live.
 - Document internal upload size limits in your workspace governance guide.
 
 ## Common Mistakes

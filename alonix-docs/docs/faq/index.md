@@ -1,6 +1,6 @@
 ---
 title: Frequently Asked Questions
-description: Answers to common questions about Alonix accounts, workspaces, documents, AI Chat, and administration.
+description: Answers to common questions about {{brandName}} accounts, workspaces, documents, AI Chat, and administration.
 sidebar_position: 1
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 1
 
 ## Overview
 
-Quick answers to the questions Alonix users ask most often. For step-by-step guides, follow the linked articles in each answer.
+Quick answers to the questions {{brandName}} users ask most often. For step-by-step guides, follow the linked articles in each answer.
 
 ## Purpose
 
@@ -22,13 +22,13 @@ None—browse by topic below.
 
 ## Account and Access
 
-### What is Alonix?
+### What is {{brandName}}?
 
-Alonix is an Intelligent Document Platform (IDP) for storing, processing, searching, and chatting with your organization's documents. See [What Is Alonix?](/docs/introduction/what-is-alonix).
+{{brandName}} is an Intelligent Document Platform (IDP) for storing, processing, searching, and chatting with your organization's documents. See [What Is {{brandName}}?](/docs/introduction/product-overview).
 
 ### How do I create an account?
 
-Sign up at your organization's Alonix URL or accept an email invitation. Full steps: [Creating Your Account](/docs/getting-started/creating-account).
+Sign up at your organization's {{brandName}} URL or accept an email invitation. Full steps: [Creating Your Account](/docs/getting-started/creating-account).
 
 ### I didn't receive my verification or invite email. What should I do?
 
@@ -92,7 +92,7 @@ Pipeline may be incomplete, workspace wrong, or keyword not in extracted text. S
 
 ### How does AI Chat know the answers?
 
-Alonix retrieves relevant passages from your workspace documents and generates an answer with **citations** (RAG). It does not browse the public internet.
+{{brandName}} retrieves relevant passages from your workspace documents and generates an answer with **citations** (RAG). It does not browse the public internet.
 
 ### Why didn't AI Chat cite any documents?
 
@@ -110,7 +110,7 @@ No. Only the **currently selected workspace**.
 
 ## Connectors and Automation
 
-### What connectors does Alonix support?
+### What connectors does {{brandName}} support?
 
 **Email**, **SFTP**, and **SharePoint**. [Connectors](/docs/user-guide/connectors).
 
@@ -144,7 +144,7 @@ Usually admins; Search Users may see limited personal activity. [Activity Logs](
 
 ### We hit our user or storage limit. What now?
 
-Upgrade plan or remove inactive users—contact Company Admin or Alonix support for enterprise contracts.
+Upgrade plan or remove inactive users—contact Company Admin or {{brandName}} support for enterprise contracts.
 
 ---
 
@@ -186,7 +186,7 @@ Still stuck? Contact your **Group Admin** with: account email, workspace name, t
 
 ## Related Articles
 
-- [What Is Alonix?](/docs/introduction/what-is-alonix)
+- [What Is {{brandName}}?](/docs/introduction/product-overview)
 - [Getting Started](/docs/getting-started/system-requirements)
 - [User Guide](/docs/user-guide/dashboard)
 - [Glossary](/docs/glossary/terms)

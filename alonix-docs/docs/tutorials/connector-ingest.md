@@ -1,6 +1,6 @@
 ---
 title: Ingest via Connector
-description: Tutorial for setting up and testing an Email, SFTP, or SharePoint connector in Alonix.
+description: Tutorial for setting up and testing an Email, SFTP, or SharePoint connector in {{brandName}}.
 sidebar_position: 6
 ---
 
@@ -34,7 +34,7 @@ Prove connector flow before production cutover.
 
 1. Open **Connectors** in pilot workspace.
 2. Click **Add connector** → **Email**.
-3. Copy the Alonix ingestion address.
+3. Copy the {{brandName}} ingestion address.
 4. Set allowed senders to your test address only.
 5. Save.
 

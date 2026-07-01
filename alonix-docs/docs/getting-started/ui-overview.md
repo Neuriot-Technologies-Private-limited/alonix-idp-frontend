@@ -1,6 +1,6 @@
 ---
 title: UI Overview
-description: Tour the Alonix interface—navigation, sidebar, workspace switcher, and main content areas.
+description: Tour the {{brandName}} interface—navigation, sidebar, workspace switcher, and main content areas.
 sidebar_position: 4
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 4
 
 ## Overview
 
-Alonix uses a consistent layout across all pages: a top navigation bar for global actions, a sidebar for section navigation, and a main content area. Understanding this layout helps you move quickly between documents, AI Chat, admin tools, and settings.
+{{brandName}} uses a consistent layout across all pages: a top navigation bar for global actions, a sidebar for section navigation, and a main content area. Understanding this layout helps you move quickly between documents, AI Chat, admin tools, and settings.
 
 ## Purpose
 
@@ -16,7 +16,7 @@ Orient new users so they know where to find features without hunting through men
 
 ## Prerequisites
 
-- Logged in to Alonix — see [Logging In](/docs/getting-started/logging-in)
+- Logged in to {{brandName}} — see [Logging In](/docs/getting-started/logging-in)
 - Access to at least one workspace
 
 ## Step-by-Step Instructions

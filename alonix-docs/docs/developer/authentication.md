@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Authentication
 
-Alonix IDP uses **JWT Bearer authentication** with optional **httpOnly cookies** and **CSRF protection** for browser clients.
+{{brandName}} IDP uses **JWT Bearer authentication** with optional **httpOnly cookies** and **CSRF protection** for browser clients.
 
 ## Login flow
 

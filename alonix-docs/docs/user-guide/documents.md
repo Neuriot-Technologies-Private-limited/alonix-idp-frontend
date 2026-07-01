@@ -1,6 +1,6 @@
 ---
 title: Documents
-description: Store, search, preview, and manage documents in the Alonix document vault.
+description: Store, search, preview, and manage documents in the {{brandName}} document vault.
 sidebar_position: 4
 ---
 
@@ -12,7 +12,7 @@ The **Documents** section is your workspace vault—a searchable library of ever
 
 ## Purpose
 
-Centralize document access so your team can find files by name, metadata, or full-text content without leaving Alonix.
+Centralize document access so your team can find files by name, metadata, or full-text content without leaving {{brandName}}.
 
 ## Prerequisites
 

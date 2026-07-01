@@ -1,6 +1,6 @@
 ---
 title: Login Problems
-description: Troubleshoot Alonix sign-in, password reset, and session issues.
+description: Troubleshoot {{brandName}} sign-in, password reset, and session issues.
 sidebar_position: 2
 ---
 
@@ -23,7 +23,7 @@ Restore access quickly and safely without unnecessary password resets.
 
 ### 1. Verify basics
 
-1. Correct Alonix URL (bookmark from IT).
+1. Correct {{brandName}} URL (bookmark from IT).
 2. Correct email—no typos, correct domain.
 3. Caps Lock off.
 4. Try incognito/private window to bypass stale cache.
@@ -63,7 +63,7 @@ After multiple failed attempts, accounts may lock temporarily.
 
 ### 6. Browser and cookies
 
-1. Enable cookies for Alonix domain.
+1. Enable cookies for {{brandName}} domain.
 2. Disable blocking extensions temporarily.
 3. Update browser—[System Requirements](/docs/getting-started/system-requirements).
 
@@ -77,7 +77,7 @@ After password reset, update saved credentials in password manager.
 
 ## Best Practices
 
-Report phishing emails impersonating Alonix to security team.
+Report phishing emails impersonating {{brandName}} to security team.
 
 ## Common Mistakes
 

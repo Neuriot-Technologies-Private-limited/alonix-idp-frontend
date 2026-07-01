@@ -1,6 +1,6 @@
 ---
 title: Dashboard Overview
-description: Understand the Alonix Dashboard—widgets, metrics, and quick actions for your active workspace.
+description: Understand the {{brandName}} Dashboard—widgets, metrics, and quick actions for your active workspace.
 sidebar_position: 5
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 5
 
 ## Overview
 
-The Dashboard is your home screen in Alonix. It summarizes recent activity, document pipeline status, and shortcuts to common tasks for the **currently selected workspace**.
+The Dashboard is your home screen in {{brandName}}. It summarizes recent activity, document pipeline status, and shortcuts to common tasks for the **currently selected workspace**.
 
 ## Purpose
 
@@ -16,14 +16,14 @@ Give you an at-a-glance view of what is happening in your workspace so you can p
 
 ## Prerequisites
 
-- Logged in to Alonix
+- Logged in to {{brandName}}
 - An active workspace selected in the [workspace switcher](/docs/user-guide/workspace-switcher)
 
 ## Step-by-Step Instructions
 
 ### 1. Open the Dashboard
 
-1. Log in to Alonix.
+1. Log in to {{brandName}}.
 2. Click **Dashboard** in the sidebar, or the logo in the top navigation.
 3. Confirm the correct workspace name appears in the top bar.
 

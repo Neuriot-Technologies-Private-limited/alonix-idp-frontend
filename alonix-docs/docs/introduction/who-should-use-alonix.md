@@ -1,18 +1,18 @@
 ---
-title: Who Should Use Alonix?
-description: Find out which teams and roles benefit most from Alonix and how each persona uses the platform day to day.
+title: Who Should Use {{brandName}}?
+description: Find out which teams and roles benefit most from {{brandName}} and how each persona uses the platform day to day.
 sidebar_position: 2
 ---
 
-# Who Should Use Alonix?
+# Who Should Use {{brandName}}?
 
 ## Overview
 
-Alonix is built for anyone who works with large volumes of documents and needs fast, reliable answers—not just IT teams. From operations and finance to legal and customer support, Alonix helps people find information, collaborate in workspaces, and reduce manual document handling.
+{{brandName}} is built for anyone who works with large volumes of documents and needs fast, reliable answers—not just IT teams. From operations and finance to legal and customer support, {{brandName}} helps people find information, collaborate in workspaces, and reduce manual document handling.
 
 ## Purpose
 
-This guide helps you identify whether Alonix fits your needs and which features matter most for your role. Use it when evaluating Alonix for your team or onboarding new colleagues.
+This guide helps you identify whether {{brandName}} fits your needs and which features matter most for your role. Use it when evaluating {{brandName}} for your team or onboarding new colleagues.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ This guide helps you identify whether Alonix fits your needs and which features 
 
 ## Step-by-Step Instructions
 
-### 1. Match your team to Alonix use cases
+### 1. Match your team to {{brandName}} use cases
 
 | Team | Typical use |
 |------|-------------|
@@ -65,8 +65,8 @@ This guide helps you identify whether Alonix fits your needs and which features 
 
 You should be able to answer:
 
-- Whether your team has document pain points Alonix addresses
-- Which Alonix role fits you or your colleagues
+- Whether your team has document pain points {{brandName}} addresses
+- Which {{brandName}} role fits you or your colleagues
 - Which features to explore first after signup
 
 ## Tips
@@ -100,7 +100,7 @@ Billing and some org-level settings appear only on SaaS deployments. Self-hosted
 
 ## Related Articles
 
-- [What Is Alonix?](/docs/introduction/what-is-alonix)
+- [What Is {{brandName}}?](/docs/introduction/product-overview)
 - [Users and Roles](/docs/user-guide/users-and-roles)
 - [Your First Workspace](/docs/getting-started/your-first-workspace)
 - [FAQ](/docs/faq/)

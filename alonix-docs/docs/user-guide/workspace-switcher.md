@@ -1,6 +1,6 @@
 ---
 title: Workspace Switcher
-description: Switch between Alonix workspaces (Groups) using the top navigation workspace switcher.
+description: Switch between {{brandName}} workspaces (Groups) using the top navigation workspace switcher.
 sidebar_position: 3
 ---
 
@@ -17,7 +17,7 @@ Ensure you always operate in the correct team context and understand how switchi
 ## Prerequisites
 
 - Membership in at least one workspace
-- Logged in to Alonix
+- Logged in to {{brandName}}
 
 ## Step-by-Step Instructions
 

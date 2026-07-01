@@ -1,6 +1,6 @@
 ---
 title: Creating Your Account
-description: Sign up for Alonix, verify your email, and complete your profile to get started.
+description: Sign up for {{brandName}}, verify your email, and complete your profile to get started.
 sidebar_position: 2
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 2
 
 ## Overview
 
-New users can create an Alonix account by signing up with email or by accepting an invitation to join a workspace. This guide walks through self-service signup and email verification.
+New users can create an {{brandName}} account by signing up with email or by accepting an invitation to join a workspace. This guide walks through self-service signup and email verification.
 
 ## Purpose
 
@@ -24,7 +24,7 @@ Get your account active so you can log in, join workspaces, and start working wi
 
 ### 1. Open the signup page
 
-1. Go to your organization's Alonix URL (e.g., `https://app.alonix.example`).
+1. Go to your organization's {{brandName}} URL (e.g., `https://app.alonix.example`).
 2. Click **Sign up** or **Create account** on the login screen.
 
 [Screenshot – Login page with Sign up link highlighted]
@@ -41,9 +41,9 @@ Click **Create account** or **Sign up**.
 
 ### 3. Verify your email
 
-1. Check your inbox for a message from Alonix.
+1. Check your inbox for a message from {{brandName}}.
 2. Click the **Verify email** link in the message.
-3. You will be redirected to Alonix with your email confirmed.
+3. You will be redirected to {{brandName}} with your email confirmed.
 
 :::tip No email within 5 minutes?
 Check spam/junk folders and confirm you entered the correct address.
@@ -78,7 +78,7 @@ Follow [Your First Workspace](/docs/getting-started/your-first-workspace) next.
 ## Tips
 
 - Use a work email if your company standardizes on domain-based access.
-- Save your Alonix URL as a bookmark after first login.
+- Save your {{brandName}} URL as a bookmark after first login.
 - If you were invited, use the **same email** the invitation was sent to.
 
 ## Best Practices

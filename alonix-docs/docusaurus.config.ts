@@ -1,12 +1,17 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import fs from 'fs';
+import path from 'path';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const {isSubpathDeploy, sitePath} = require('./scripts/site-paths') as {
   isSubpathDeploy: () => boolean;
   sitePath: (path: string) => string;
 };
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const {applyBrandTokens, resolveBrandSlug, loadBrandEnv, toBrandConfig} =
+  require('./scripts/brand-env') as typeof import('./scripts/brand-env');
 
 const apiMode = process.env.DOCUSAURUS_API_MODE ?? 'mock';
 const mockUrl = process.env.DOCUSAURUS_API_MOCK_URL ?? 'http://localhost:4010';
@@ -18,16 +23,32 @@ const siteUrl =
 const baseUrl = process.env.DOCUSAURUS_BASE_URL?.trim() || '/';
 const routeBasePath = isSubpathDeploy() ? '/' : 'docs';
 
+function loadBrand() {
+  const generatedPath = path.join(__dirname, '.brand.generated.json');
+  if (fs.existsSync(generatedPath)) {
+    return JSON.parse(fs.readFileSync(generatedPath, 'utf8')) as ReturnType<
+      typeof toBrandConfig
+    >;
+  }
+  const slug = resolveBrandSlug();
+  const env = loadBrandEnv(slug);
+  const brandStaticDir = path.join(__dirname, 'static', 'brand');
+  return toBrandConfig(slug, env, brandStaticDir);
+}
+
+const brand = loadBrand();
+const docsTagline = `Learn how to use ${brand.name} — workspaces, documents, AI, and more`;
+
 const config: Config = {
-  title: 'Alonix Help Center',
-  tagline: 'Learn how to use Alonix — workspaces, documents, AI, and more',
-  favicon: 'img/favicon.ico',
+  title: brand.helpCenterTitle,
+  tagline: docsTagline,
+  favicon: brand.faviconPath,
 
   url: siteUrl,
   baseUrl,
 
-  organizationName: 'alonix',
-  projectName: 'alonix-docs',
+  organizationName: brand.slug,
+  projectName: `${brand.slug}-docs`,
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -39,6 +60,7 @@ const config: Config = {
 
   markdown: {
     mermaid: true,
+    preprocessor: ({fileContent}) => applyBrandTokens(fileContent, brand),
   },
 
   themes: ['@docusaurus/theme-mermaid'],
@@ -53,23 +75,23 @@ const config: Config = {
         },
         blog: false,
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: ['./src/css/custom.css', './src/css/brand-theme.generated.css'],
         },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
-    image: 'img/alonix-social-card.jpg',
+    image: 'img/logo.svg',
     colorMode: {
       defaultMode: 'light',
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Alonix Help',
+      title: brand.navbarTitle,
       logo: {
-        alt: 'Alonix',
-        src: 'img/logo.svg',
+        alt: brand.name,
+        src: brand.logoPath,
       },
       items: [
         {
@@ -106,7 +128,10 @@ const config: Config = {
         {
           title: 'Learn',
           items: [
-            {label: 'What is Alonix?', to: sitePath('/introduction/what-is-alonix')},
+            {
+              label: `What is ${brand.name}?`,
+              to: sitePath('/introduction/product-overview'),
+            },
             {label: 'Getting Started', to: sitePath('/getting-started/creating-account')},
             {label: 'User Guide', to: sitePath('/user-guide/dashboard')},
             {label: 'Tutorials', to: sitePath('/tutorials/first-workspace')},
@@ -130,7 +155,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Alonix. All rights reserved.`,
+      copyright: `Copyright © ${new Date().getFullYear()} ${brand.copyright}. All rights reserved.`,
     },
     prism: {
       theme: prismThemes.github,
@@ -149,6 +174,7 @@ const config: Config = {
     apiMode,
     mockUrl,
     sandboxUrl,
+    brand,
   },
 };
 

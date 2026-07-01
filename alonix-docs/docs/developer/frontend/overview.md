@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Frontend Overview
 
-The Alonix IDP frontend is a **React 19 + Vite + TypeScript** SPA in `alonix-idp-frontend`.
+The {{brandName}} IDP frontend is a **React 19 + Vite + TypeScript** SPA in `alonix-idp-frontend`.
 
 ## Tech stack
 

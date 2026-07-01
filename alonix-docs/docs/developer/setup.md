@@ -1,6 +1,6 @@
 ---
 title: Developer Setup
-description: Clone, install, and run the Alonix documentation portal, frontend app, and backend API for local development.
+description: Clone, install, and run the {{brandName}} documentation portal, frontend app, and backend API for local development.
 sidebar_position: 1
 ---
 
@@ -26,7 +26,7 @@ Get engineers and technical writers running the full stack locally for developme
 
 - **Node.js** ≥ 22.12.0 (see `alonix-docs/package.json` engines)
 - **npm** (bundled with Node)
-- **Git** access to Alonix repositories
+- **Git** access to {{brandName}} repositories
 - macOS, Linux, or Windows with a supported terminal
 
 Optional for API playground sandbox mode:
@@ -48,7 +48,7 @@ git clone <alonix-docs-url>
 Typical sibling layout:
 
 ```text
-Alonix/
+{{brandName}}/
 ├── alonix-idp-node-backend/
 ├── alonix-idp-frontend/
 └── alonix-docs/
@@ -187,7 +187,7 @@ Use `npm run start` in `alonix-docs` if you only edit Markdown and do not need t
 - [API Reference](/docs/developer/api-reference)
 - [Frontend Overview](/docs/developer/frontend/overview)
 - [Error Handling](/docs/developer/error-handling)
-- End-user docs: [What Is Alonix?](/docs/introduction/what-is-alonix)
+- End-user docs: [What Is {{brandName}}?](/docs/introduction/product-overview)
 
 ## Project structure (alonix-docs)
 

@@ -1,6 +1,6 @@
 ---
 title: Release Notes
-description: Recent product and documentation updates for Alonix.
+description: Recent product and documentation updates for {{brandName}}.
 sidebar_position: 1
 ---
 

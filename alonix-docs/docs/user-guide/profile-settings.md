@@ -1,6 +1,6 @@
 ---
 title: Profile Settings
-description: Manage your Alonix profile, password, preferences, and personal account options.
+description: Manage your {{brandName}} profile, password, preferences, and personal account options.
 sidebar_position: 11
 ---
 
@@ -16,7 +16,7 @@ Keep your identity accurate for activity logs and maintain secure credentials wi
 
 ## Prerequisites
 
-- Active Alonix account
+- Active {{brandName}} account
 - Logged in
 
 ## Step-by-Step Instructions

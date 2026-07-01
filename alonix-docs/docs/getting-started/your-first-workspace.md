@@ -1,6 +1,6 @@
 ---
 title: Your First Workspace
-description: Create or join your first Alonix workspace (Group) and configure basic settings.
+description: Create or join your first {{brandName}} workspace (Group) and configure basic settings.
 sidebar_position: 6
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 6
 
 ## Overview
 
-In Alonix, a **workspace** is called a **Group**. Workspaces isolate documents, users, connectors, and settings for a team or project. This guide helps you create a new workspace or get oriented after accepting an invitation.
+In {{brandName}}, a **workspace** is called a **Group**. Workspaces isolate documents, users, connectors, and settings for a team or project. This guide helps you create a new workspace or get oriented after accepting an invitation.
 
 ## Purpose
 
@@ -16,14 +16,14 @@ Establish a dedicated space where your team can upload documents, run the pipeli
 
 ## Prerequisites
 
-- Active Alonix account — see [Creating Your Account](/docs/getting-started/creating-account)
+- Active {{brandName}} account — see [Creating Your Account](/docs/getting-started/creating-account)
 - **Group Admin** or **Company Admin** role to create workspaces (Search Users join via invite only)
 
 ## Step-by-Step Instructions
 
 ### 1. Create a workspace (admins)
 
-1. Log in to Alonix.
+1. Log in to {{brandName}}.
 2. Open **Groups** or **Workspaces** in the sidebar.
 3. Click **Create workspace** or **New Group**.
 4. Enter a clear name (e.g., `Finance – AP 2025`).
@@ -34,7 +34,7 @@ Establish a dedicated space where your team can upload documents, run the pipeli
 
 ### 2. Join via invitation (all users)
 
-1. Open the invitation email from Alonix.
+1. Open the invitation email from {{brandName}}.
 2. Click **Accept invitation**.
 3. Log in or create an account if prompted.
 4. You are added to the workspace automatically.

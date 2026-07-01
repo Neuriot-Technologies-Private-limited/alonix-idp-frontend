@@ -1,6 +1,6 @@
 ---
 title: Upload a Document
-description: Tutorial for uploading a document and confirming pipeline completion in Alonix.
+description: Tutorial for uploading a document and confirming pipeline completion in {{brandName}}.
 sidebar_position: 2
 ---
 
@@ -12,7 +12,7 @@ Learn by doing: upload a real file, watch the pipeline, and confirm search and p
 
 ## Purpose
 
-Build confidence with the most common daily action in Alonix.
+Build confidence with the most common daily action in {{brandName}}.
 
 ## Prerequisites
 

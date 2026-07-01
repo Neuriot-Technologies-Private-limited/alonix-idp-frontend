@@ -1,6 +1,6 @@
 ---
 title: Workspaces
-description: Create, manage, and organize Alonix workspaces (Groups) for teams and projects.
+description: Create, manage, and organize {{brandName}} workspaces (Groups) for teams and projects.
 sidebar_position: 2
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 2
 
 ## Overview
 
-**Workspaces** in the Alonix UI are called **Groups** in the platform. Each workspace is a secure container for documents, users, connectors, and settings. Organizations typically run multiple workspaces for different departments or projects.
+**Workspaces** in the {{brandName}} UI are called **Groups** in the platform. Each workspace is a secure container for documents, users, connectors, and settings. Organizations typically run multiple workspaces for different departments or projects.
 
 ## Purpose
 
@@ -61,7 +61,7 @@ Some deployments allow archiving inactive workspaces. Confirm with your Company 
 ## Tips
 
 :::note Groups = Workspaces
-Documentation and UI labels may say "Group" or "Workspace"—they mean the same thing in Alonix.
+Documentation and UI labels may say "Group" or "Workspace"—they mean the same thing in {{brandName}}.
 :::
 
 Plan workspace count before bulk connector setup—each connector instance is usually workspace-scoped.

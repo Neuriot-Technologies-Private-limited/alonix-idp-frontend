@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Error Handling
 
-All Alonix IDP API errors return JSON with a `message` field. Some responses include `code`, `details`, or `requestId`.
+All {{brandName}} IDP API errors return JSON with a `message` field. Some responses include `code`, `details`, or `requestId`.
 
 ## Standard error shape
 

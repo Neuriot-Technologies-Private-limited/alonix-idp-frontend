@@ -1,6 +1,6 @@
 ---
 title: Glossary
-description: Definitions of Alonix terms and concepts for end users.
+description: Definitions of {{brandName}} terms and concepts for end users.
 sidebar_position: 1
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 1
 
 ## Overview
 
-Plain-language definitions for terms you will see in Alonix documentation and the product interface.
+Plain-language definitions for terms you will see in {{brandName}} documentation and the product interface.
 
 ## Purpose
 
@@ -40,7 +40,7 @@ A link from an AI Chat answer to the specific document passage used to generate 
 
 ### Classify (Classification)
 
-The pipeline stage where Alonix assigns document type, tags, or categories after text extraction.
+The pipeline stage where {{brandName}} assigns document type, tags, or categories after text extraction.
 
 ### Company Admin
 
@@ -80,7 +80,7 @@ Pulling text, tables, and metadata from a file; includes OCR for scanned images.
 
 ### Group
 
-Alonix term for a **workspace**—a isolated container for documents, users, and settings. Groups and workspaces mean the same thing.
+{{brandName}} term for a **workspace**—a isolated container for documents, users, and settings. Groups and workspaces mean the same thing.
 
 ### Group Admin
 
@@ -92,7 +92,7 @@ Workspace administrator who manages users, connectors, and documents for assigne
 
 ### IDP (Intelligent Document Platform)
 
-The category of software Alonix belongs to—platforms that ingest documents and apply AI for search, extraction, and understanding.
+The category of software {{brandName}} belongs to—platforms that ingest documents and apply AI for search, extraction, and understanding.
 
 ### Ingest (Ingestion)
 
@@ -104,7 +104,7 @@ Registering and preparing an uploaded or connector file for extraction in the pi
 
 ### Organization (Org)
 
-Your company's top-level Alonix account containing users and workspaces.
+Your company's top-level {{brandName}} account containing users and workspaces.
 
 ### Org Settings
 
@@ -144,7 +144,7 @@ Automated sync from a Microsoft SharePoint site or library.
 
 ### Workspace
 
-A team or project area in the UI; called a **Group** in Alonix platform terminology. See [Workspaces](/docs/user-guide/workspaces).
+A team or project area in the UI; called a **Group** in {{brandName}} platform terminology. See [Workspaces](/docs/user-guide/workspaces).
 
 ### Workspace Switcher
 
@@ -154,7 +154,7 @@ The top navigation control for changing the active workspace. See [Workspace Swi
 
 ## Expected Results
 
-You understand key Alonix terminology used across the documentation.
+You understand key {{brandName}} terminology used across the documentation.
 
 ## Tips
 
@@ -174,6 +174,6 @@ Term not listed? Check the [FAQ](/docs/faq/) or ask your Group Admin.
 
 ## Related Articles
 
-- [What Is Alonix?](/docs/introduction/what-is-alonix)
+- [What Is {{brandName}}?](/docs/introduction/product-overview)
 - [FAQ](/docs/faq/)
 - [User Guide](/docs/user-guide/dashboard)

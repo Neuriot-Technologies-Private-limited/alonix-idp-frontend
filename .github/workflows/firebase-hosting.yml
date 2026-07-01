@@ -97,6 +97,7 @@ jobs:
       - name: Build docs (Help Center)
         working-directory: alonix-docs
         env:
+          DOCUSAURUS_BRAND: findoutai
           DOCUSAURUS_BASE_URL: /docs/
           DOCUSAURUS_SITE_URL: ${{ steps.docs-site-url.outputs.url }}
           DOCUSAURUS_API_MODE: mock
@@ -203,7 +204,7 @@ jobs:
           # Docusaurus uses trailing slashes on pages; static files have no trailing slash.
           for path in \
             /docs/ \
-            /docs/introduction/what-is-alonix/ \
+            /docs/introduction/product-overview/ \
             /docs/api-playground/ \
             /docs/openapi.yaml; do
             code="$(curl -fsSL -o /dev/null -w "%{http_code}" "${BASE}${path}" || true)"

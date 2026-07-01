@@ -1,6 +1,6 @@
 ---
 title: Upload Problems
-description: Troubleshoot failed or stuck document uploads in Alonix.
+description: Troubleshoot failed or stuck document uploads in {{brandName}}.
 sidebar_position: 3
 ---
 
@@ -52,7 +52,7 @@ Get documents into the vault reliably and understand when to escalate to admins.
 
 ### 5. Browser troubleshooting
 
-1. Disable ad blockers for Alonix domain.
+1. Disable ad blockers for {{brandName}} domain.
 2. Try another supported browser.
 3. Clear site cache—not all browser data.
 

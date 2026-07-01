@@ -1,13 +1,13 @@
-# Alonix Help Center
+# Help Center (brand-configurable)
 
-Complete **end-user documentation** for the Alonix Intelligent Document Platform, plus a **developer API reference** and interactive playground.
+Complete **end-user documentation** for the document intelligence platform, plus a **developer API reference** and interactive playground. Brand name, logo, and colors come from `../brands/<slug>/` (set `DOCUSAURUS_BRAND`, default `findoutai`).
 
 ## What's inside
 
 | Section | Audience | Description |
 |---------|----------|-------------|
 | [Help Center](http://localhost:3000) | End users | Workspaces, documents, AI chat, connectors, reports |
-| [Documentation](http://localhost:3000/docs/introduction/what-is-alonix) | Everyone | Searchable guides, tutorials, FAQ, glossary |
+| [Documentation](http://localhost:3000/docs/introduction/product-overview) | Everyone | Searchable guides, tutorials, FAQ, glossary |
 | [API Playground](http://localhost:3000/api-playground) | Developers | OpenAPI + Scalar — mock or sandbox backend |
 
 ## Quick start (docs site)
@@ -87,7 +87,7 @@ npm run build
 
 See also [Authentication](/docs/developer/authentication) for the login → Authorize → protected routes flow.
 
-## Run the Alonix application locally
+## Run the application locally
 
 End-user docs describe the product; to run the app itself:
 
@@ -110,7 +110,7 @@ See [Developer setup](/docs/developer/setup) for full details.
 
 ```text
 docs/
-├── introduction/       # What is Alonix
+├── introduction/       # Product overview
 ├── getting-started/    # Account, login, first steps
 ├── user-guide/         # Every major feature
 ├── tutorials/          # End-to-end workflows

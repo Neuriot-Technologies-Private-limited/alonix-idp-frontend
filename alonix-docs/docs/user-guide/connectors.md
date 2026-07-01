@@ -1,6 +1,6 @@
 ---
 title: Connectors
-description: Automate document intake into Alonix using Email, SFTP, and SharePoint connectors.
+description: Automate document intake into {{brandName}} using Email, SFTP, and SharePoint connectors.
 sidebar_position: 7
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 7
 
 ## Overview
 
-**Connectors** automatically bring documents into a workspace from external systems. Alonix supports **Email**, **SFTP**, and **SharePoint** connectors so files arrive without manual upload.
+**Connectors** automatically bring documents into a workspace from external systems. {{brandName}} supports **Email**, **SFTP**, and **SharePoint** connectors so files arrive without manual upload.
 
 ## Purpose
 
@@ -33,7 +33,7 @@ Reduce manual work, shorten ingestion lag, and keep the document vault synchroni
 ### 2. Configure Email connector
 
 1. Choose **Email**.
-2. Note the dedicated inbox address Alonix provides (or configure forwarding rules).
+2. Note the dedicated inbox address {{brandName}} provides (or configure forwarding rules).
 3. Set filters: allowed senders, subject patterns, attachment types.
 4. Save and send a test email with a sample attachment.
 5. Confirm the document appears in **Documents** after pipeline processing.

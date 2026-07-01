@@ -1,6 +1,6 @@
 ---
 title: Document Organization
-description: Best practices for naming, structuring, and maintaining documents in Alonix workspaces.
+description: Best practices for naming, structuring, and maintaining documents in {{brandName}} workspaces.
 sidebar_position: 1
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 1
 
 ## Overview
 
-Good document organization in Alonix improves search, AI Chat accuracy, and report quality. This guide covers naming, batching uploads, and ongoing hygiene—without requiring a complex folder hierarchy inside the platform.
+Good document organization in {{brandName}} improves search, AI Chat accuracy, and report quality. This guide covers naming, batching uploads, and ongoing hygiene—without requiring a complex folder hierarchy inside the platform.
 
 ## Purpose
 

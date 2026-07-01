@@ -1,6 +1,6 @@
 ---
 title: Ask AI a Question
-description: Tutorial for using Alonix AI Chat to get cited answers from your documents.
+description: Tutorial for using {{brandName}} AI Chat to get cited answers from your documents.
 sidebar_position: 4
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 4
 
 ## Overview
 
-Practice asking Alonix AI Chat a question you already know the answer to—then verify the response against document citations.
+Practice asking {{brandName}} AI Chat a question you already know the answer to—then verify the response against document citations.
 
 ## Purpose
 
@@ -52,7 +52,7 @@ Check citations again.
 
 ### Step 6: Try an unanswerable question
 
-Ask about something not in your vault. Note how Alonix responds when no sources exist.
+Ask about something not in your vault. Note how {{brandName}} responds when no sources exist.
 
 ## Expected Results
 

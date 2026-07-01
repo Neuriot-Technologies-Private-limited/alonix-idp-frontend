@@ -1,6 +1,6 @@
 ---
 title: AI Chat Problems
-description: Troubleshoot missing answers, weak citations, and slow AI Chat in Alonix.
+description: Troubleshoot missing answers, weak citations, and slow AI Chat in {{brandName}}.
 sidebar_position: 4
 ---
 

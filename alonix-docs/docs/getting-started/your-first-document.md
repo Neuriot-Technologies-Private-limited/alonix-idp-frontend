@@ -1,6 +1,6 @@
 ---
 title: Your First Document
-description: Upload your first document to Alonix and follow it through ingest, extract, and classify.
+description: Upload your first document to {{brandName}} and follow it through ingest, extract, and classify.
 sidebar_position: 7
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 7
 
 ## Overview
 
-Uploading a document is the fastest way to see Alonix in action. After upload, the **document pipeline** processes your file so it becomes searchable and available for AI Chat with citations.
+Uploading a document is the fastest way to see {{brandName}} in action. After upload, the **document pipeline** processes your file so it becomes searchable and available for AI Chat with citations.
 
 ## Purpose
 
@@ -41,7 +41,7 @@ Walk through a complete upload-to-search flow so you understand processing times
 
 Documents move through these stages:
 
-1. **Upload** — file received by Alonix
+1. **Upload** — file received by {{brandName}}
 2. **Ingest** — file stored and indexed for processing
 3. **Extract** — text and metadata pulled from the file
 4. **Classify** — document type and tags assigned

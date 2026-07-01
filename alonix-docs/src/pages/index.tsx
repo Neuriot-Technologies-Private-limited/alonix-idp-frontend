@@ -4,6 +4,7 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
+import {useBrand} from '@site/src/brand/useBrand';
 
 import styles from './index.module.css';
 import {sitePath as sp} from '@site/src/utils/sitePath';
@@ -101,26 +102,27 @@ function FeatureCard({
 
 export default function Home(): React.JSX.Element {
   const {siteConfig} = useDocusaurusContext();
+  const brand = useBrand();
 
   return (
     <Layout
-      title="Alonix Help Center"
-      description="Complete user documentation for Alonix — intelligent document platform with AI chat, connectors, and governance.">
+      title={brand.helpCenterTitle}
+      description={`Complete user documentation for ${brand.name} — intelligent document platform with AI chat, connectors, and governance.`}>
       <header className={clsx('hero', styles.heroBanner)}>
         <div className="container">
           <Heading as="h1" className="hero__title">
             {siteConfig.title}
           </Heading>
           <p className="hero__subtitle">
-            Everything you need to use Alonix confidently — from your first login to advanced
+            Everything you need to use {brand.name} confidently — from your first login to advanced
             reports and connectors.
           </p>
           <div className={styles.heroCtas}>
             <Link className="button button--primary button--lg" to={sp('/getting-started/creating-account')}>
               Get started
             </Link>
-            <Link className="button button--secondary button--lg" to={sp('/introduction/what-is-alonix')}>
-              What is Alonix?
+            <Link className="button button--secondary button--lg" to={sp('/introduction/product-overview')}>
+              What is {brand.name}?
             </Link>
           </div>
           <p className={styles.searchHint}>
@@ -134,7 +136,7 @@ export default function Home(): React.JSX.Element {
         <section className={clsx('container', styles.section)}>
           <Heading as="h2">Quick start</Heading>
           <p className={styles.sectionLead}>
-            New to Alonix? Follow these four steps to go from signup to your first AI answer.
+            New to {brand.name}? Follow these four steps to go from signup to your first AI answer.
           </p>
           <div className={styles.grid4}>
             {quickStart.map((item, i) => (

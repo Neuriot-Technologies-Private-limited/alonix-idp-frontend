@@ -1,6 +1,6 @@
 ---
 title: Common Issues
-description: Quick fixes for the most frequent Alonix problems end users encounter.
+description: Quick fixes for the most frequent {{brandName}} problems end users encounter.
 sidebar_position: 1
 ---
 
@@ -16,7 +16,7 @@ Resolve typical problems quickly with structured checks.
 
 ## Prerequisites
 
-- Alonix login (where applicable)
+- {{brandName}} login (where applicable)
 - Knowledge of your role and workspace name
 
 ## Step-by-Step Instructions
@@ -44,7 +44,7 @@ Resolve typical problems quickly with structured checks.
 
 1. Session timeout from [Org Settings](/docs/user-guide/org-settings).
 2. Password changed on another device.
-3. Clear cookies only for Alonix domain and log in again.
+3. Clear cookies only for {{brandName}} domain and log in again.
 
 ### Issue: Email invite or verification problems
 

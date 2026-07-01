@@ -5,3 +5,6 @@ build/
 *.log
 .env
 .env.local
+.brand.generated.json
+src/css/brand-theme.generated.css
+static/brand/

@@ -1,6 +1,6 @@
 ---
 title: Document Pipeline
-description: Understand how Alonix processes documents from upload through ingest, extract, and classify.
+description: Understand how {{brandName}} processes documents from upload through ingest, extract, and classify.
 sidebar_position: 5
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 5
 
 ## Overview
 
-Every document in Alonix passes through an automated **pipeline** after upload or connector intake. The pipeline makes files searchable, enriches them with extracted text and metadata, and assigns classifications used by search, reports, and AI Chat.
+Every document in {{brandName}} passes through an automated **pipeline** after upload or connector intake. The pipeline makes files searchable, enriches them with extracted text and metadata, and assigns classifications used by search, reports, and AI Chat.
 
 ## Purpose
 
@@ -36,7 +36,7 @@ flowchart TD
 
 | Stage | What happens |
 |-------|----------------|
-| **Upload** | File transferred to Alonix storage |
+| **Upload** | File transferred to {{brandName}} storage |
 | **Ingest** | File registered, virus scan and validation (if enabled) |
 | **Extract** | Text, tables, and metadata pulled (OCR for scans) |
 | **Classify** | Document type, tags, or categories assigned |

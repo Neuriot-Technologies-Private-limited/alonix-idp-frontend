@@ -1,6 +1,6 @@
 ---
 title: Logging In
-description: Sign in to Alonix, reset your password, and resolve common access issues.
+description: Sign in to {{brandName}}, reset your password, and resolve common access issues.
 sidebar_position: 3
 ---
 
@@ -8,26 +8,26 @@ sidebar_position: 3
 
 ## Overview
 
-Alonix uses email and password authentication. After your account is created and verified, you sign in through your organization's Alonix URL to access dashboards, workspaces, and documents.
+{{brandName}} uses email and password authentication. After your account is created and verified, you sign in through your organization's {{brandName}} URL to access dashboards, workspaces, and documents.
 
 ## Purpose
 
-Securely access your Alonix account and start working in the correct workspace.
+Securely access your {{brandName}} account and start working in the correct workspace.
 
 ## Prerequisites
 
-- A verified Alonix account — see [Creating Your Account](/docs/getting-started/creating-account)
+- A verified {{brandName}} account — see [Creating Your Account](/docs/getting-started/creating-account)
 - Supported browser — see [System Requirements](/docs/getting-started/system-requirements)
-- Your organization's Alonix URL
+- Your organization's {{brandName}} URL
 
 ## Step-by-Step Instructions
 
 ### 1. Go to the login page
 
-1. Open your browser and navigate to your Alonix URL.
+1. Open your browser and navigate to your {{brandName}} URL.
 2. The login screen displays **Email** and **Password** fields.
 
-[Screenshot – Alonix login form with email and password fields]
+[Screenshot – {{brandName}} login form with email and password fields]
 
 ### 2. Enter credentials
 
@@ -73,7 +73,7 @@ Use the link promptly. If it expires, request a new reset email.
 ## Tips
 
 - Bookmark the login URL after your first successful sign-in.
-- If you use multiple Alonix environments (staging vs production), label bookmarks clearly.
+- If you use multiple {{brandName}} environments (staging vs production), label bookmarks clearly.
 - Sign out when finished on shared computers via **Profile → Log out**.
 
 ## Best Practices

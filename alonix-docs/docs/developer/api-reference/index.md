@@ -1,12 +1,12 @@
 ---
 title: API Reference
-description: Complete Alonix REST API — all endpoints with examples and interactive playground.
+description: Complete {{brandName}} REST API — all endpoints with examples and interactive playground.
 sidebar_position: 1
 ---
 
 # API Reference
 
-Complete reference for the **Alonix IDP REST API** (131 operations). All paths are relative to `/api`.
+Complete reference for the **{{brandName}} IDP REST API** (131 operations). All paths are relative to `/api`.
 
 ## Quick links
 

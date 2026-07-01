@@ -1,6 +1,6 @@
 ---
 title: Users and Roles
-description: Manage users, invitations, and roles—Company Admin, Group Admin, and Search User—in Alonix.
+description: Manage users, invitations, and roles—Company Admin, Group Admin, and Search User—in {{brandName}}.
 sidebar_position: 8
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 8
 
 ## Overview
 
-Alonix uses **role-based access control** at the organization and workspace level. Admins invite users, assign roles, and control who can manage settings versus who can search and chat.
+{{brandName}} uses **role-based access control** at the organization and workspace level. Admins invite users, assign roles, and control who can manage settings versus who can search and chat.
 
 ## Purpose
 

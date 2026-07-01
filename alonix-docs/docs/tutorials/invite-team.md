@@ -1,6 +1,6 @@
 ---
 title: Invite Your Team
-description: Tutorial for inviting teammates to an Alonix workspace with the right role.
+description: Tutorial for inviting teammates to an {{brandName}} workspace with the right role.
 sidebar_position: 3
 ---
 

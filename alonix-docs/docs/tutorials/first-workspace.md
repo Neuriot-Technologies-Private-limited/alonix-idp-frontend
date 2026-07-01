@@ -1,6 +1,6 @@
 ---
 title: Create Your First Workspace
-description: Step-by-step tutorial to create and configure your first Alonix workspace.
+description: Step-by-step tutorial to create and configure your first {{brandName}} workspace.
 sidebar_position: 1
 ---
 
@@ -17,7 +17,7 @@ Complete a real workspace setup in under ten minutes as practice before producti
 ## Prerequisites
 
 - Company Admin or Group Admin account
-- Logged in to Alonix
+- Logged in to {{brandName}}
 - A naming convention agreed with your team (optional but helpful)
 
 ## Step-by-Step Instructions

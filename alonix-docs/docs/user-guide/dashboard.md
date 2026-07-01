@@ -1,6 +1,6 @@
 ---
 title: Dashboard
-description: Use the Alonix Dashboard to monitor workspace activity, pipeline health, and quick actions.
+description: Use the {{brandName}} Dashboard to monitor workspace activity, pipeline health, and quick actions.
 sidebar_position: 1
 ---
 
@@ -16,14 +16,14 @@ Provide a single screen to monitor workspace health and access frequent actions 
 
 ## Prerequisites
 
-- Alonix account with workspace access
+- {{brandName}} account with workspace access
 - Correct workspace selected — [Workspace Switcher](/docs/user-guide/workspace-switcher)
 
 ## Step-by-Step Instructions
 
 ### 1. Navigate to Dashboard
 
-Click **Dashboard** in the sidebar or the Alonix logo in the top navigation.
+Click **Dashboard** in the sidebar or the {{brandName}} logo in the top navigation.
 
 ### 2. Interpret key metrics
 

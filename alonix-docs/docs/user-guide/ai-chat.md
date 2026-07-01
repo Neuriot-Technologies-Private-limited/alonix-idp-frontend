@@ -1,6 +1,6 @@
 ---
 title: AI Chat
-description: Ask questions about your documents using Alonix AI Chat with retrieval-augmented answers and citations.
+description: Ask questions about your documents using {{brandName}} AI Chat with retrieval-augmented answers and citations.
 sidebar_position: 6
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 6
 
 ## Overview
 
-**AI Chat** lets you ask questions in plain English about documents in your active workspace. Alonix uses retrieval-augmented generation (RAG) to ground answers in your actual files and shows **citations** so you can verify every claim.
+**AI Chat** lets you ask questions in plain English about documents in your active workspace. {{brandName}} uses retrieval-augmented generation (RAG) to ground answers in your actual files and shows **citations** so you can verify every claim.
 
 ## Purpose
 

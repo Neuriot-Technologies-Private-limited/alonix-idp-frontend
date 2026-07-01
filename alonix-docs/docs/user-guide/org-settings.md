@@ -1,6 +1,6 @@
 ---
 title: Org Settings
-description: Configure organization-wide Alonix settings as a Company Admin.
+description: Configure organization-wide {{brandName}} settings as a Company Admin.
 sidebar_position: 12
 ---
 
@@ -71,7 +71,7 @@ Set defaults new workspaces inherit:
 ## Tips
 
 :::warning Test policy changes in staging
-If your company runs a staging Alonix environment, validate session timeout and domain rules there first.
+If your company runs a staging {{brandName}} environment, validate session timeout and domain rules there first.
 :::
 
 - Document org settings in internal runbooks for continuity when admins change roles.

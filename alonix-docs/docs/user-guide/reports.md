@@ -1,6 +1,6 @@
 ---
 title: Reports
-description: Export workspace data and document insights from Alonix as CSV, PDF, or XLSX reports.
+description: Export workspace data and document insights from {{brandName}} as CSV, PDF, or XLSX reports.
 sidebar_position: 9
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 9
 
 ## Overview
 
-**Reports** let you export structured data from your workspace for stakeholders, audits, and offline analysis. Alonix supports common formats including **CSV**, **PDF**, and **XLSX**.
+**Reports** let you export structured data from your workspace for stakeholders, audits, and offline analysis. {{brandName}} supports common formats including **CSV**, **PDF**, and **XLSX**.
 
 ## Purpose
 

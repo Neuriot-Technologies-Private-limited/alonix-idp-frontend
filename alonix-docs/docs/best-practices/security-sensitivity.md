@@ -1,6 +1,6 @@
 ---
 title: Security and Sensitivity
-description: Best practices for handling sensitive documents and access control in Alonix.
+description: Best practices for handling sensitive documents and access control in {{brandName}}.
 sidebar_position: 2
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 2
 
 ## Overview
 
-Alonix centralizes valuable information—which raises the stakes for access control, export discipline, and AI Chat usage. This guide helps teams handle sensitive data responsibly.
+{{brandName}} centralizes valuable information—which raises the stakes for access control, export discipline, and AI Chat usage. This guide helps teams handle sensitive data responsibly.
 
 ## Purpose
 

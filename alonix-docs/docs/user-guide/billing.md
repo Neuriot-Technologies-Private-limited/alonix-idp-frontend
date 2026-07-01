@@ -1,6 +1,6 @@
 ---
 title: Billing
-description: Manage Alonix subscription, invoices, and payment methods on SaaS deployments.
+description: Manage {{brandName}} subscription, invoices, and payment methods on SaaS deployments.
 sidebar_position: 13
 ---
 
@@ -55,7 +55,7 @@ Check:
 2. Compare tiers and limits.
 3. Confirm change—proration rules display before commit.
 
-Contact Alonix sales or support for enterprise contract changes not available self-service.
+Contact {{brandName}} sales or support for enterprise contract changes not available self-service.
 
 ## Expected Results
 
@@ -98,4 +98,4 @@ If you do not see Billing, your organization likely uses enterprise licensing—
 - [Org Settings](/docs/user-guide/org-settings)
 - [Users and Roles](/docs/user-guide/users-and-roles)
 - [FAQ](/docs/faq/)
-- [Who Should Use Alonix?](/docs/introduction/who-should-use-alonix)
+- [Who Should Use {{brandName}}?](/docs/introduction/who-should-use-alonix)

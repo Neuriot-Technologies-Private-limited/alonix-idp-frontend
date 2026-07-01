@@ -4,10 +4,12 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import {useLocation} from '@docusaurus/router';
 import {buildApiConfig, type ApiCustomFields} from '@site/src/config/api';
+import {useBrand} from '@site/src/brand/useBrand';
 import styles from './styles.module.css';
 
 function PlaygroundFrame(): React.JSX.Element {
   const {siteConfig} = useDocusaurusContext();
+  const brand = useBrand();
   const location = useLocation();
   const fields = (siteConfig.customFields ?? {}) as ApiCustomFields;
   const playgroundHtml = useBaseUrl('/playground/index.html');
@@ -34,7 +36,7 @@ function PlaygroundFrame(): React.JSX.Element {
 
   return (
     <iframe
-      title="Alonix API Playground"
+      title={`${brand.name} API Playground`}
       className={styles.frame}
       src={iframeSrc}
       allow="clipboard-write"

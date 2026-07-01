@@ -1,6 +1,6 @@
 ---
 title: Generate a Report
-description: Tutorial for exporting a CSV, PDF, or XLSX report from your Alonix workspace.
+description: Tutorial for exporting a CSV, PDF, or XLSX report from your {{brandName}} workspace.
 sidebar_position: 5
 ---
 

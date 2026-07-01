@@ -1,6 +1,6 @@
 ---
 title: Activity Logs
-description: Review user and system activity in Alonix for auditing, compliance, and troubleshooting.
+description: Review user and system activity in {{brandName}} for auditing, compliance, and troubleshooting.
 sidebar_position: 10
 ---
 

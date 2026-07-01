@@ -1,6 +1,6 @@
 ---
 title: Manage Users
-description: Tutorial for reviewing, updating roles, and offboarding users in Alonix.
+description: Tutorial for reviewing, updating roles, and offboarding users in {{brandName}}.
 sidebar_position: 7
 ---
 

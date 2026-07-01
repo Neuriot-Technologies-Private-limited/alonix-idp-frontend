@@ -1,6 +1,6 @@
 ---
 title: Workspace Governance
-description: Best practices for creating, managing, and retiring Alonix workspaces at scale.
+description: Best practices for creating, managing, and retiring {{brandName}} workspaces at scale.
 sidebar_position: 3
 ---
 
@@ -8,7 +8,7 @@ sidebar_position: 3
 
 ## Overview
 
-As organizations adopt Alonix, workspace sprawl creates admin overhead and access risk. Governance defines when to create workspaces, who owns them, and how to retire them safely.
+As organizations adopt {{brandName}}, workspace sprawl creates admin overhead and access risk. Governance defines when to create workspaces, who owns them, and how to retire them safely.
 
 ## Purpose
 

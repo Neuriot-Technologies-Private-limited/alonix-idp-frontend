@@ -88,6 +88,26 @@ Enterprise builds hide public landing, pricing, signup, and billing UI.
 | Show/hide pricing | `brand.env` | `VITE_BRAND_SHOW_PRICING` (landing, `/pricing`, org subscription panel, `/settings/billing`) |
 | SaaS vs enterprise | `profiles/enterprise.env` or npm `*:enterprise` | `VITE_DEPLOYMENT_PROFILE` |
 
+## Docs branding (Help Center at `/docs`)
+
+The docs site under `alonix-docs/` uses the **same** `brands/<slug>/` folder as the React app.
+
+| Setting | Knob | Example |
+|---------|------|---------|
+| Active brand | `DOCUSAURUS_BRAND` | `findoutai` (CI default) |
+| App name in docs | `brand.env` | `VITE_BRAND_NAME` |
+| Logo / favicon | `brands/<slug>/assets/` | copied to docs `static/brand/` on build |
+| Colors | `brand.env` | `VITE_BRAND_PRIMARY_LIGHT` / `DARK` |
+| Markdown copy | `{{brandName}}` tokens | replaced at build from `VITE_BRAND_NAME` |
+
+```bash
+cd alonix-docs
+DOCUSAURUS_BRAND=findoutai npm run start
+DOCUSAURUS_BRAND=findoutai DOCUSAURUS_BASE_URL=/docs/ npm run build:ci
+```
+
+Run `npm run sync:brand` after changing `brand.env` or brand assets.
+
 ## Rules
 
 - **Never edit `src/` files** to add brand-specific logic.

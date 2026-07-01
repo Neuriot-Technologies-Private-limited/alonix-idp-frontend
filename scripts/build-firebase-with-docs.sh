@@ -22,6 +22,7 @@ echo "==> Building docs (/docs subpath)..."
 (
   cd alonix-docs
   npm ci
+  DOCUSAURUS_BRAND="${DOCUSAURUS_BRAND:-findoutai}" \
   DOCUSAURUS_BASE_URL=/docs/ \
   DOCUSAURUS_SITE_URL="${PUBLIC_APP_URL:-http://localhost:3000}" \
   DOCUSAURUS_API_MODE=mock \
