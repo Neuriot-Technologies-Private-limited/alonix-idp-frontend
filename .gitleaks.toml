@@ -1,0 +1,11 @@
+title = "Alonix frontend gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Help Center docs use mock JWT placeholders, not real secrets"
+paths = [
+  '''^alonix-docs/docs/''',
+  '''^alonix-docs/static/openapi''',
+]

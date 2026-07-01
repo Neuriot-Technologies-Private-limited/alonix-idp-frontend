@@ -40,7 +40,7 @@ sequenceDiagram
 ```json
 {
   "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "<jwt-from-login-response>",
   "user": {
     "_id": "66f1abcd1234567890ef1234",
     "email": "demo.admin@alonix.example",
@@ -65,7 +65,7 @@ The Express backend sets an httpOnly `auth` cookie on login. SPA clients (`aloni
 Add the header on every protected request:
 
 ```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <jwt-from-login-response>
 ```
 
 In the [API Playground](/api-playground), click **Authorize** and enter:

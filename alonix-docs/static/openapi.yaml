@@ -361,7 +361,7 @@ components:
           example: Login successful
         token:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token
+          example: mock.jwt.token.from.login.response
         user:
           $ref: "#/components/schemas/UserProfile"
         context:
@@ -798,7 +798,7 @@ components:
     LoginSuccessBody:
       value:
         message: Login successful
-        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token
+        token: mock.jwt.token.from.login.response
         user:
           _id: 66f1abcd1234567890ef1234
           id: 66f1abcd1234567890ef1234
