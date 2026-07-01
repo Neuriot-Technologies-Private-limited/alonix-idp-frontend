@@ -1,0 +1,68 @@
+---
+title: "GET /admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}"
+description: "Get email detail with attachments and ingestion status"
+sidebar_position: 23
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /admin/orgs/\{orgId\}/mailboxes/\{mailboxId\}/emails/\{uid\}
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fmailboxes%2F%7BmailboxId%7D%2Femails%2F%7Buid%7D&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `mailboxId` | path | Yes | string |  |
+| `uid` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Email detail payload |
+| 403 |  |
+| 404 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

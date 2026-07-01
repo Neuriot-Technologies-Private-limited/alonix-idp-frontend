@@ -1,0 +1,11 @@
+{
+  "label": "Webhooks",
+  "position": 10,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/webhooks",
+    "title": "Webhooks",
+    "description": "Internal pipeline callbacks"
+  }
+}

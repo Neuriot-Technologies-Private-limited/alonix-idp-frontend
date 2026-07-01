@@ -1,0 +1,11 @@
+{
+  "label": "Billing",
+  "position": 8,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/billing",
+    "title": "Billing",
+    "description": "Plans, Stripe checkout, subscription"
+  }
+}

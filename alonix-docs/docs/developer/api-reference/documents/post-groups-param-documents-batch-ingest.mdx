@@ -1,0 +1,86 @@
+---
+title: "POST /groups/{groupId}/documents/batch/ingest"
+description: "Batch ingest (group mount)"
+sidebar_position: 24
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /groups/\{groupId\}/documents/batch/ingest
+
+**[Try in API Playground](/api-playground?path=%2Fgroups%2F%7BgroupId%7D%2Fdocuments%2Fbatch%2Fingest&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/groups/{groupId}/documents/batch/ingest` |
+| **Tag** | Documents |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "documentIds": [
+    "string"
+  ]
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 202 | Batch queued |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/groups/{groupId}/documents/batch/ingest" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "documentIds": [
+    "string"
+  ]
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups/{groupId}/documents/batch/ingest', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "documentIds": [
+          "string"
+      ]
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups/{groupId}/documents/batch/ingest" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

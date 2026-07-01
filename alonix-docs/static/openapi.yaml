@@ -1,0 +1,3141 @@
+openapi: 3.0.3
+info:
+  title: Alonix IDP Backend API
+  version: 1.0.0
+  description: |-
+    Production API for Alonix IDP — identity, RBAC, documents, chat, billing, and connectors.
+
+    **Deployment profile:** `saas`
+
+    **Base URL:** All paths below are relative to `/api` (server URL already includes `/api`).
+
+    **Auth:** Call `POST /users/login`, copy `token`, then Authorize with `Bearer <token>`.
+    For workspace-scoped routes, set header `X-Group-Id` to the active group ObjectId.
+
+    **Postman:** Import OpenAPI from `GET /api/docs/openapi.json` (File → Import).
+
+    **Rate limit:** 100 requests / 15 min per IP on `/api/*`.
+
+    **Playground:** Use mock mode (default) or sandbox via `DOCUSAURUS_API_MODE`.
+    **Docs-only paths:** `/auth/login` (alias), `/users/me` (composite profile).
+  contact:
+    name: Alonix API Support
+servers:
+  - url: http://localhost:4010
+    description: Mock server (Prism)
+  - url: http://localhost:5005/api
+    description: Sandbox backend (local dev)
+  - url: http://localhost:5005/api
+    description: API (local or BACKEND_URL)
+security:
+  - bearerAuth: []
+tags:
+  - name: Health
+    description: API root / welcome
+  - name: Auth
+    description: Login, logout, and session tokens
+  - name: Groups
+    description: Workspaces — create, list, read, and delete
+  - name: Users
+    description: Onboarding, profile, invites, and account
+  - name: Documents
+    description: Upload, ingest, extract, classify, jobs
+  - name: Chats
+    description: RAG Q&A and session history
+  - name: Admin
+    description: Org RBAC, metrics, audit, workspace members
+  - name: Billing
+    description: Plans, Stripe checkout, subscription
+  - name: Connectors
+    description: Email, SFTP, SharePoint integrations
+  - name: Webhooks
+    description: Internal pipeline callbacks
+  - name: Internal
+    description: Service-to-service audit ingestion
+  - name: Setup
+    description: Enterprise one-time bootstrap
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT from POST /users/login. Enter: Bearer <token>"
+    internalWebhook:
+      type: apiKey
+      in: header
+      name: X-Internal-Token
+      description: Matches INTERNAL_WEBHOOK_SECRET (Python pipeline callbacks).
+    stripeWebhook:
+      type: apiKey
+      in: header
+      name: Stripe-Signature
+      description: Stripe webhook signature (request body must be raw bytes).
+  parameters:
+    OrgIdPath:
+      name: orgId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 507f1f77bcf86cd799439011
+    GroupIdPath:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 507f1f77bcf86cd799439012
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+    DocumentIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    ConnectorIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    JobIdPath:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+    SessionIdPath:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+    InviteIdPath:
+      name: inviteId
+      in: path
+      required: true
+      schema:
+        type: string
+    MailboxIdPath:
+      name: mailboxId
+      in: path
+      required: true
+      schema:
+        type: string
+    EmailUidPath:
+      name: uid
+      in: path
+      required: true
+      schema:
+        type: string
+    OAuthSessionIdPath:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+    SiteIdPath:
+      name: siteId
+      in: path
+      required: true
+      schema:
+        type: string
+    UserEmailPath:
+      name: userEmail
+      in: path
+      required: true
+      schema:
+        type: string
+    XGroupId:
+      name: X-Group-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        example: 507f1f77bcf86cd799439012
+      description: Active workspace group ObjectId
+    XRequestId:
+      name: X-Request-Id
+      in: header
+      schema:
+        type: string
+    InviteTokenQuery:
+      name: inviteToken
+      in: query
+      required: true
+      schema:
+        type: string
+    BrowsePathQuery:
+      name: path
+      in: query
+      schema:
+        type: string
+    DateFromQuery:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date-time
+    DateToQuery:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date-time
+    AuditLimitQuery:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 50
+    AuditSkipQuery:
+      name: skip
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    ActorEmailQuery:
+      name: actorEmail
+      in: query
+      schema:
+        type: string
+        format: email
+    AuditActionQuery:
+      name: action
+      in: query
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials / token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+          examples:
+            invalidCredentials:
+              value:
+                message: Invalid email or password
+            missingToken:
+              value:
+                message: Authentication required
+            expiredToken:
+              value:
+                message: Token expired
+                code: TOKEN_EXPIRED
+    Forbidden:
+      description: Insufficient role or scope
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+          examples:
+            userNotFound:
+              value:
+                message: User not found
+    BadRequest:
+      description: Validation error — missing or invalid fields
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+          examples:
+            missingFields:
+              value:
+                message: email and password are required
+            invalidEmail:
+              value:
+                message: Validation failed
+                details: email must be a valid email address
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+          examples:
+            serverError:
+              value:
+                message: Internal server error
+                requestId: req_01HYZABCDEF123456
+    LoginSuccess:
+      description: Login successful
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/LoginResponse"
+          examples:
+            success:
+              $ref: "#/components/examples/LoginSuccessBody"
+  schemas:
+    ErrorMessage:
+      type: object
+      properties:
+        message:
+          type: string
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: string
+        requestId:
+          type: string
+    ObjectId:
+      type: string
+      pattern: ^[a-fA-F0-9]{24}$
+      example: 507f1f77bcf86cd799439011
+    DocumentSensitivity:
+      type: string
+      enum:
+        - PUBLIC
+        - INTERNAL_USE
+        - CONFIDENTIAL
+        - HIGHLY_CONFIDENTIAL
+        - RESTRICTED
+    OrgRole:
+      type: string
+      enum:
+        - COMPANY_ADMIN
+        - MEMBER
+    GroupRole:
+      type: string
+      enum:
+        - GROUP_ADMIN
+        - SEARCH_USER
+    UserStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+    ConnectorType:
+      type: string
+      enum:
+        - EMAIL
+        - SFTP
+        - SHAREPOINT
+    PlanName:
+      type: string
+      enum:
+        - FREE
+        - STARTER
+        - PRO
+        - ENTERPRISE
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: demo.admin@alonix.example
+        password:
+          type: string
+          format: password
+          example: DemoPass123!
+        orgId:
+          type: string
+          description: Optional org scope for multi-tenant login
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Login successful
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        context:
+          $ref: "#/components/schemas/AuthContext"
+        csrfToken:
+          type: string
+          example: csrf_mock_token_abc123
+    OnboardRequest:
+      type: object
+      required:
+        - companyName
+        - email
+        - password
+      properties:
+        companyName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+    OnboardInviteRequest:
+      type: object
+      required:
+        - inviteToken
+        - email
+        - password
+      properties:
+        inviteToken:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+    InviteToGroupRequest:
+      type: object
+      required:
+        - groupId
+        - email
+      properties:
+        groupId:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/GroupRole"
+        maxDocumentSensitivity:
+          $ref: "#/components/schemas/DocumentSensitivity"
+    VerifyEmailRequest:
+      type: object
+      required:
+        - email
+        - otp
+      properties:
+        email:
+          type: string
+          format: email
+        otp:
+          type: string
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+        orgId:
+          type: string
+    ResetPasswordRequest:
+      type: object
+      required:
+        - email
+        - token
+        - newPassword
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        orgId:
+          type: string
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        orgId:
+          type: string
+    UpdateUserProfileRequest:
+      type: object
+      required:
+        - orgId
+      properties:
+        orgId:
+          type: string
+        groupId:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/UserStatus"
+    UpdateOrgUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/UserStatus"
+    AdminGroupCreateRequest:
+      type: object
+      required:
+        - groupName
+      properties:
+        groupName:
+          type: string
+        description:
+          type: string
+    GroupMemberUpsertRequest:
+      type: object
+      required:
+        - userEmail
+      properties:
+        userEmail:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/GroupRole"
+        maxDocumentSensitivity:
+          $ref: "#/components/schemas/DocumentSensitivity"
+    GroupMemberRoleUpdateRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          $ref: "#/components/schemas/GroupRole"
+        maxDocumentSensitivity:
+          $ref: "#/components/schemas/DocumentSensitivity"
+    DocumentSensitivityPolicyRequest:
+      type: object
+      required:
+        - enabledDocumentSensitivityLevels
+      properties:
+        enabledDocumentSensitivityLevels:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentSensitivity"
+    ChatAskRequest:
+      type: object
+      required:
+        - query
+      properties:
+        groupId:
+          type: string
+        collectionName:
+          type: string
+        sessionId:
+          type: string
+        query:
+          type: string
+        fileKey:
+          type: string
+    ChatDeleteRequest:
+      type: object
+      required:
+        - sessionId
+      properties:
+        sessionId:
+          type: string
+        groupId:
+          type: string
+    SourceUrlRequest:
+      type: object
+      properties:
+        fileKey:
+          type: string
+        documentId:
+          type: string
+    BatchIngestRequest:
+      type: object
+      required:
+        - documentIds
+      properties:
+        documentIds:
+          type: array
+          items:
+            type: string
+    ExtractRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          default: json
+    CheckoutSessionRequest:
+      type: object
+      required:
+        - planName
+      properties:
+        planName:
+          $ref: "#/components/schemas/PlanName"
+        billingCycle:
+          type: string
+          enum:
+            - monthly
+            - annually
+    ConnectorCreateRequest:
+      type: object
+      required:
+        - name
+        - type
+        - config
+      properties:
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/ConnectorType"
+        ingestHistoric:
+          type: boolean
+        config:
+          type: object
+          additionalProperties: true
+    ConnectorPatchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        autoIngest:
+          type: boolean
+        pollIntervalMs:
+          type: integer
+        remotePath:
+          type: string
+    ConnectorIngestRequest:
+      type: object
+      properties:
+        paths:
+          type: array
+          items:
+            type: string
+        groupId:
+          type: string
+    JobCallbackRequest:
+      type: object
+      properties:
+        status:
+          type: string
+        extractedData:
+          type: object
+          additionalProperties: true
+        classifiedData:
+          type: object
+          additionalProperties: true
+        resultData:
+          type: object
+          additionalProperties: true
+        error:
+          type: string
+    AiSettingsUpdate:
+      type: object
+      additionalProperties: true
+    SharePointSettingsUpdate:
+      type: object
+      properties:
+        clientId:
+          type: string
+        clientSecret:
+          type: string
+          description: Plain secret — encrypted at rest
+        tenantId:
+          type: string
+    DocumentExtractionReviewRequest:
+      type: object
+      description: Human-reviewed extraction fields (pages array)
+      additionalProperties: true
+    DocumentClassificationReviewRequest:
+      type: object
+      description: Human-reviewed classification labels
+      additionalProperties: true
+    MailboxCreateRequest:
+      type: object
+      required:
+        - emailAddress
+      properties:
+        emailAddress:
+          type: string
+          format: email
+        displayName:
+          type: string
+        groupId:
+          type: string
+        encryptedPassword:
+          type: string
+        wrapKeyId:
+          type: string
+    MailboxPatchRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        encryptedPassword:
+          type: string
+        wrapKeyId:
+          type: string
+    EmailIngestRequest:
+      type: object
+      properties:
+        attachmentIds:
+          type: array
+          items:
+            type: string
+        archivePaths:
+          type: array
+          items:
+            type: string
+        ingestAllIngestable:
+          type: boolean
+        async:
+          type: boolean
+          description: Queue via BullMQ when true
+    SharePointOAuthCompleteRequest:
+      type: object
+      required:
+        - name
+        - siteUrl
+      properties:
+        name:
+          type: string
+        siteUrl:
+          type: string
+        siteId:
+          type: string
+        libraryName:
+          type: string
+        driveName:
+          type: string
+        ingestHistoric:
+          type: boolean
+    UserProfile:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 66f1abcd1234567890ef1234
+        id:
+          type: string
+          example: 66f1abcd1234567890ef1234
+        email:
+          type: string
+          format: email
+          example: demo.admin@alonix.example
+        name:
+          type: string
+          example: Demo Admin
+        username:
+          type: string
+          example: demo.admin@alonix.example
+        avatarUrl:
+          type: string
+          nullable: true
+          example: null
+        orgId:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        groupId:
+          type: string
+          example: 507f1f77bcf86cd799439012
+    AuthContext:
+      type: object
+      additionalProperties: true
+      properties:
+        orgId:
+          type: string
+        orgRole:
+          type: string
+          enum:
+            - COMPANY_ADMIN
+            - MEMBER
+        activeGroupId:
+          type: string
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              groupId:
+                type: string
+              groupName:
+                type: string
+              role:
+                type: string
+    CurrentUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        context:
+          $ref: "#/components/schemas/AuthContext"
+        csrfToken:
+          type: string
+    UserContextResponse:
+      type: object
+      properties:
+        context:
+          $ref: "#/components/schemas/AuthContext"
+        csrfToken:
+          type: string
+  examples:
+    LoginSuccessBody:
+      value:
+        message: Login successful
+        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token
+        user:
+          _id: 66f1abcd1234567890ef1234
+          id: 66f1abcd1234567890ef1234
+          email: demo.admin@alonix.example
+          name: Demo Admin
+          username: demo.admin@alonix.example
+          avatarUrl: null
+          orgId: 507f1f77bcf86cd799439011
+          groupId: 507f1f77bcf86cd799439012
+        context:
+          orgId: 507f1f77bcf86cd799439011
+          orgRole: COMPANY_ADMIN
+          activeGroupId: 507f1f77bcf86cd799439012
+          groups:
+            - groupId: 507f1f77bcf86cd799439012
+              groupName: Default Workspace
+              role: GROUP_ADMIN
+        csrfToken: csrf_mock_token_abc123
+    CurrentUserSuccess:
+      value:
+        user:
+          _id: 66f1abcd1234567890ef1234
+          email: demo.admin@alonix.example
+          name: Demo Admin
+          orgId: 507f1f77bcf86cd799439011
+        context:
+          orgId: 507f1f77bcf86cd799439011
+          orgRole: COMPANY_ADMIN
+          activeGroupId: 507f1f77bcf86cd799439012
+        csrfToken: csrf_mock_token_abc123
+paths:
+  /admin/orgs/{orgId}/users/{userId}:
+    patch:
+      tags:
+        - Admin
+      summary: Update org user (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/UserIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrgUserRequest"
+      responses:
+        "200":
+          description: User updated
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags:
+        - Admin
+      summary: Update org user (PUT alias)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/UserIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrgUserRequest"
+      responses:
+        "200":
+          description: User updated
+    post:
+      tags:
+        - Admin
+      summary: Update org user (POST alias)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/UserIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrgUserRequest"
+      responses:
+        "200":
+          description: User updated
+    delete:
+      tags:
+        - Admin
+      summary: Remove user from organization
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/UserIdPath"
+      responses:
+        "200":
+          description: User removed
+        "400":
+          description: Cannot remove self
+  /admin/orgs/{orgId}/groups:
+    get:
+      tags:
+        - Admin
+      summary: List workspaces for org
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Groups with membershipRole
+    post:
+      tags:
+        - Admin
+      summary: Create workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminGroupCreateRequest"
+      responses:
+        "201":
+          description: Group created
+  /admin/orgs/{orgId}/users:
+    get:
+      tags:
+        - Admin
+      summary: List org users with workspaces
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Users array with orgRole and workspaces
+  /admin/orgs/{orgId}/dashboard-state:
+    get:
+      tags:
+        - Admin
+      summary: Aggregated dashboard payload
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Stats, groups, pipeline preview, optional audit
+  /admin/orgs/{orgId}/stats:
+    get:
+      tags:
+        - Admin
+      summary: Dashboard stat cards
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: totals and tendencies
+  /admin/orgs/{orgId}/metrics/summary:
+    get:
+      tags:
+        - Admin
+      summary: Metrics summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Full metrics summary
+  /admin/orgs/{orgId}/metrics/activity-series:
+    get:
+      tags:
+        - Admin
+      summary: Activity time series
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: Series data
+  /admin/orgs/{orgId}/metrics/by-user:
+    get:
+      tags:
+        - Admin
+      summary: Per-user activity metrics
+      description: Company admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: Per-user rows
+  /admin/orgs/{orgId}/metrics/pipeline:
+    get:
+      tags:
+        - Admin
+      summary: Document pipeline metrics
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Pipeline counts
+  /admin/orgs/{orgId}/audit-logs:
+    get:
+      tags:
+        - Admin
+      summary: Org audit logs
+      description: Company admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+        - $ref: "#/components/parameters/AuditLimitQuery"
+        - $ref: "#/components/parameters/AuditSkipQuery"
+        - $ref: "#/components/parameters/ActorEmailQuery"
+        - $ref: "#/components/parameters/AuditActionQuery"
+        - name: groupId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: logs, total, skip, limit
+  /admin/groups/{groupId}/audit-logs:
+    get:
+      tags:
+        - Admin
+      summary: Workspace audit logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+        - $ref: "#/components/parameters/AuditLimitQuery"
+        - $ref: "#/components/parameters/AuditSkipQuery"
+        - $ref: "#/components/parameters/ActorEmailQuery"
+        - $ref: "#/components/parameters/AuditActionQuery"
+      responses:
+        "200":
+          description: Scoped audit logs
+  /admin/orgs/{orgId}/reports/activity:
+    get:
+      tags:
+        - Admin
+      summary: Export activity CSV
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+  /admin/orgs/{orgId}/reports/activity.pdf:
+    get:
+      tags:
+        - Admin
+      summary: Export activity audit PDF
+      description: Company admin only. Returns up to 5000 audit rows as a PDF.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/orgs/{orgId}/reports/activity.xlsx:
+    get:
+      tags:
+        - Admin
+      summary: Export activity audit workbook (Excel)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: XLSX file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+  /admin/orgs/{orgId}/reports/metrics.csv:
+    get:
+      tags:
+        - Admin
+      summary: Export metrics CSV
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+  /admin/orgs/{orgId}/reports/metrics.pdf:
+    get:
+      tags:
+        - Admin
+      summary: Export metrics PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /admin/orgs/{orgId}/reports/metrics.xlsx:
+    get:
+      tags:
+        - Admin
+      summary: Export metrics workbook (Excel)
+      description: Company admin only. Multi-sheet workbook with Summary, Activity Series, Pipeline, Top Users, Quota, and Audit Log.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: XLSX file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/orgs/{orgId}/reports/usage-summary:
+    get:
+      tags:
+        - Admin
+      summary: Usage summary report
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: Usage report JSON
+  /admin/orgs/{orgId}/ai-settings:
+    get:
+      tags:
+        - Admin
+      summary: Get org AI settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: settings object
+    put:
+      tags:
+        - Admin
+      summary: Update org AI settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+  /admin/orgs/{orgId}/sharepoint-settings:
+    get:
+      tags:
+        - Admin
+      summary: Get org SharePoint managed OAuth settings
+      description: Company admin only. Returns Azure app registration metadata (secrets redacted).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: SharePoint settings
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags:
+        - Admin
+      summary: Upsert org SharePoint managed OAuth settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SharePointSettingsUpdate"
+      responses:
+        "200":
+          description: Settings saved
+  /admin/orgs/{orgId}/sharepoint-settings/test:
+    post:
+      tags:
+        - Admin
+      summary: Test SharePoint managed OAuth credentials
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Connection test result
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /admin/groups/{groupId}/members:
+    get:
+      tags:
+        - Admin
+      summary: List group members
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      responses:
+        "200":
+          description: members array
+    post:
+      tags:
+        - Admin
+      summary: Add or upsert group member
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupMemberUpsertRequest"
+      responses:
+        "201":
+          description: Membership created/updated
+  /admin/groups/{groupId}/members/{userEmail}:
+    put:
+      tags:
+        - Admin
+      summary: Update member role / sensitivity
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/UserEmailPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupMemberRoleUpdateRequest"
+      responses:
+        "200":
+          description: Membership updated
+    delete:
+      tags:
+        - Admin
+      summary: Remove member from workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/UserEmailPath"
+      responses:
+        "200":
+          description: Membership removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/groups/{groupId}/invites:
+    get:
+      tags:
+        - Admin
+      summary: List pending invites
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      responses:
+        "200":
+          description: invites array
+  /admin/groups/{groupId}/invites/{inviteId}/resend:
+    post:
+      tags:
+        - Admin
+      summary: Resend expired invite
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/InviteIdPath"
+      responses:
+        "200":
+          description: Invite resent
+        "400":
+          description: Invite still active
+  /admin/groups/{groupId}/document-sensitivity-policy:
+    put:
+      tags:
+        - Admin
+      summary: Set enabled document sensitivity levels for workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentSensitivityPolicyRequest"
+      responses:
+        "200":
+          description: Updated group
+  /billing/plans:
+    get:
+      tags:
+        - Billing
+      summary: List public subscription plans
+      description: No auth. Mongo plans enriched with Stripe price ids from env.
+      responses:
+        "200":
+          description: Array of plan tiers
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /billing/config:
+    get:
+      tags:
+        - Billing
+      summary: Public billing readiness config
+      description: No auth. Used by pricing UI to show checkout availability.
+      responses:
+        "200":
+          description: stripeConfigured, checkoutReady, plan price hints
+  /billing/stripe-health:
+    get:
+      tags:
+        - Billing
+      summary: Verify Stripe secret and configured price IDs
+      description: Company admin only. Does not charge a card.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Stripe health check passed
+        "502":
+          description: Stripe secret or price IDs invalid
+        "503":
+          description: Stripe not configured
+  /billing/subscription:
+    get:
+      tags:
+        - Billing
+      summary: Current org subscription and usage
+      description: Company admin only.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: plan, subscription status, usage, limits
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /billing/confirm-checkout:
+    post:
+      tags:
+        - Billing
+      summary: Sync subscription after Stripe Checkout redirect
+      description: |
+        Company admin only. Updates Mongo from Stripe when webhooks are unavailable (local dev).
+        Optional body `{ sessionId }` from `session_id` query param on success URL.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                  description: Stripe Checkout Session id (cs_test_...)
+      responses:
+        "200":
+          description: Updated subscription payload (same as GET /billing/subscription)
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: No Stripe subscription to sync
+  /billing/checkout-session:
+    post:
+      tags:
+        - Billing
+      summary: Create Stripe Checkout session
+      description: Returns `{ url }` to redirect user. Requires STRIPE_SECRET_KEY.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionRequest"
+      responses:
+        "200":
+          description: Checkout URL
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          description: Stripe not configured (STRIPE_NOT_CONFIGURED)
+  /billing/portal-session:
+    get:
+      tags:
+        - Billing
+      summary: Create Stripe Customer Portal session
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Portal URL
+        "400":
+          description: No Stripe customer on org
+        "503":
+          description: Stripe not configured
+  /billing/webhook:
+    post:
+      tags:
+        - Billing
+      summary: Stripe webhook receiver
+      description: |
+        Raw `application/json` body required (not parsed JSON). Registered before global JSON parser in server.js.
+        Configure in Stripe Dashboard pointing to `{BACKEND_URL}/api/billing/webhook`.
+      security:
+        - stripeWebhook: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Stripe event payload (opaque)
+      responses:
+        "200":
+          description: Event received
+        "400":
+          description: Signature verification failed
+  /chats/qa/ask:
+    post:
+      tags:
+        - Chats
+      summary: Ask question (RAG Q&A)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatAskRequest"
+      responses:
+        "200":
+          description: Answer and session metadata
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /groups/{groupId}/chats/qa/ask:
+    post:
+      tags:
+        - Chats
+      summary: Ask question (group-scoped mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatAskRequest"
+      responses:
+        "200":
+          description: Answer
+  /chats/sessions:
+    get:
+      tags:
+        - Chats
+      summary: List chat sessions for current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+        - name: groupId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sessions list
+  /groups/{groupId}/chats/sessions:
+    get:
+      tags:
+        - Chats
+      summary: List sessions (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      responses:
+        "200":
+          description: Sessions list
+  /chats/session/{sessionId}:
+    get:
+      tags:
+        - Chats
+      summary: Get full chat history for session
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SessionIdPath"
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Messages array
+  /groups/{groupId}/chats/session/{sessionId}:
+    get:
+      tags:
+        - Chats
+      summary: Get session history (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/SessionIdPath"
+      responses:
+        "200":
+          description: Messages
+  /chats/delete:
+    delete:
+      tags:
+        - Chats
+      summary: Delete chat session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatDeleteRequest"
+      responses:
+        "200":
+          description: Deleted
+  /groups/{groupId}/chats/delete:
+    delete:
+      tags:
+        - Chats
+      summary: Delete session (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatDeleteRequest"
+      responses:
+        "200":
+          description: Deleted
+  /admin/orgs/{orgId}/connectors:
+    get:
+      tags:
+        - Connectors
+      summary: List org connectors
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: Sanitized connector list (secrets stripped)
+    post:
+      tags:
+        - Connectors
+      summary: Create connector
+      description: Company admin. Secrets encrypted at rest.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectorCreateRequest"
+      responses:
+        "201":
+          description: Connector created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "402":
+          description: Connector quota exceeded
+  /admin/orgs/{orgId}/connectors/{id}:
+    patch:
+      tags:
+        - Connectors
+      summary: Update connector settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectorPatchRequest"
+      responses:
+        "200":
+          description: Updated connector
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - Connectors
+      summary: Delete connector
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      responses:
+        "200":
+          description: Deleted
+  /admin/orgs/{orgId}/connectors/{id}/test:
+    post:
+      tags:
+        - Connectors
+      summary: Test SFTP connection
+      description: SFTP connectors only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      responses:
+        "200":
+          description: Connection success with preview
+        "400":
+          description: Connection failed or wrong type
+  /admin/orgs/{orgId}/connectors/{id}/browse:
+    get:
+      tags:
+        - Connectors
+      summary: Browse remote files (SFTP / SharePoint / email folders)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+        - $ref: "#/components/parameters/BrowsePathQuery"
+      responses:
+        "200":
+          description: Directory listing
+        "403":
+          description: Path outside connector root
+  /admin/orgs/{orgId}/connectors/{id}/ingest:
+    post:
+      tags:
+        - Connectors
+      summary: Ingest selected remote paths into documents
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectorIngestRequest"
+      responses:
+        "202":
+          description: Ingestion queued
+  /admin/orgs/{orgId}/connectors/credential-wrap-key:
+    post:
+      tags:
+        - Connectors
+      summary: Issue one-time credential wrap key
+      description: Client encrypts mailbox passwords before POST/PATCH connector calls.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: wrapKeyId, key, expiresInSec
+  /admin/orgs/{orgId}/connectors/mailboxes:
+    get:
+      tags:
+        - Connectors
+      summary: List accessible email mailboxes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - name: groupId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mailbox list with connector metadata
+  /admin/orgs/{orgId}/connectors/{id}/deletion-impact:
+    get:
+      tags:
+        - Connectors
+      summary: Preview connector deletion impact
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      responses:
+        "200":
+          description: Mailboxes and document counts affected
+  /admin/orgs/{orgId}/connectors/{id}/mailboxes:
+    get:
+      tags:
+        - Connectors
+      summary: List mailboxes for EMAIL connector
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      responses:
+        "200":
+          description: Mailboxes for connector
+    post:
+      tags:
+        - Connectors
+      summary: Create mailbox on EMAIL connector
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MailboxCreateRequest"
+      responses:
+        "201":
+          description: Mailbox created
+  /admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}:
+    patch:
+      tags:
+        - Connectors
+      summary: Update mailbox settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+        - $ref: "#/components/parameters/MailboxIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MailboxPatchRequest"
+      responses:
+        "200":
+          description: Mailbox updated
+    delete:
+      tags:
+        - Connectors
+      summary: Delete mailbox
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+        - $ref: "#/components/parameters/MailboxIdPath"
+      responses:
+        "200":
+          description: Mailbox deleted
+  /admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse:
+    get:
+      tags:
+        - Connectors
+      summary: Browse mailbox folder (email INBOX listing)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/ConnectorIdPath"
+        - $ref: "#/components/parameters/MailboxIdPath"
+        - $ref: "#/components/parameters/BrowsePathQuery"
+      responses:
+        "200":
+          description: Email folder listing
+  /documents/upload:
+    post:
+      tags:
+        - Documents
+      summary: Upload document to workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                groupId:
+                  type: string
+                fileName:
+                  type: string
+                sensitivityLevel:
+                  $ref: "#/components/schemas/DocumentSensitivity"
+      responses:
+        "201":
+          description: Document created
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: Quota or subscription limit
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /groups/{groupId}/documents/upload:
+    post:
+      tags:
+        - Documents
+      summary: Upload document (group-scoped mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Document created
+  /documents/org:
+    get:
+      tags:
+        - Documents
+      summary: Org-wide document pipeline list
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Pipeline rows for accessible groups
+  /groups/{groupId}/documents/org:
+    get:
+      tags:
+        - Documents
+      summary: Org pipeline list (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      responses:
+        "200":
+          description: Pipeline rows
+  /documents/user/{userEmail}:
+    get:
+      tags:
+        - Documents
+      summary: List documents for user email
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserEmailPath"
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Document list
+  /groups/{groupId}/documents/user/{userEmail}:
+    get:
+      tags:
+        - Documents
+      summary: List documents for user (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/UserEmailPath"
+      responses:
+        "200":
+          description: Document list
+  /documents/{id}:
+    get:
+      tags:
+        - Documents
+      summary: Get document by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Document
+        "403":
+          description: Sensitivity or group forbidden
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - Documents
+      summary: Delete document
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "200":
+          description: Deleted
+        "409":
+          description: Blocking jobs or dependencies
+  /groups/{groupId}/documents/{id}:
+    get:
+      tags:
+        - Documents
+      summary: Get document (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "200":
+          description: Document
+    delete:
+      tags:
+        - Documents
+      summary: Delete document (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "200":
+          description: Deleted
+  /documents/source-url:
+    post:
+      tags:
+        - Documents
+      summary: Resolve presigned source URL for citation
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceUrlRequest"
+      responses:
+        "200":
+          description: Presigned URL
+  /groups/{groupId}/documents/source-url:
+    post:
+      tags:
+        - Documents
+      summary: Resolve source URL (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceUrlRequest"
+      responses:
+        "200":
+          description: Presigned URL
+  /documents/batch/ingest:
+    post:
+      tags:
+        - Documents
+      summary: Batch queue document ingestion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIngestRequest"
+      responses:
+        "202":
+          description: Batch queued
+  /groups/{groupId}/documents/batch/ingest:
+    post:
+      tags:
+        - Documents
+      summary: Batch ingest (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIngestRequest"
+      responses:
+        "202":
+          description: Batch queued
+  /documents/{id}/ingest:
+    post:
+      tags:
+        - Documents
+      summary: Queue single document ingestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "202":
+          description: Ingestion queued
+  /groups/{groupId}/documents/{id}/ingest:
+    post:
+      tags:
+        - Documents
+      summary: Queue ingestion (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "202":
+          description: Ingestion queued
+  /documents/{id}/extract:
+    post:
+      tags:
+        - Documents
+      summary: Start extraction job
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtractRequest"
+      responses:
+        "202":
+          description: Extraction started
+  /groups/{groupId}/documents/{id}/extract:
+    post:
+      tags:
+        - Documents
+      summary: Start extraction (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtractRequest"
+      responses:
+        "202":
+          description: Extraction started
+  /documents/{id}/classify:
+    post:
+      tags:
+        - Documents
+      summary: Start classification job
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "202":
+          description: Classification started
+  /groups/{groupId}/documents/{id}/classify:
+    post:
+      tags:
+        - Documents
+      summary: Start classification (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "202":
+          description: Classification started
+  /documents/{id}/results:
+    get:
+      tags:
+        - Documents
+      summary: Document pipeline results and jobs
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "200":
+          description: Results payload
+  /groups/{groupId}/documents/{id}/results:
+    get:
+      tags:
+        - Documents
+      summary: Pipeline results (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      responses:
+        "200":
+          description: Results payload
+  /documents/jobs/{jobId}:
+    get:
+      tags:
+        - Documents
+      summary: Get async job status
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdPath"
+      responses:
+        "200":
+          description: Job status and optional resultData
+  /groups/{groupId}/documents/jobs/{jobId}:
+    get:
+      tags:
+        - Documents
+      summary: Job status (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/JobIdPath"
+      responses:
+        "200":
+          description: Job status
+  /documents/{id}/extraction-review:
+    patch:
+      tags:
+        - Documents
+      summary: Save human extraction review
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+        - $ref: "#/components/parameters/XGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentExtractionReviewRequest"
+      responses:
+        "200":
+          description: Review saved
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /groups/{groupId}/documents/{id}/extraction-review:
+    patch:
+      tags:
+        - Documents
+      summary: Save extraction review (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentExtractionReviewRequest"
+      responses:
+        "200":
+          description: Review saved
+  /documents/{id}/classification-review:
+    patch:
+      tags:
+        - Documents
+      summary: Save human classification review
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdPath"
+        - $ref: "#/components/parameters/XGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentClassificationReviewRequest"
+      responses:
+        "200":
+          description: Review saved
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /groups/{groupId}/documents/{id}/classification-review:
+    patch:
+      tags:
+        - Documents
+      summary: Save classification review (group mount)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/DocumentIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentClassificationReviewRequest"
+      responses:
+        "200":
+          description: Review saved
+  /groups:
+    post:
+      tags:
+        - Groups
+      summary: Create workspace group
+      description: Creates a group/workspace. Used during company onboarding and bootstrap flows.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupName:
+                  type: string
+                orgId:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Group created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    get:
+      tags:
+        - Groups
+      summary: List all workspace groups
+      responses:
+        "200":
+          description: Array of groups
+  /groups/{groupId}:
+    get:
+      tags:
+        - Groups
+      summary: Get group by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Group document
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - Groups
+      summary: Delete group and cascade tenant data
+      description: Company admin only. Removes users, documents, jobs, and chats for this groupId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      responses:
+        "200":
+          description: Cascade delete counts
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /groups/{groupId}/users:
+    get:
+      tags:
+        - Groups
+      summary: List users in workspace group
+      description: Returns users associated with the group. For membership roles and invites, use GET /admin/groups/{groupId}/members.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupIdPath"
+      responses:
+        "200":
+          description: User list
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /:
+    get:
+      tags:
+        - Health
+      summary: API welcome
+      description: Returns a short welcome message for the Bot API mount.
+      responses:
+        "200":
+          description: Welcome payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Welcome to the Bot-API
+      security: []
+  /internal/audit-events:
+    post:
+      tags:
+        - Internal
+      summary: Ingest audit event from internal Python ML services
+      description: |
+        Receives audit events from internal pipeline services (Python ML, connectors).
+        Uses token + HMAC signature auth (production requires signature).
+        Supports idempotency via optional eventId field.
+      security:
+        - internalWebhook: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orgId
+                - action
+                - targetType
+                - targetId
+              properties:
+                orgId:
+                  type: string
+                  description: Organization ID (tenant scope)
+                  example: org_abc123
+                action:
+                  type: string
+                  description: Audit action (must exist in AUDIT_ACTIONS)
+                  example: DOCUMENT_EXTRACT_STARTED
+                targetType:
+                  type: string
+                  description: Target entity type
+                  example: DOCUMENT
+                targetId:
+                  type: string
+                  description: Target entity identifier
+                  example: doc_xyz789
+                groupId:
+                  type: string
+                  nullable: true
+                  description: Optional group scope
+                actorEmail:
+                  type: string
+                  default: system@pipeline
+                  description: Actor email (defaults to system@pipeline)
+                metadata:
+                  type: object
+                  description: Arbitrary metadata (secrets will be redacted)
+                requestId:
+                  type: string
+                  nullable: true
+                  description: Correlation request ID
+                eventId:
+                  type: string
+                  nullable: true
+                  description: Idempotency key — duplicate events with same orgId+eventId are skipped
+      responses:
+        "200":
+          description: Duplicate event (idempotent — already exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                    example: true
+                  duplicate:
+                    type: boolean
+                    example: true
+                  id:
+                    type: string
+                    example: 665f1a2b3c4d5e6f7a8b9c0d
+        "201":
+          description: Audit event created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                    example: true
+                  id:
+                    type: string
+                    example: 665f1a2b3c4d5e6f7a8b9c0d
+        "400":
+          description: Missing required fields
+        "401":
+          description: Invalid or missing internal auth token/signature
+        "500":
+          description: Internal server error
+  /admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}:
+    get:
+      tags:
+        - Connectors
+      summary: Get email detail with attachments and ingestion status
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/MailboxIdPath"
+        - $ref: "#/components/parameters/EmailUidPath"
+      responses:
+        "200":
+          description: Email detail payload
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest:
+    post:
+      tags:
+        - Connectors
+      summary: Ingest selected email attachments into documents
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/MailboxIdPath"
+        - $ref: "#/components/parameters/EmailUidPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailIngestRequest"
+      responses:
+        "200":
+          description: Ingestion completed synchronously
+        "202":
+          description: Ingestion queued (async=true)
+  /admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions:
+    get:
+      tags:
+        - Connectors
+      summary: List recent connector ingestions for mailbox
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/MailboxIdPath"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Ingestion history items
+  /setup/initialize:
+    post:
+      tags:
+        - Setup
+      summary: One-time enterprise tenant bootstrap
+      description: |
+        Enterprise deployment only (`DEPLOYMENT_PROFILE=enterprise`).
+        Requires header `X-Bootstrap-Secret` matching `BOOTSTRAP_SECRET`.
+        Available only before any users or organizations exist.
+      parameters:
+        - name: X-Bootstrap-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardRequest"
+      responses:
+        "201":
+          description: Enterprise setup complete
+        "403":
+          description: Invalid bootstrap secret
+        "404":
+          description: Not available outside enterprise profile
+        "409":
+          description: Users or organizations already exist
+        "503":
+          description: Bootstrap not configured
+      security: []
+  /admin/orgs/{orgId}/connectors/sharepoint/oauth/callback:
+    get:
+      tags:
+        - Connectors
+      summary: Microsoft admin consent OAuth callback
+      description: Browser redirect from Microsoft. No Bearer auth — validates signed `state` param.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - name: admin_consent
+          in: query
+          schema:
+            type: string
+        - name: tenant
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to frontend with session or error
+  /admin/orgs/{orgId}/connectors/sharepoint/oauth/config:
+    get:
+      tags:
+        - Connectors
+      summary: SharePoint managed OAuth configuration status
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "200":
+          description: enabled flag and redirectUri
+  /admin/orgs/{orgId}/connectors/sharepoint/oauth/start:
+    get:
+      tags:
+        - Connectors
+      summary: Start Microsoft admin consent flow
+      description: Redirects browser to Microsoft login/consent.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+      responses:
+        "302":
+          description: Redirect to Microsoft
+        "503":
+          description: SharePoint OAuth not configured for org
+  /admin/orgs/{orgId}/connectors/sharepoint/oauth/session/{sessionId}/sites:
+    get:
+      tags:
+        - Connectors
+      summary: List SharePoint sites after admin consent
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/OAuthSessionIdPath"
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: tenantId and sites array
+        "404":
+          description: OAuth session expired
+  /admin/orgs/{orgId}/connectors/sharepoint/oauth/session/{sessionId}/sites/{siteId}/drives:
+    get:
+      tags:
+        - Connectors
+      summary: List document libraries (drives) for a SharePoint site
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/OAuthSessionIdPath"
+        - $ref: "#/components/parameters/SiteIdPath"
+      responses:
+        "200":
+          description: drives array
+  /admin/orgs/{orgId}/connectors/sharepoint/oauth/session/{sessionId}/complete:
+    post:
+      tags:
+        - Connectors
+      summary: Complete managed SharePoint connector setup
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgIdPath"
+        - $ref: "#/components/parameters/OAuthSessionIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SharePointOAuthCompleteRequest"
+      responses:
+        "201":
+          description: SHAREPOINT connector created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: OAuth session expired
+  /users/onboard:
+    post:
+      tags:
+        - Users
+      summary: Company onboarding (new org + admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardRequest"
+      responses:
+        "201":
+          description: Organization and admin user created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Duplicate user field
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security: []
+  /users/onboard-invite:
+    post:
+      tags:
+        - Users
+      summary: Accept group invitation and create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardInviteRequest"
+      responses:
+        "201":
+          description: Account created from invitation
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email belongs to another organization
+        "410":
+          description: Invite expired (code INVITE_EXPIRED)
+      security: []
+  /users/invite-details:
+    get:
+      tags:
+        - Users
+      summary: Resolve invite token (pre-signup)
+      parameters:
+        - $ref: "#/components/parameters/InviteTokenQuery"
+      responses:
+        "200":
+          description: Invite metadata
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "410":
+          description: Invalid or expired invite
+      security: []
+    post:
+      tags:
+        - Users
+      summary: Resolve invite token (POST alias)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - inviteToken
+              properties:
+                inviteToken:
+                  type: string
+      responses:
+        "200":
+          description: Invite metadata
+        "410":
+          description: Invalid or expired invite
+      security: []
+  /users/invite-to-group:
+    post:
+      tags:
+        - Users
+      summary: Send email invitation to join a workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteToGroupRequest"
+      responses:
+        "201":
+          description: Invitation sent
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Group not found in org
+  /users/verify-email:
+    post:
+      tags:
+        - Users
+      summary: Verify email with OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+      responses:
+        "200":
+          description: Email verified
+        "400":
+          $ref: "#/components/responses/BadRequest"
+      security: []
+  /users/resend-verification:
+    post:
+      tags:
+        - Users
+      summary: Resend verification email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Generic success (does not reveal if account exists)
+      security: []
+  /users/forgot-password:
+    post:
+      tags:
+        - Users
+      summary: Request password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          description: Reset initiated (opaque response)
+      security: []
+  /users/reset-password:
+    post:
+      tags:
+        - Users
+      summary: Reset password with token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+      security: []
+  /users/change-password:
+    post:
+      tags:
+        - Users
+      summary: Change password (authenticated)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users/login:
+    post:
+      tags:
+        - Auth
+      summary: Login and receive JWT
+      description: Use returned `token` as Bearer auth for protected routes. Swagger UI Authorize value `Bearer <token>`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Email not verified (code EMAIL_NOT_VERIFIED)
+      security: []
+  /users/logout:
+    post:
+      tags:
+        - Auth
+      summary: Log out and clear auth cookies
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users/me/data/export:
+    get:
+      tags:
+        - Users
+      summary: Export signed-in user personal data (GDPR)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: JSON export (profile, chats, audit as actor)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users/me/data:
+    delete:
+      tags:
+        - Users
+      summary: Erase signed-in user personal data (GDPR)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Data erased; session cookies cleared
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users/me/context:
+    get:
+      tags:
+        - Users
+      summary: Refresh RBAC and workspace context for the current session
+      description: |
+        Returns only `context` (org role, groups, capabilities). Profile fields (`id`, `email`, `name`, `avatarUrl`) are returned from POST /users/login.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Org/group RBAC context
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users/me/avatar:
+    post:
+      tags:
+        - Users
+      summary: Upload profile avatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG, WebP, or GIF (max 1.4MB)
+      responses:
+        "200":
+          description: Avatar uploaded
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          description: File too large
+    delete:
+      tags:
+        - Users
+      summary: Remove profile avatar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Avatar removed
+  /users/update/{userId}:
+    put:
+      tags:
+        - Users
+      summary: Update user profile or status (scoped)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+        - $ref: "#/components/parameters/XGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserProfileRequest"
+      responses:
+        "200":
+          description: User updated
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /webhooks/jobs/{jobId}/callback:
+    post:
+      tags:
+        - Webhooks
+      summary: Python pipeline job completion callback
+      security:
+        - internalWebhook: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobCallbackRequest"
+      responses:
+        "200":
+          description: Callback accepted
+        "401":
+          description: Invalid X-Internal-Token
+        "404":
+          description: Job not found
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login (documentation alias)
+      description: |
+        **Alias** for `POST /users/login`. Use either path in the mock server.
+        Production Express route is `POST /api/users/login`.
+      operationId: authLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              valid:
+                summary: Valid credentials
+                value:
+                  email: demo.admin@alonix.example
+                  password: DemoPass123!
+      responses:
+        "200":
+          $ref: "#/components/responses/LoginSuccess"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get authenticated user profile
+      description: |
+        Returns the signed-in user's profile and workspace context.
+
+        **Production note:** Alonix IDP returns profile fields from `POST /users/login` and
+        refreshes RBAC via `GET /users/me/context`. This composite endpoint is provided for
+        SDK ergonomics and mock-server demos.
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XGroupId"
+      responses:
+        "200":
+          description: Current user profile and context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+              examples:
+                success:
+                  $ref: "#/components/examples/CurrentUserSuccess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"

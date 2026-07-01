@@ -1,0 +1,11 @@
+{
+  "label": "Health",
+  "position": 1,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/health",
+    "title": "Health",
+    "description": "API root / welcome"
+  }
+}

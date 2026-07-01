@@ -1,0 +1,60 @@
+---
+title: "DELETE /users/me/data"
+description: "Erase signed-in user personal data (GDPR)"
+sidebar_position: 11
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# DELETE /users/me/data
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fme%2Fdata&method=delete)**
+
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **Path** | `/api/users/me/data` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Data erased; session cookies cleared |
+| 401 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X DELETE "http://localhost:4010/users/me/data" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/me/data', {
+  method: 'DELETE',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/me/data" method="delete" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

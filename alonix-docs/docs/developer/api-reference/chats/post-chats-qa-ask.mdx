@@ -1,0 +1,82 @@
+---
+title: "POST /chats/qa/ask"
+description: "Ask question (RAG Q&A)"
+sidebar_position: 3
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /chats/qa/ask
+
+**[Try in API Playground](/api-playground?path=%2Fchats%2Fqa%2Fask&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/chats/qa/ask` |
+| **Tag** | Chats |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "query": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Answer and session metadata |
+| 400 |  |
+| 403 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/chats/qa/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "query": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/chats/qa/ask', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "query": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/chats/qa/ask" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,82 @@
+---
+title: "POST /groups"
+description: "Create workspace group"
+sidebar_position: 3
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /groups
+
+Creates a group/workspace. Used during company onboarding and bootstrap flows.
+
+**[Try in API Playground](/api-playground?path=%2Fgroups&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/groups` |
+| **Tag** | Groups |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "groupName": "string",
+  "orgId": "string",
+  "description": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Group created |
+| 400 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/groups" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "groupName": "string",
+  "orgId": "string",
+  "description": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "groupName": "string",
+      "orgId": "string",
+      "description": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

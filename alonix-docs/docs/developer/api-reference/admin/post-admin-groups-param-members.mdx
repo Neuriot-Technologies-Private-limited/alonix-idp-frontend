@@ -1,0 +1,86 @@
+---
+title: "POST /admin/groups/{groupId}/members"
+description: "Add or upsert group member"
+sidebar_position: 7
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /admin/groups/\{groupId\}/members
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Fgroups%2F%7BgroupId%7D%2Fmembers&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/admin/groups/{groupId}/members` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "userEmail": "user@example.com",
+  "role": "GROUP_ADMIN",
+  "maxDocumentSensitivity": "PUBLIC"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Membership created/updated |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/admin/groups/{groupId}/members" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "userEmail": "user@example.com",
+  "role": "GROUP_ADMIN",
+  "maxDocumentSensitivity": "PUBLIC"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/groups/{groupId}/members', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "userEmail": "user@example.com",
+      "role": "GROUP_ADMIN",
+      "maxDocumentSensitivity": "PUBLIC"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/groups/{groupId}/members" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,11 @@
+{
+  "label": "Setup",
+  "position": 12,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/setup",
+    "title": "Setup",
+    "description": "Enterprise one-time bootstrap"
+  }
+}

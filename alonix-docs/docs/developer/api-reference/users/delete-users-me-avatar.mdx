@@ -1,0 +1,59 @@
+---
+title: "DELETE /users/me/avatar"
+description: "Remove profile avatar"
+sidebar_position: 8
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# DELETE /users/me/avatar
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fme%2Favatar&method=delete)**
+
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **Path** | `/api/users/me/avatar` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Avatar removed |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X DELETE "http://localhost:4010/users/me/avatar" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/me/avatar', {
+  method: 'DELETE',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/me/avatar" method="delete" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,68 @@
+---
+title: "GET /users/me/context"
+description: "Refresh RBAC and workspace context for the current session"
+sidebar_position: 10
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /users/me/context
+
+Returns only `context` (org role, groups, capabilities). Profile fields (`id`, `email`, `name`, `avatarUrl`) are returned from POST /users/login.
+
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fme%2Fcontext&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/users/me/context` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Org/group RBAC context |
+| 401 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/users/me/context" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/me/context', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/me/context" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

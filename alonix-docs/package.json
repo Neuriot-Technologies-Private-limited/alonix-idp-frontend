@@ -1,0 +1,55 @@
+{
+  "name": "alonix-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Alonix Help Center — end-user documentation, tutorials, FAQ, and developer API reference",
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear",
+    "typecheck": "tsc --noEmit",
+    "sync:openapi": "node scripts/sync-openapi.js",
+    "generate:api-docs": "node scripts/generate-api-docs.js",
+    "mock": "node scripts/start-mock.js",
+    "dev:mock": "concurrently -k -n mock,docs -c blue,green \"npm run mock\" \"npm run start\"",
+    "prebuild": "npm run sync:openapi && npm run generate:api-docs",
+    "pregenerate:api-docs": "node -e \"const fs=require('fs');if(!fs.existsSync('static/openapi.yaml')){console.error('Run npm run sync:openapi first');process.exit(1)}\""
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.7.0",
+    "@docusaurus/preset-classic": "^3.7.0",
+    "@docusaurus/theme-mermaid": "^3.7.0",
+    "@mdx-js/react": "^3.1.0",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.7.0",
+    "@docusaurus/tsconfig": "^3.7.0",
+    "@docusaurus/types": "^3.7.0",
+    "@stoplight/prism-cli": "^5.12.0",
+    "@types/react": "^19.0.0",
+    "concurrently": "^9.1.2",
+    "typescript": "~5.7.2",
+    "yaml": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  }
+}

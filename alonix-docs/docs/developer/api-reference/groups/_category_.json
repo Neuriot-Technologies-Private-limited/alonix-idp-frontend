@@ -1,0 +1,11 @@
+{
+  "label": "Groups",
+  "position": 3,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/groups",
+    "title": "Groups",
+    "description": "Workspaces — create, list, read, and delete"
+  }
+}

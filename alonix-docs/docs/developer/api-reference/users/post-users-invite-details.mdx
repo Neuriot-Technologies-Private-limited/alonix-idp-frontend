@@ -1,0 +1,74 @@
+---
+title: "POST /users/invite-details"
+description: "Resolve invite token (POST alias)"
+sidebar_position: 5
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/invite-details
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Finvite-details&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/invite-details` |
+| **Tag** | Users |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "inviteToken": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Invite metadata |
+| 410 | Invalid or expired invite |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/invite-details" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "inviteToken": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/invite-details', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "inviteToken": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/invite-details" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,28 @@
+.wrapper {
+  width: 100%;
+  min-height: calc(100vh - var(--ifm-navbar-height) - 48px);
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - var(--ifm-navbar-height) - 48px);
+  height: calc(100vh - var(--ifm-navbar-height) - 48px);
+  border: 0;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.hint {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  background: var(--ifm-color-emphasis-100);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}

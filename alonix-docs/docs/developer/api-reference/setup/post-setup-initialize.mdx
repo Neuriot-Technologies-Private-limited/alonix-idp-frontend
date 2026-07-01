@@ -1,0 +1,97 @@
+---
+title: "POST /setup/initialize"
+description: "One-time enterprise tenant bootstrap"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /setup/initialize
+
+Enterprise deployment only (`DEPLOYMENT_PROFILE=enterprise`).
+Requires header `X-Bootstrap-Secret` matching `BOOTSTRAP_SECRET`.
+Available only before any users or organizations exist.
+
+
+**[Try in API Playground](/api-playground?path=%2Fsetup%2Finitialize&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/setup/initialize` |
+| **Tag** | Setup |
+| **Auth** | None |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `X-Bootstrap-Secret` | header | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "companyName": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "name": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Enterprise setup complete |
+| 403 | Invalid bootstrap secret |
+| 404 | Not available outside enterprise profile |
+| 409 | Users or organizations already exist |
+| 503 | Bootstrap not configured |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/setup/initialize" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "companyName": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "name": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/setup/initialize', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "companyName": "string",
+      "email": "user@example.com",
+      "password": "string",
+      "name": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/setup/initialize" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

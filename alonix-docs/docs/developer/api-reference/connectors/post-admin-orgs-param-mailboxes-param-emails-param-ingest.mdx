@@ -1,0 +1,104 @@
+---
+title: "POST /admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest"
+description: "Ingest selected email attachments into documents"
+sidebar_position: 24
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /admin/orgs/\{orgId\}/mailboxes/\{mailboxId\}/emails/\{uid\}/ingest
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fmailboxes%2F%7BmailboxId%7D%2Femails%2F%7Buid%7D%2Fingest&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `mailboxId` | path | Yes | string |  |
+| `uid` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "attachmentIds": [
+    "string"
+  ],
+  "archivePaths": [
+    "string"
+  ],
+  "ingestAllIngestable": true,
+  "async": true
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Ingestion completed synchronously |
+| 202 | Ingestion queued (async=true) |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "attachmentIds": [
+    "string"
+  ],
+  "archivePaths": [
+    "string"
+  ],
+  "ingestAllIngestable": true,
+  "async": true
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "attachmentIds": [
+          "string"
+      ],
+      "archivePaths": [
+          "string"
+      ],
+      "ingestAllIngestable": true,
+      "async": true
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/mailboxes/{mailboxId}/emails/{uid}/ingest" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

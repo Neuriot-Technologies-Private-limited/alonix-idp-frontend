@@ -1,0 +1,59 @@
+---
+title: "GET /"
+description: "API welcome"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /
+
+Returns a short welcome message for the Bot API mount.
+
+**[Try in API Playground](/api-playground?path=%2F&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/` |
+| **Tag** | Health |
+| **Auth** | None |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Welcome payload |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/', {
+  method: 'GET',
+  headers: {
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,83 @@
+---
+title: "POST /groups/{groupId}/documents/source-url"
+description: "Resolve source URL (group mount)"
+sidebar_position: 27
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /groups/\{groupId\}/documents/source-url
+
+**[Try in API Playground](/api-playground?path=%2Fgroups%2F%7BgroupId%7D%2Fdocuments%2Fsource-url&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/groups/{groupId}/documents/source-url` |
+| **Tag** | Documents |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "fileKey": "string",
+  "documentId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Presigned URL |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/groups/{groupId}/documents/source-url" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "fileKey": "string",
+  "documentId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups/{groupId}/documents/source-url', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "fileKey": "string",
+      "documentId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups/{groupId}/documents/source-url" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

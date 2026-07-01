@@ -1,0 +1,11 @@
+{
+  "label": "Users",
+  "position": 4,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/users",
+    "title": "Users",
+    "description": "Onboarding, profile, invites, and account"
+  }
+}

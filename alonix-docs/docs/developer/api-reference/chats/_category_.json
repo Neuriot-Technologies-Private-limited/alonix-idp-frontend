@@ -1,0 +1,11 @@
+{
+  "label": "Chats",
+  "position": 6,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/chats",
+    "title": "Chats",
+    "description": "RAG Q&A and session history"
+  }
+}

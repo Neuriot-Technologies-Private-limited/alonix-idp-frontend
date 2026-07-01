@@ -1,0 +1,83 @@
+---
+title: "POST /users/login"
+description: "Login and receive JWT"
+sidebar_position: 3
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/login
+
+Use returned `token` as Bearer auth for protected routes. Swagger UI Authorize value `Bearer <token>`.
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Flogin&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/login` |
+| **Tag** | Auth |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "email": "demo.admin@alonix.example",
+  "password": "DemoPass123!",
+  "orgId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Login successful |
+| 401 |  |
+| 403 | Email not verified (code EMAIL_NOT_VERIFIED) |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "email": "demo.admin@alonix.example",
+  "password": "DemoPass123!",
+  "orgId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "email": "demo.admin@alonix.example",
+      "password": "DemoPass123!",
+      "orgId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/login" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

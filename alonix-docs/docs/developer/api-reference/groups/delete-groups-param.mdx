@@ -1,0 +1,70 @@
+---
+title: "DELETE /groups/{groupId}"
+description: "Delete group and cascade tenant data"
+sidebar_position: 4
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# DELETE /groups/\{groupId\}
+
+Company admin only. Removes users, documents, jobs, and chats for this groupId.
+
+**[Try in API Playground](/api-playground?path=%2Fgroups%2F%7BgroupId%7D&method=delete)**
+
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **Path** | `/api/groups/{groupId}` |
+| **Tag** | Groups |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Cascade delete counts |
+| 400 |  |
+| 403 |  |
+| 404 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X DELETE "http://localhost:4010/groups/{groupId}" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups/{groupId}', {
+  method: 'DELETE',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups/{groupId}" method="delete" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

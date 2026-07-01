@@ -1,0 +1,65 @@
+---
+title: "GET /groups/{groupId}/documents/jobs/{jobId}"
+description: "Job status (group mount)"
+sidebar_position: 25
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /groups/\{groupId\}/documents/jobs/\{jobId\}
+
+**[Try in API Playground](/api-playground?path=%2Fgroups%2F%7BgroupId%7D%2Fdocuments%2Fjobs%2F%7BjobId%7D&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/groups/{groupId}/documents/jobs/{jobId}` |
+| **Tag** | Documents |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+| `jobId` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Job status |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/groups/{groupId}/documents/jobs/{jobId}" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups/{groupId}/documents/jobs/{jobId}', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups/{groupId}/documents/jobs/{jobId}" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

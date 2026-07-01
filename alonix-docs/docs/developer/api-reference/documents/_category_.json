@@ -1,0 +1,11 @@
+{
+  "label": "Documents",
+  "position": 5,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/documents",
+    "title": "Documents",
+    "description": "Upload, ingest, extract, classify, jobs"
+  }
+}

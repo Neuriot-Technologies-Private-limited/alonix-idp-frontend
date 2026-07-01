@@ -1,0 +1,59 @@
+---
+title: "GET /users/me/data/export"
+description: "Export signed-in user personal data (GDPR)"
+sidebar_position: 12
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /users/me/data/export
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fme%2Fdata%2Fexport&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/users/me/data/export` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | JSON export (profile, chats, audit as actor) |
+| 401 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/users/me/data/export" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/me/data/export', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/me/data/export" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

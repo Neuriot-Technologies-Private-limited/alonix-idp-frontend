@@ -1,0 +1,86 @@
+---
+title: "PUT /admin/orgs/{orgId}/sharepoint-settings"
+description: "Upsert org SharePoint managed OAuth settings"
+sidebar_position: 28
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PUT /admin/orgs/\{orgId\}/sharepoint-settings
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fsharepoint-settings&method=put)**
+
+| | |
+|---|---|
+| **Method** | `PUT` |
+| **Path** | `/api/admin/orgs/{orgId}/sharepoint-settings` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "clientId": "string",
+  "clientSecret": "string",
+  "tenantId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Settings saved |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PUT "http://localhost:4010/admin/orgs/{orgId}/sharepoint-settings" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "clientId": "string",
+  "clientSecret": "string",
+  "tenantId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/sharepoint-settings', {
+  method: 'PUT',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "clientId": "string",
+      "clientSecret": "string",
+      "tenantId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/sharepoint-settings" method="put" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

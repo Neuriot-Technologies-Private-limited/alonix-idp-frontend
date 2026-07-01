@@ -1,0 +1,81 @@
+---
+title: "POST /billing/checkout-session"
+description: "Create Stripe Checkout session"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /billing/checkout-session
+
+Returns `\{ url \}` to redirect user. Requires STRIPE_SECRET_KEY.
+
+**[Try in API Playground](/api-playground?path=%2Fbilling%2Fcheckout-session&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/billing/checkout-session` |
+| **Tag** | Billing |
+| **Auth** | Bearer JWT |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "planName": "FREE",
+  "billingCycle": "monthly"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Checkout URL |
+| 400 |  |
+| 503 | Stripe not configured (STRIPE_NOT_CONFIGURED) |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/billing/checkout-session" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "planName": "FREE",
+  "billingCycle": "monthly"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/billing/checkout-session', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "planName": "FREE",
+      "billingCycle": "monthly"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/billing/checkout-session" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

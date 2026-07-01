@@ -1,0 +1,427 @@
+openapi: 3.0.3
+info:
+  title: Alonix IDP Backend API
+  version: 1.0.0
+  description: |
+    Production API for Alonix IDP — identity, RBAC, documents, chat, billing, and connectors.
+
+    **Base URL:** All paths are relative to `/api`.
+
+    **Auth:** Call `POST /users/login`, then send `Authorization: Bearer <token>` on protected routes.
+
+    **Playground modes:**
+    - **Mock** (default) — Prism mock server, safe for demos
+    - **Sandbox** — real non-production backend at `DOCUSAURUS_API_SANDBOX_URL`
+
+    **Note:** `POST /auth/login` is a documentation alias for `POST /users/login` (same request/response).
+    `GET /users/me` returns a composite profile for the playground; production also exposes `GET /users/me/context`.
+  contact:
+    name: Alonix API Support
+    email: api-support@alonix.example
+
+servers:
+  - url: http://localhost:4010
+    description: Mock server (Prism) — default for playground
+  - url: http://localhost:5005/api
+    description: Sandbox backend (local dev)
+  - url: https://staging-api.alonix.example/api
+    description: Staging sandbox (non-production)
+
+tags:
+  - name: Auth
+    description: Login and session tokens
+  - name: Users
+    description: Profile and current-user endpoints
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (documentation alias)
+      description: |
+        **Alias** for `POST /users/login`. Use either path in the mock server.
+        Production Express route is `POST /api/users/login`.
+      operationId: authLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                summary: Valid credentials
+                value:
+                  email: demo.admin@alonix.example
+                  password: DemoPass123!
+      responses:
+        '200':
+          $ref: '#/components/responses/LoginSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /users/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT
+      description: |
+        Authenticate with email and password. Returns JWT (also set as httpOnly cookie),
+        user profile, RBAC context, and CSRF token for mutating requests.
+      operationId: usersLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                summary: Valid credentials
+                value:
+                  email: demo.admin@alonix.example
+                  password: DemoPass123!
+              missingFields:
+                summary: Missing password
+                value:
+                  email: demo.admin@alonix.example
+      responses:
+        '200':
+          $ref: '#/components/responses/LoginSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+              examples:
+                emailNotVerified:
+                  value:
+                    message: Email address is not verified
+                    code: EMAIL_NOT_VERIFIED
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get authenticated user profile
+      description: |
+        Returns the signed-in user's profile and workspace context.
+
+        **Production note:** Alonix IDP returns profile fields from `POST /users/login` and
+        refreshes RBAC via `GET /users/me/context`. This composite endpoint is provided for
+        SDK ergonomics and mock-server demos.
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XGroupId'
+      responses:
+        '200':
+          description: Current user profile and context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
+              examples:
+                success:
+                  $ref: '#/components/examples/CurrentUserSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /users/me/context:
+    get:
+      tags: [Users]
+      summary: Refresh RBAC and workspace context
+      description: |
+        Production endpoint. Returns `context` (org role, groups, capabilities) and `csrfToken`.
+        Profile fields (`email`, `name`, `avatarUrl`) are returned from `POST /users/login`.
+      operationId: getCurrentUserContext
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XGroupId'
+      responses:
+        '200':
+          description: Org/group RBAC context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContextResponse'
+              examples:
+                success:
+                  value:
+                    context:
+                      orgId: 507f1f77bcf86cd799439011
+                      orgRole: COMPANY_ADMIN
+                      activeGroupId: 507f1f77bcf86cd799439012
+                      groups:
+                        - groupId: 507f1f77bcf86cd799439012
+                          groupName: Default Workspace
+                          role: GROUP_ADMIN
+                      capabilities:
+                        canManageUsers: true
+                        canManageDocuments: true
+                    csrfToken: csrf_mock_token_abc123
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'JWT from POST /users/login. Enter: Bearer <token>'
+
+  parameters:
+    XGroupId:
+      name: X-Group-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        example: 507f1f77bcf86cd799439012
+      description: Active workspace group ObjectId
+
+  schemas:
+    ErrorMessage:
+      type: object
+      properties:
+        message:
+          type: string
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: string
+        requestId:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: demo.admin@alonix.example
+        password:
+          type: string
+          format: password
+          example: DemoPass123!
+        orgId:
+          type: string
+          description: Optional org scope for multi-tenant login
+
+    UserProfile:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 66f1abcd1234567890ef1234
+        id:
+          type: string
+          example: 66f1abcd1234567890ef1234
+        email:
+          type: string
+          format: email
+          example: demo.admin@alonix.example
+        name:
+          type: string
+          example: Demo Admin
+        username:
+          type: string
+          example: demo.admin@alonix.example
+        avatarUrl:
+          type: string
+          nullable: true
+          example: null
+        orgId:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        groupId:
+          type: string
+          example: 507f1f77bcf86cd799439012
+
+    AuthContext:
+      type: object
+      additionalProperties: true
+      properties:
+        orgId:
+          type: string
+        orgRole:
+          type: string
+          enum: [COMPANY_ADMIN, MEMBER]
+        activeGroupId:
+          type: string
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              groupId:
+                type: string
+              groupName:
+                type: string
+              role:
+                type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Login successful
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        context:
+          $ref: '#/components/schemas/AuthContext'
+        csrfToken:
+          type: string
+          example: csrf_mock_token_abc123
+
+    CurrentUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        context:
+          $ref: '#/components/schemas/AuthContext'
+        csrfToken:
+          type: string
+
+    UserContextResponse:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/AuthContext'
+        csrfToken:
+          type: string
+
+  examples:
+    LoginSuccessBody:
+      value:
+        message: Login successful
+        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token
+        user:
+          _id: 66f1abcd1234567890ef1234
+          id: 66f1abcd1234567890ef1234
+          email: demo.admin@alonix.example
+          name: Demo Admin
+          username: demo.admin@alonix.example
+          avatarUrl: null
+          orgId: 507f1f77bcf86cd799439011
+          groupId: 507f1f77bcf86cd799439012
+        context:
+          orgId: 507f1f77bcf86cd799439011
+          orgRole: COMPANY_ADMIN
+          activeGroupId: 507f1f77bcf86cd799439012
+          groups:
+            - groupId: 507f1f77bcf86cd799439012
+              groupName: Default Workspace
+              role: GROUP_ADMIN
+        csrfToken: csrf_mock_token_abc123
+
+    CurrentUserSuccess:
+      value:
+        user:
+          _id: 66f1abcd1234567890ef1234
+          email: demo.admin@alonix.example
+          name: Demo Admin
+          orgId: 507f1f77bcf86cd799439011
+        context:
+          orgId: 507f1f77bcf86cd799439011
+          orgRole: COMPANY_ADMIN
+          activeGroupId: 507f1f77bcf86cd799439012
+        csrfToken: csrf_mock_token_abc123
+
+  responses:
+    LoginSuccess:
+      description: Login successful
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LoginResponse'
+          examples:
+            success:
+              $ref: '#/components/examples/LoginSuccessBody'
+
+    BadRequest:
+      description: Validation error — missing or invalid fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          examples:
+            missingFields:
+              value:
+                message: email and password are required
+            invalidEmail:
+              value:
+                message: Validation failed
+                details: email must be a valid email address
+
+    Unauthorized:
+      description: Missing or invalid credentials / token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          examples:
+            invalidCredentials:
+              value:
+                message: Invalid email or password
+            missingToken:
+              value:
+                message: Authentication required
+            expiredToken:
+              value:
+                message: Token expired
+                code: TOKEN_EXPIRED
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          examples:
+            userNotFound:
+              value:
+                message: User not found
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          examples:
+            serverError:
+              value:
+                message: Internal server error
+                requestId: req_01HYZABCDEF123456

@@ -1,0 +1,87 @@
+---
+title: "POST /documents/upload"
+description: "Upload document to workspace"
+sidebar_position: 14
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /documents/upload
+
+**[Try in API Playground](/api-playground?path=%2Fdocuments%2Fupload&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/documents/upload` |
+| **Tag** | Documents |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Request body
+
+**Content-Type:** `multipart/form-data`
+
+```json
+{
+  "file": "string",
+  "groupId": "string",
+  "fileName": "string",
+  "sensitivityLevel": "PUBLIC"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Document created |
+| 401 |  |
+| 402 | Quota or subscription limit |
+| 403 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/documents/upload" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/documents/upload', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "file": "string",
+      "groupId": "string",
+      "fileName": "string",
+      "sensitivityLevel": "PUBLIC"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/documents/upload" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

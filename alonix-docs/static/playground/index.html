@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alonix API Playground</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #app {
+        min-height: 100vh;
+      }
+      #error {
+        display: none;
+        padding: 2rem;
+        max-width: 42rem;
+        margin: 0 auto;
+        color: #b42318;
+      }
+      #error h1 {
+        font-size: 1.25rem;
+        margin: 0 0 0.5rem;
+      }
+      #error p {
+        margin: 0.5rem 0;
+        color: #344054;
+        line-height: 1.5;
+      }
+      #error code {
+        background: #f2f4f7;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="error" role="alert">
+      <h1>API Playground failed to load</h1>
+      <p id="error-detail"></p>
+      <p>
+        Start the mock API with <code>npm run dev:mock</code> from <code>alonix-docs</code>, or
+        point sandbox mode at a running backend on <code>http://localhost:5005/api</code>.
+      </p>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.28.25"></script>
+    <script>
+      (function () {
+        var TOKEN_KEY = 'alonix_playground_bearer_token';
+
+        function showError(message) {
+          document.getElementById('app').style.display = 'none';
+          var el = document.getElementById('error');
+          document.getElementById('error-detail').textContent = message;
+          el.style.display = 'block';
+        }
+
+        function readStoredToken() {
+          try {
+            return localStorage.getItem(TOKEN_KEY) || '';
+          } catch (e) {
+            return '';
+          }
+        }
+
+        function storeToken(token) {
+          try {
+            if (token) localStorage.setItem(TOKEN_KEY, token);
+            else localStorage.removeItem(TOKEN_KEY);
+          } catch (e) {
+            /* ignore */
+          }
+        }
+
+        if (typeof Scalar === 'undefined' || typeof Scalar.createApiReference !== 'function') {
+          showError('Scalar API Reference script did not load. Check your network connection.');
+          return;
+        }
+
+        var params = new URLSearchParams(window.location.search);
+        var specUrl = params.get('spec') || '/openapi.yaml';
+        var defaultServer = params.get('server') || 'http://localhost:4010';
+        var opPath = params.get('path');
+        var opMethod = params.get('method');
+        var storedToken = readStoredToken();
+
+        var config = {
+          url: specUrl,
+          servers: [
+            { url: defaultServer, description: 'Active target' },
+            { url: 'http://localhost:4010', description: 'Mock (Prism)' },
+            { url: 'http://localhost:5005/api', description: 'Sandbox backend' },
+          ],
+          authentication: {
+            preferredSecurityScheme: 'bearerAuth',
+            securitySchemes: {
+              bearerAuth: {
+                token: storedToken,
+              },
+            },
+          },
+          layout: 'modern',
+          deepLinking: true,
+          showSidebar: true,
+          hideModels: false,
+          defaultOpenAllTags: false,
+          onBeforeRequest: function (ctx) {
+            var requestBuilder = ctx.requestBuilder;
+            if (!requestBuilder) return;
+
+            // Persist bearer token when user authorizes in Scalar
+            var securities = requestBuilder.security || [];
+            for (var i = 0; i < securities.length; i++) {
+              var sec = securities[i];
+              if (sec && sec.format === 'bearer' && sec.value) {
+                storeToken(sec.value);
+                break;
+              }
+            }
+          },
+        };
+
+        if (opPath && opMethod) {
+          config.initialOperation = {
+            path: opPath.startsWith('/') ? opPath : '/' + opPath,
+            method: opMethod.toLowerCase(),
+          };
+        }
+
+        try {
+          Scalar.createApiReference('#app', config);
+        } catch (err) {
+          showError(err && err.message ? err.message : String(err));
+        }
+      })();
+    </script>
+  </body>
+</html>

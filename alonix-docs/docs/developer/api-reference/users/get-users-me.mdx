@@ -1,0 +1,74 @@
+---
+title: "GET /users/me"
+description: "Get authenticated user profile"
+sidebar_position: 7
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /users/me
+
+Returns the signed-in user's profile and workspace context.
+
+**Production note:** Alonix IDP returns profile fields from `POST /users/login` and
+refreshes RBAC via `GET /users/me/context`. This composite endpoint is provided for
+SDK ergonomics and mock-server demos.
+
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fme&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/users/me` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Current user profile and context |
+| 401 |  |
+| 404 |  |
+| 500 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/users/me" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/me', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/me" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

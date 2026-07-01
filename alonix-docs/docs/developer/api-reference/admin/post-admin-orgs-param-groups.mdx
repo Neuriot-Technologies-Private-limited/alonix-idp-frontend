@@ -1,0 +1,83 @@
+---
+title: "POST /admin/orgs/{orgId}/groups"
+description: "Create workspace"
+sidebar_position: 15
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /admin/orgs/\{orgId\}/groups
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fgroups&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/admin/orgs/{orgId}/groups` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "groupName": "string",
+  "description": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Group created |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/admin/orgs/{orgId}/groups" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "groupName": "string",
+  "description": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/groups', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "groupName": "string",
+      "description": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/groups" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

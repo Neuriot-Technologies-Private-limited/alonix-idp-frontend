@@ -1,0 +1,60 @@
+---
+title: "POST /users/logout"
+description: "Log out and clear auth cookies"
+sidebar_position: 4
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/logout
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Flogout&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/logout` |
+| **Tag** | Auth |
+| **Auth** | Bearer JWT |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Logged out successfully |
+| 401 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/logout" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/logout', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/logout" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

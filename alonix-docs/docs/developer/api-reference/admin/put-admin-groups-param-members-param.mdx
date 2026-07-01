@@ -1,0 +1,84 @@
+---
+title: "PUT /admin/groups/{groupId}/members/{userEmail}"
+description: "Update member role / sensitivity"
+sidebar_position: 9
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PUT /admin/groups/\{groupId\}/members/\{userEmail\}
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Fgroups%2F%7BgroupId%7D%2Fmembers%2F%7BuserEmail%7D&method=put)**
+
+| | |
+|---|---|
+| **Method** | `PUT` |
+| **Path** | `/api/admin/groups/{groupId}/members/{userEmail}` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+| `userEmail` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "role": "GROUP_ADMIN",
+  "maxDocumentSensitivity": "PUBLIC"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Membership updated |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PUT "http://localhost:4010/admin/groups/{groupId}/members/{userEmail}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "role": "GROUP_ADMIN",
+  "maxDocumentSensitivity": "PUBLIC"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/groups/{groupId}/members/{userEmail}', {
+  method: 'PUT',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "role": "GROUP_ADMIN",
+      "maxDocumentSensitivity": "PUBLIC"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/groups/{groupId}/members/{userEmail}" method="put" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

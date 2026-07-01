@@ -1,0 +1,60 @@
+---
+title: "GET /billing/plans"
+description: "List public subscription plans"
+sidebar_position: 5
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /billing/plans
+
+No auth. Mongo plans enriched with Stripe price ids from env.
+
+**[Try in API Playground](/api-playground?path=%2Fbilling%2Fplans&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/billing/plans` |
+| **Tag** | Billing |
+| **Auth** | None |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Array of plan tiers |
+| 500 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/billing/plans" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/billing/plans', {
+  method: 'GET',
+  headers: {
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/billing/plans" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

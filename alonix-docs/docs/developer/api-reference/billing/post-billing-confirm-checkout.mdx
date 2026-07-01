@@ -1,0 +1,80 @@
+---
+title: "POST /billing/confirm-checkout"
+description: "Sync subscription after Stripe Checkout redirect"
+sidebar_position: 4
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /billing/confirm-checkout
+
+Company admin only. Updates Mongo from Stripe when webhooks are unavailable (local dev).
+Optional body `\{ sessionId \}` from `session_id` query param on success URL.
+
+
+**[Try in API Playground](/api-playground?path=%2Fbilling%2Fconfirm-checkout&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/billing/confirm-checkout` |
+| **Tag** | Billing |
+| **Auth** | Bearer JWT |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "sessionId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Updated subscription payload (same as GET /billing/subscription) |
+| 400 |  |
+| 404 | No Stripe subscription to sync |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/billing/confirm-checkout" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "sessionId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/billing/confirm-checkout', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "sessionId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/billing/confirm-checkout" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,53 @@
+# Docs deploy is handled by the frontend Firebase workflow.
+# See: ../alonix-idp-frontend/.github/workflows/firebase-hosting.yml
+#
+# Pipeline: security → build-docs → deploy (merge + Firebase) → deploy-docs (verify) → notify-slack
+#
+# Required GitHub settings on the frontend repository:
+#   vars.ALONIX_DOCS_REPOSITORY  — e.g. your-org/alonix-docs
+#   vars.PUBLIC_APP_URL            — e.g. https://app.yourdomain.com
+#   secrets.DOCS_REPO_TOKEN        — optional PAT if docs repo is private
+#
+# This workflow only runs a standalone docs build (e.g. monorepo path filters).
+
+name: Build Alonix Docs (standalone)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  build:
+    if: hashFiles('package.json') != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync OpenAPI from backend
+        run: npm run sync:openapi
+        continue-on-error: true
+
+      - name: Build docs (local paths)
+        run: npm run build
+
+      - name: Build docs (/docs subpath — production parity)
+        env:
+          DOCUSAURUS_BASE_URL: /docs/
+          DOCUSAURUS_SITE_URL: https://example.com
+          DOCUSAURUS_API_MODE: mock
+        run: npm run build

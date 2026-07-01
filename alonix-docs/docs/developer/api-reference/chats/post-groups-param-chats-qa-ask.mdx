@@ -1,0 +1,80 @@
+---
+title: "POST /groups/{groupId}/chats/qa/ask"
+description: "Ask question (group-scoped mount)"
+sidebar_position: 7
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /groups/\{groupId\}/chats/qa/ask
+
+**[Try in API Playground](/api-playground?path=%2Fgroups%2F%7BgroupId%7D%2Fchats%2Fqa%2Fask&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/groups/{groupId}/chats/qa/ask` |
+| **Tag** | Chats |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "query": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Answer |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/groups/{groupId}/chats/qa/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "query": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups/{groupId}/chats/qa/ask', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "query": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups/{groupId}/chats/qa/ask" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

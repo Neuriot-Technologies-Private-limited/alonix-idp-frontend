@@ -53,12 +53,57 @@ jobs:
       - name: npm audit (fail on high+)
         run: npm audit --audit-level=high
 
-  deploy:
+  build-docs:
+    name: Build docs (Help Center)
     needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout docs repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ vars.ALONIX_DOCS_REPOSITORY }}
+          ref: ${{ vars.ALONIX_DOCS_BRANCH || 'main' }}
+          path: alonix-docs
+          token: ${{ secrets.DOCS_REPO_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: alonix-docs/package-lock.json
+
+      - name: Install docs dependencies
+        working-directory: alonix-docs
+        run: npm ci
+
+      - name: Sync OpenAPI from backend
+        working-directory: alonix-docs
+        run: npm run sync:openapi
+        continue-on-error: true
+
+      - name: Build docs for /docs subpath
+        working-directory: alonix-docs
+        env:
+          DOCUSAURUS_BASE_URL: /docs/
+          DOCUSAURUS_SITE_URL: ${{ vars.PUBLIC_APP_URL }}
+          DOCUSAURUS_API_MODE: mock
+          DOCUSAURUS_API_MOCK_URL: http://localhost:4010
+        run: npm run build
+
+      - name: Upload docs build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alonix-docs-build
+          path: alonix-docs/build
+          retention-days: 7
+
+  deploy:
+    needs: [security, build-docs]
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Checkout
+      - name: Checkout frontend
         uses: actions/checkout@v6
 
       - name: Setup Node.js
@@ -81,6 +126,17 @@ jobs:
           printf "VITE_API_BASE_URL=%s\n" "$VITE_API_BASE_URL" > .env.production
           npm run build:findoutai
 
+      - name: Download docs build
+        uses: actions/download-artifact@v4
+        with:
+          name: alonix-docs-build
+          path: .docs-build
+
+      - name: Merge docs into dist
+        run: |
+          chmod +x scripts/merge-docs-into-dist.sh
+          ./scripts/merge-docs-into-dist.sh .docs-build dist
+
       - name: Authenticate Firebase service account
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -93,7 +149,7 @@ jobs:
           printf "%s" "$FIREBASE_SERVICE_ACCOUNT" > "$SERVICE_ACCOUNT_FILE"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SERVICE_ACCOUNT_FILE" >> "$GITHUB_ENV"
 
-      - name: Deploy live hosting
+      - name: Deploy live hosting (app + /docs)
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_HOSTING_SITE: ${{ secrets.FIREBASE_HOSTING_SITE }}
@@ -129,16 +185,47 @@ jobs:
             fi
           fi
           echo "Live URL: https://${TARGET_SITE}.web.app"
+          echo "Docs URL: https://${TARGET_SITE}.web.app/docs/"
           echo "Live URL (fallback): https://${TARGET_SITE}.firebaseapp.com"
 
-  notify-slack:
+  deploy-docs:
+    name: Verify docs on /docs
     needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smoke test deployed docs
+        env:
+          FIREBASE_HOSTING_SITE: ${{ secrets.FIREBASE_HOSTING_SITE }}
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PUBLIC_APP_URL:-}" ]; then
+            BASE="${PUBLIC_APP_URL%/}"
+          elif [ -n "${FIREBASE_HOSTING_SITE:-}" ]; then
+            BASE="https://${FIREBASE_HOSTING_SITE}.web.app"
+          else
+            echo "Set vars.PUBLIC_APP_URL or secrets.FIREBASE_HOSTING_SITE for smoke tests"
+            exit 1
+          fi
+          echo "Testing docs at ${BASE}/docs/"
+          for path in /docs/ /docs/introduction/what-is-alonix /docs/api-playground /docs/openapi.yaml; do
+            code="$(curl -fsS -o /dev/null -w "%{http_code}" "${BASE}${path}" || true)"
+            echo "${path} -> HTTP ${code}"
+            if [ "$code" != "200" ]; then
+              echo "Expected HTTP 200 for ${path}"
+              exit 1
+            fi
+          done
+          echo "Docs smoke tests passed."
+
+  notify-slack:
+    needs: [deploy, deploy-docs]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      PROJECT_NAME: Findout Frontend (Firebase Hosting)
-      JOB_RESULT: ${{ needs.deploy.result }}
+      PROJECT_NAME: Findout Frontend + Help Center (/docs)
+      JOB_RESULT: ${{ needs.deploy.result == 'success' && needs.deploy-docs.result == 'success' && 'success' || (needs.deploy.result == 'cancelled' || needs.deploy-docs.result == 'cancelled') && 'cancelled' || (needs.deploy.result == 'skipped' && needs.deploy-docs.result == 'skipped') && 'skipped' || 'failure' }}
     steps:
       - name: Build Slack message
         id: slack
@@ -146,6 +233,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          DOCS_RESULT: ${{ needs.deploy-docs.result }}
         run: |
           set -euo pipefail
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
@@ -185,7 +274,7 @@ jobs:
               JOB_BULLETS="$(printf '%s\n' "$FAILED_JOBS" | sed '/^$/d' | sed 's/^/• /')"
               WHY_LINES="$(printf 'Failed job(s):\n%s' "$JOB_BULLETS")"
             else
-              WHY_LINES="Deploy did not finish successfully (result: ${JOB_RESULT})."
+              WHY_LINES="Pipeline did not finish successfully (app: ${DEPLOY_RESULT}, docs: ${DOCS_RESULT})."
             fi
 
             LOG_SNIPPET=""
@@ -201,8 +290,8 @@ jobs:
             FAIL_HINT="$(printf '%s\n<%s|Open workflow run>' "$WHY_LINES" "$RUN_URL")"
           fi
 
-          TEXT="$(printf '%s\n*Project:* %s\n*Repo:* `%s`\n*Branch:* `%s`\n*Commit:* `%s` — %s\n*Triggered by:* %s' \
-            "$STATUS" "$PROJECT_NAME" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$SHA_SHORT" "$COMMIT_LINE" "$GITHUB_ACTOR")"
+          TEXT="$(printf '%s\n*Project:* %s\n*Repo:* `%s`\n*Branch:* `%s`\n*Commit:* `%s` — %s\n*Triggered by:* %s\n*App deploy:* %s | *Docs verify:* %s' \
+            "$STATUS" "$PROJECT_NAME" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$SHA_SHORT" "$COMMIT_LINE" "$GITHUB_ACTOR" "$DEPLOY_RESULT" "$DOCS_RESULT")"
 
           if [ -n "$FAIL_HINT" ]; then
             TEXT="$(printf '%s\n\n*Why it failed:*\n%s' "$TEXT" "$FAIL_HINT")"

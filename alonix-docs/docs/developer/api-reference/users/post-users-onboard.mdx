@@ -1,0 +1,85 @@
+---
+title: "POST /users/onboard"
+description: "Company onboarding (new org + admin)"
+sidebar_position: 13
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/onboard
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fonboard&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/onboard` |
+| **Tag** | Users |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "companyName": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "name": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Organization and admin user created |
+| 400 |  |
+| 409 | Duplicate user field |
+| 500 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/onboard" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "companyName": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "name": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/onboard', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "companyName": "string",
+      "email": "user@example.com",
+      "password": "string",
+      "name": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/onboard" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,77 @@
+---
+title: "DELETE /chats/delete"
+description: "Delete chat session"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# DELETE /chats/delete
+
+**[Try in API Playground](/api-playground?path=%2Fchats%2Fdelete&method=delete)**
+
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **Path** | `/api/chats/delete` |
+| **Tag** | Chats |
+| **Auth** | Bearer JWT |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "sessionId": "string",
+  "groupId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Deleted |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X DELETE "http://localhost:4010/chats/delete" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "sessionId": "string",
+  "groupId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/chats/delete', {
+  method: 'DELETE',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "sessionId": "string",
+      "groupId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/chats/delete" method="delete" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

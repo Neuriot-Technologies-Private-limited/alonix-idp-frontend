@@ -1,0 +1,67 @@
+---
+title: "GET /admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse"
+description: "Browse mailbox folder (email INBOX listing)"
+sidebar_position: 13
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /admin/orgs/\{orgId\}/connectors/\{id\}/mailboxes/\{mailboxId\}/browse
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fconnectors%2F%7Bid%7D%2Fmailboxes%2F%7BmailboxId%7D%2Fbrowse&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `id` | path | Yes | string |  |
+| `mailboxId` | path | Yes | string |  |
+| `path` | query | No | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Email folder listing |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/connectors/{id}/mailboxes/{mailboxId}/browse" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

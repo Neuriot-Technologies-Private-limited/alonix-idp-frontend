@@ -1,0 +1,81 @@
+---
+title: "POST /admin/orgs/{orgId}/connectors/{id}/mailboxes"
+description: "Create mailbox on EMAIL connector"
+sidebar_position: 10
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /admin/orgs/\{orgId\}/connectors/\{id\}/mailboxes
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fconnectors%2F%7Bid%7D%2Fmailboxes&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/admin/orgs/{orgId}/connectors/{id}/mailboxes` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `id` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "emailAddress": "user@example.com"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Mailbox created |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/mailboxes" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "emailAddress": "user@example.com"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/mailboxes', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "emailAddress": "user@example.com"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/connectors/{id}/mailboxes" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

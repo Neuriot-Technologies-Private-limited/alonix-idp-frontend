@@ -1,0 +1,65 @@
+---
+title: "GET /admin/orgs/{orgId}/connectors/{id}/deletion-impact"
+description: "Preview connector deletion impact"
+sidebar_position: 7
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /admin/orgs/\{orgId\}/connectors/\{id\}/deletion-impact
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fconnectors%2F%7Bid%7D%2Fdeletion-impact&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/admin/orgs/{orgId}/connectors/{id}/deletion-impact` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `id` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Mailboxes and document counts affected |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/deletion-impact" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/deletion-impact', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/connectors/{id}/deletion-impact" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

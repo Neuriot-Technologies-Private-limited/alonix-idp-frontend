@@ -1,0 +1,11 @@
+{
+  "label": "Admin",
+  "position": 7,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/admin",
+    "title": "Admin",
+    "description": "Org RBAC, metrics, audit, workspace members"
+  }
+}

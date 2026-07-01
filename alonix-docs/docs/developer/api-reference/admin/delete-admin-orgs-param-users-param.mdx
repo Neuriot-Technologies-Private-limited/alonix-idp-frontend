@@ -1,0 +1,67 @@
+---
+title: "DELETE /admin/orgs/{orgId}/users/{userId}"
+description: "Remove user from organization"
+sidebar_position: 32
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# DELETE /admin/orgs/\{orgId\}/users/\{userId\}
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fusers%2F%7BuserId%7D&method=delete)**
+
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **Path** | `/api/admin/orgs/{orgId}/users/{userId}` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `userId` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | User removed |
+| 400 | Cannot remove self |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X DELETE "http://localhost:4010/admin/orgs/{orgId}/users/{userId}" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/users/{userId}', {
+  method: 'DELETE',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/users/{userId}" method="delete" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

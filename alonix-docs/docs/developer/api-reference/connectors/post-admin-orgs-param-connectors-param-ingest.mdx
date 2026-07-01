@@ -1,0 +1,90 @@
+---
+title: "POST /admin/orgs/{orgId}/connectors/{id}/ingest"
+description: "Ingest selected remote paths into documents"
+sidebar_position: 8
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /admin/orgs/\{orgId\}/connectors/\{id\}/ingest
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fconnectors%2F%7Bid%7D%2Fingest&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/admin/orgs/{orgId}/connectors/{id}/ingest` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `id` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "paths": [
+    "string"
+  ],
+  "groupId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 202 | Ingestion queued |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/ingest" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "paths": [
+    "string"
+  ],
+  "groupId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/connectors/{id}/ingest', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "paths": [
+          "string"
+      ],
+      "groupId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/connectors/{id}/ingest" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

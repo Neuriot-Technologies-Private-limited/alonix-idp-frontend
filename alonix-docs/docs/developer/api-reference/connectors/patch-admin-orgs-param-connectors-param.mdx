@@ -1,0 +1,91 @@
+---
+title: "PATCH /admin/orgs/{orgId}/connectors/{id}"
+description: "Update connector settings"
+sidebar_position: 5
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PATCH /admin/orgs/\{orgId\}/connectors/\{id\}
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fconnectors%2F%7Bid%7D&method=patch)**
+
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **Path** | `/api/admin/orgs/{orgId}/connectors/{id}` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `id` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "name": "string",
+  "autoIngest": true,
+  "pollIntervalMs": 0,
+  "remotePath": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Updated connector |
+| 404 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PATCH "http://localhost:4010/admin/orgs/{orgId}/connectors/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "name": "string",
+  "autoIngest": true,
+  "pollIntervalMs": 0,
+  "remotePath": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/connectors/{id}', {
+  method: 'PATCH',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "name": "string",
+      "autoIngest": true,
+      "pollIntervalMs": 0,
+      "remotePath": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/connectors/{id}" method="patch" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,11 @@
+{
+  "label": "Connectors",
+  "position": 9,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/connectors",
+    "title": "Connectors",
+    "description": "Email, SFTP, SharePoint integrations"
+  }
+}

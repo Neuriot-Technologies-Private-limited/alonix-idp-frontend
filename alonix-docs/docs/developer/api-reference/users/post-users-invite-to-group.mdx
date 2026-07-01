@@ -1,0 +1,87 @@
+---
+title: "POST /users/invite-to-group"
+description: "Send email invitation to join a workspace"
+sidebar_position: 6
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/invite-to-group
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Finvite-to-group&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/invite-to-group` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "groupId": "string",
+  "email": "user@example.com"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Invitation sent |
+| 400 |  |
+| 401 |  |
+| 403 |  |
+| 404 | Group not found in org |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/invite-to-group" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "groupId": "string",
+  "email": "user@example.com"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/invite-to-group', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "groupId": "string",
+      "email": "user@example.com"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/invite-to-group" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

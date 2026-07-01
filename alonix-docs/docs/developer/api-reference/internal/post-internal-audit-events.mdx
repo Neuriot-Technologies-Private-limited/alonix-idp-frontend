@@ -1,0 +1,92 @@
+---
+title: "POST /internal/audit-events"
+description: "Ingest audit event from internal Python ML services"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /internal/audit-events
+
+Receives audit events from internal pipeline services (Python ML, connectors).
+Uses token + HMAC signature auth (production requires signature).
+Supports idempotency via optional eventId field.
+
+
+**[Try in API Playground](/api-playground?path=%2Finternal%2Faudit-events&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/internal/audit-events` |
+| **Tag** | Internal |
+| **Auth** | Internal token |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "orgId": "org_abc123",
+  "action": "DOCUMENT_EXTRACT_STARTED",
+  "targetType": "DOCUMENT",
+  "targetId": "doc_xyz789"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Duplicate event (idempotent — already exists) |
+| 201 | Audit event created |
+| 400 | Missing required fields |
+| 401 | Invalid or missing internal auth token/signature |
+| 500 | Internal server error |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/internal/audit-events" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "orgId": "org_abc123",
+  "action": "DOCUMENT_EXTRACT_STARTED",
+  "targetType": "DOCUMENT",
+  "targetId": "doc_xyz789"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/internal/audit-events', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "orgId": "org_abc123",
+      "action": "DOCUMENT_EXTRACT_STARTED",
+      "targetType": "DOCUMENT",
+      "targetId": "doc_xyz789"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/internal/audit-events" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

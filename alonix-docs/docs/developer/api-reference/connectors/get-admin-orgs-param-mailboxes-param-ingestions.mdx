@@ -1,0 +1,66 @@
+---
+title: "GET /admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions"
+description: "List recent connector ingestions for mailbox"
+sidebar_position: 25
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /admin/orgs/\{orgId\}/mailboxes/\{mailboxId\}/ingestions
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fmailboxes%2F%7BmailboxId%7D%2Fingestions&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `mailboxId` | path | Yes | string |  |
+| `limit` | query | No | integer |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Ingestion history items |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/mailboxes/{mailboxId}/ingestions" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,73 @@
+---
+title: "POST /billing/webhook"
+description: "Stripe webhook receiver"
+sidebar_position: 9
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /billing/webhook
+
+Raw `application/json` body required (not parsed JSON). Registered before global JSON parser in server.js.
+Configure in Stripe Dashboard pointing to `\{BACKEND_URL\}/api/billing/webhook`.
+
+
+**[Try in API Playground](/api-playground?path=%2Fbilling%2Fwebhook&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/billing/webhook` |
+| **Tag** | Billing |
+| **Auth** | Stripe signature |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+"string"
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Event received |
+| 400 | Signature verification failed |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/billing/webhook" \
+  -H "Content-Type: application/json" \
+  -d '"string"'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/billing/webhook', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify("string"),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/billing/webhook" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

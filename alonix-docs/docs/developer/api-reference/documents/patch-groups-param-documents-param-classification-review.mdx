@@ -1,0 +1,75 @@
+---
+title: "PATCH /groups/{groupId}/documents/{id}/classification-review"
+description: "Save classification review (group mount)"
+sidebar_position: 18
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PATCH /groups/\{groupId\}/documents/\{id\}/classification-review
+
+**[Try in API Playground](/api-playground?path=%2Fgroups%2F%7BgroupId%7D%2Fdocuments%2F%7Bid%7D%2Fclassification-review&method=patch)**
+
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **Path** | `/api/groups/{groupId}/documents/{id}/classification-review` |
+| **Tag** | Documents |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+| `id` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+"string"
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Review saved |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PATCH "http://localhost:4010/groups/{groupId}/documents/{id}/classification-review" \
+  -H "Content-Type: application/json" \
+  -d '"string"'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/groups/{groupId}/documents/{id}/classification-review', {
+  method: 'PATCH',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify("string"),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/groups/{groupId}/documents/{id}/classification-review" method="patch" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

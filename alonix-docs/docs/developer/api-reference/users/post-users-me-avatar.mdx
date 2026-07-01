@@ -1,0 +1,74 @@
+---
+title: "POST /users/me/avatar"
+description: "Upload profile avatar"
+sidebar_position: 9
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/me/avatar
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fme%2Favatar&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/me/avatar` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Request body
+
+**Content-Type:** `multipart/form-data`
+
+```json
+{
+  "file": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Avatar uploaded |
+| 400 |  |
+| 413 | File too large |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/me/avatar" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/me/avatar', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "file": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/me/avatar" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,60 @@
+---
+title: "GET /billing/portal-session"
+description: "Create Stripe Customer Portal session"
+sidebar_position: 6
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /billing/portal-session
+
+**[Try in API Playground](/api-playground?path=%2Fbilling%2Fportal-session&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/billing/portal-session` |
+| **Tag** | Billing |
+| **Auth** | Bearer JWT |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Portal URL |
+| 400 | No Stripe customer on org |
+| 503 | Stripe not configured |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/billing/portal-session" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/billing/portal-session', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/billing/portal-session" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

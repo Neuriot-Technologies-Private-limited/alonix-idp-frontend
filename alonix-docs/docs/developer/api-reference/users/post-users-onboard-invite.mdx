@@ -1,0 +1,85 @@
+---
+title: "POST /users/onboard-invite"
+description: "Accept group invitation and create account"
+sidebar_position: 14
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/onboard-invite
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fonboard-invite&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/onboard-invite` |
+| **Tag** | Users |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "inviteToken": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "name": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 201 | Account created from invitation |
+| 400 |  |
+| 409 | Email belongs to another organization |
+| 410 | Invite expired (code INVITE_EXPIRED) |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/onboard-invite" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "inviteToken": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "name": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/onboard-invite', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "inviteToken": "string",
+      "email": "user@example.com",
+      "password": "string",
+      "name": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/onboard-invite" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

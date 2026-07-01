@@ -1,0 +1,92 @@
+---
+title: "PUT /users/update/{userId}"
+description: "Update user profile or status (scoped)"
+sidebar_position: 17
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PUT /users/update/\{userId\}
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fupdate%2F%7BuserId%7D&method=put)**
+
+| | |
+|---|---|
+| **Method** | `PUT` |
+| **Path** | `/api/users/update/{userId}` |
+| **Tag** | Users |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `userId` | path | Yes | string |  |
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "orgId": "string",
+  "groupId": "string",
+  "name": "string",
+  "status": "ACTIVE"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | User updated |
+| 403 |  |
+| 404 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PUT "http://localhost:4010/users/update/{userId}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "orgId": "string",
+  "groupId": "string",
+  "name": "string",
+  "status": "ACTIVE"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/update/{userId}', {
+  method: 'PUT',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "orgId": "string",
+      "groupId": "string",
+      "name": "string",
+      "status": "ACTIVE"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/update/{userId}" method="put" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

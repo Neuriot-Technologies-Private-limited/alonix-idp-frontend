@@ -1,0 +1,86 @@
+---
+title: "PATCH /admin/orgs/{orgId}/users/{userId}"
+description: "Update org user (admin)"
+sidebar_position: 33
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PATCH /admin/orgs/\{orgId\}/users/\{userId\}
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fusers%2F%7BuserId%7D&method=patch)**
+
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **Path** | `/api/admin/orgs/{orgId}/users/{userId}` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+| `userId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "name": "string",
+  "status": "ACTIVE"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | User updated |
+| 403 |  |
+| 404 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PATCH "http://localhost:4010/admin/orgs/{orgId}/users/{userId}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "name": "string",
+  "status": "ACTIVE"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/users/{userId}', {
+  method: 'PATCH',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "name": "string",
+      "status": "ACTIVE"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/users/{userId}" method="patch" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

@@ -1,0 +1,67 @@
+---
+title: "POST /admin/groups/{groupId}/invites/{inviteId}/resend"
+description: "Resend expired invite"
+sidebar_position: 5
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /admin/groups/\{groupId\}/invites/\{inviteId\}/resend
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Fgroups%2F%7BgroupId%7D%2Finvites%2F%7BinviteId%7D%2Fresend&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/admin/groups/{groupId}/invites/{inviteId}/resend` |
+| **Tag** | Admin |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `groupId` | path | Yes | string |  |
+| `inviteId` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Invite resent |
+| 400 | Invite still active |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/admin/groups/{groupId}/invites/{inviteId}/resend" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/groups/{groupId}/invites/{inviteId}/resend', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/groups/{groupId}/invites/{inviteId}/resend" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

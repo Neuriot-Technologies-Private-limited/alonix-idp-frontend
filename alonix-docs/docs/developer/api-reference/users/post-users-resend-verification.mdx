@@ -1,0 +1,73 @@
+---
+title: "POST /users/resend-verification"
+description: "Resend verification email"
+sidebar_position: 15
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /users/resend-verification
+
+**[Try in API Playground](/api-playground?path=%2Fusers%2Fresend-verification&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/users/resend-verification` |
+| **Tag** | Users |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Generic success (does not reveal if account exists) |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/users/resend-verification" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "email": "user@example.com"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/users/resend-verification', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "email": "user@example.com"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/users/resend-verification" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

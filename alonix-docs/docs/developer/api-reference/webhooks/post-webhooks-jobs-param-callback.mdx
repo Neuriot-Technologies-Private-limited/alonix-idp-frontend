@@ -1,0 +1,76 @@
+---
+title: "POST /webhooks/jobs/{jobId}/callback"
+description: "Python pipeline job completion callback"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /webhooks/jobs/\{jobId\}/callback
+
+**[Try in API Playground](/api-playground?path=%2Fwebhooks%2Fjobs%2F%7BjobId%7D%2Fcallback&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/webhooks/jobs/{jobId}/callback` |
+| **Tag** | Webhooks |
+| **Auth** | Internal token |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `jobId` | path | Yes | string |  |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Callback accepted |
+| 401 | Invalid X-Internal-Token |
+| 404 | Job not found |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/webhooks/jobs/{jobId}/callback" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/webhooks/jobs/{jobId}/callback', {
+  method: 'POST',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({}),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/webhooks/jobs/{jobId}/callback" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

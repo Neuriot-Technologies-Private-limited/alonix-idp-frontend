@@ -1,0 +1,67 @@
+---
+title: "GET /admin/orgs/{orgId}/connectors/sharepoint/oauth/start"
+description: "Start Microsoft admin consent flow"
+sidebar_position: 22
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# GET /admin/orgs/\{orgId\}/connectors/sharepoint/oauth/start
+
+Redirects browser to Microsoft login/consent.
+
+**[Try in API Playground](/api-playground?path=%2Fadmin%2Forgs%2F%7BorgId%7D%2Fconnectors%2Fsharepoint%2Foauth%2Fstart&method=get)**
+
+| | |
+|---|---|
+| **Method** | `GET` |
+| **Path** | `/api/admin/orgs/{orgId}/connectors/sharepoint/oauth/start` |
+| **Tag** | Connectors |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `orgId` | path | Yes | string |  |
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 302 | Redirect to Microsoft |
+| 503 | SharePoint OAuth not configured for org |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:4010/admin/orgs/{orgId}/connectors/sharepoint/oauth/start" \
+  -H "Authorization: Bearer <token>"
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/admin/orgs/{orgId}/connectors/sharepoint/oauth/start', {
+  method: 'GET',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/admin/orgs/{orgId}/connectors/sharepoint/oauth/start" method="get" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

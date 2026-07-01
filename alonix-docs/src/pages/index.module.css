@@ -1,0 +1,136 @@
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  background: linear-gradient(135deg, var(--ifm-color-primary-lightest) 0%, var(--ifm-background-color) 55%);
+}
+
+[data-theme='dark'] .heroBanner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, var(--ifm-background-color) 60%);
+}
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.searchHint {
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+
+.searchHint kbd {
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  font-size: 0.8rem;
+}
+
+.main {
+  padding-bottom: 3rem;
+}
+
+.section {
+  padding: 2.5rem 0;
+}
+
+.sectionAlt {
+  background: var(--ifm-background-surface-color);
+  border-radius: 12px;
+  margin: 0 auto 1rem;
+  max-width: var(--ifm-container-width);
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.sectionLead {
+  max-width: 42rem;
+  margin-bottom: 1.5rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.grid4 {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.featureCard {
+  padding: 1.25rem;
+  height: 100%;
+  text-decoration: none !important;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ifm-global-shadow-md);
+}
+
+.featureCard h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+
+.featureCard p {
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.cardLink {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+}
+
+.linkGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.popularLink {
+  display: block;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-background-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.popularLink:hover {
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
+}
+
+.categoryCard ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.faqList {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.faqItem h3 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.faqItem p {
+  margin-bottom: 0.35rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.recentList {
+  line-height: 1.8;
+}

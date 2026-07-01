@@ -1,0 +1,78 @@
+---
+title: "PATCH /documents/{id}/extraction-review"
+description: "Save human extraction review"
+sidebar_position: 7
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# PATCH /documents/\{id\}/extraction-review
+
+**[Try in API Playground](/api-playground?path=%2Fdocuments%2F%7Bid%7D%2Fextraction-review&method=patch)**
+
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **Path** | `/api/documents/{id}/extraction-review` |
+| **Tag** | Documents |
+| **Auth** | Bearer JWT |
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+|------|-----|----------|------|-------------|
+| `id` | path | Yes | string |  |
+| `X-Group-Id` | header | No | string | Active workspace group ObjectId |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+"string"
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 | Review saved |
+| 400 |  |
+| 403 |  |
+| 404 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X PATCH "http://localhost:4010/documents/{id}/extraction-review" \
+  -H "Content-Type: application/json" \
+  -d '"string"'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/documents/{id}/extraction-review', {
+  method: 'PATCH',
+  headers: {
+    'Authorization: Bearer <token>',
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify("string"),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/documents/{id}/extraction-review" method="patch" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)

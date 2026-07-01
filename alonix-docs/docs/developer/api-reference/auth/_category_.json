@@ -1,0 +1,11 @@
+{
+  "label": "Auth",
+  "position": 2,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/auth",
+    "title": "Auth",
+    "description": "Login, logout, and session tokens"
+  }
+}

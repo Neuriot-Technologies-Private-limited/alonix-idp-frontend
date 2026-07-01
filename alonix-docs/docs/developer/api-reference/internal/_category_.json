@@ -1,0 +1,11 @@
+{
+  "label": "Internal",
+  "position": 11,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/developer/api-reference/internal",
+    "title": "Internal",
+    "description": "Service-to-service audit ingestion"
+  }
+}

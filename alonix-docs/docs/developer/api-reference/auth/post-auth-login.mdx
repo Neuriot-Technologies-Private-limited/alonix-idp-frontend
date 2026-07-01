@@ -1,0 +1,86 @@
+---
+title: "POST /auth/login"
+description: "Login (documentation alias)"
+sidebar_position: 2
+custom_edit_url: null
+---
+
+import PlaygroundLink from '@site/src/components/PlaygroundLink';
+
+# POST /auth/login
+
+**Alias** for `POST /users/login`. Use either path in the mock server.
+Production Express route is `POST /api/users/login`.
+
+
+**[Try in API Playground](/api-playground?path=%2Fauth%2Flogin&method=post)**
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Path** | `/api/auth/login` |
+| **Tag** | Auth |
+| **Auth** | None |
+
+## Request body
+
+**Content-Type:** `application/json`
+
+```json
+{
+  "email": "demo.admin@alonix.example",
+  "password": "DemoPass123!",
+  "orgId": "string"
+}
+```
+
+## Responses
+
+| Status | Description |
+|--------|-------------|
+| 200 |  |
+| 400 |  |
+| 401 |  |
+| 500 |  |
+
+## Code examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:4010/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "email": "demo.admin@alonix.example",
+  "password": "DemoPass123!",
+  "orgId": "string"
+}'
+```
+
+### JavaScript (fetch)
+
+```javascript
+const response = await fetch('http://localhost:4010/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type: application/json',
+  },
+  body: JSON.stringify({
+      "email": "demo.admin@alonix.example",
+      "password": "DemoPass123!",
+      "orgId": "string"
+  }),
+});
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || response.statusText);
+console.log(data);
+```
+
+<PlaygroundLink path="/auth/login" method="post" />
+
+## Related
+
+- [API overview](/developer/api-reference)
+- [Authentication](/developer/authentication)
+- [Error handling](/developer/error-handling)
