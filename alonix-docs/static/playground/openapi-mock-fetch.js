@@ -1,5 +1,6 @@
 /**
  * Browser-side OpenAPI mock — returns example responses without Prism or a VM.
+ * Kept in sync with static/playground/index.html (helper is inlined there for deploy safety).
  */
 (function (global) {
   function pathToRegex(openApiPath) {
