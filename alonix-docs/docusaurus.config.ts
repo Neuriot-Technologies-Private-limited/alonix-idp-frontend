@@ -13,8 +13,9 @@ const mockUrl = process.env.DOCUSAURUS_API_MOCK_URL ?? 'http://localhost:4010';
 const sandboxUrl =
   process.env.DOCUSAURUS_API_SANDBOX_URL ?? 'http://localhost:5005/api';
 
-const siteUrl = process.env.DOCUSAURUS_SITE_URL ?? 'http://localhost:3000';
-const baseUrl = process.env.DOCUSAURUS_BASE_URL ?? '/';
+const siteUrl =
+  process.env.DOCUSAURUS_SITE_URL?.trim() || 'http://localhost:3000';
+const baseUrl = process.env.DOCUSAURUS_BASE_URL?.trim() || '/';
 const routeBasePath = isSubpathDeploy() ? '/' : 'docs';
 
 const config: Config = {

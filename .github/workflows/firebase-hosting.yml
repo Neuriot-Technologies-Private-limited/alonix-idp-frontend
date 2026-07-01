@@ -76,11 +76,29 @@ jobs:
           cache: npm
           cache-dependency-path: alonix-docs/package-lock.json
 
+      - name: Resolve docs site URL
+        id: docs-site-url
+        env:
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+          FIREBASE_HOSTING_SITE: ${{ secrets.FIREBASE_HOSTING_SITE }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PUBLIC_APP_URL:-}" ]; then
+            SITE_URL="${PUBLIC_APP_URL%/}"
+          elif [ -n "${FIREBASE_HOSTING_SITE:-}" ]; then
+            SITE_URL="https://${FIREBASE_HOSTING_SITE}.web.app"
+          else
+            echo "Set vars.PUBLIC_APP_URL or secrets.FIREBASE_HOSTING_SITE for docs build"
+            exit 1
+          fi
+          echo "url=${SITE_URL}" >> "$GITHUB_OUTPUT"
+          echo "Docs site URL: ${SITE_URL}"
+
       - name: Build docs (Help Center)
         working-directory: alonix-docs
         env:
           DOCUSAURUS_BASE_URL: /docs/
-          DOCUSAURUS_SITE_URL: ${{ vars.PUBLIC_APP_URL }}
+          DOCUSAURUS_SITE_URL: ${{ steps.docs-site-url.outputs.url }}
           DOCUSAURUS_API_MODE: mock
           DOCUSAURUS_API_MOCK_URL: http://localhost:4010
         run: |

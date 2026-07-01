@@ -162,7 +162,7 @@ Docs ship at **`https://<your-app-domain>/docs/`** via the frontend Firebase wor
 
 | Setting | Example | Purpose |
 |---------|---------|---------|
-| `vars.PUBLIC_APP_URL` | `https://app.yourdomain.com` | Canonical URL + smoke tests |
+| `vars.PUBLIC_APP_URL` | `https://app.yourdomain.com` | Canonical URL for Docusaurus `url` + smoke tests. **Required** unless `FIREBASE_HOSTING_SITE` secret is set (CI falls back to `https://<site>.web.app`). |
 
 Docs live in **`alonix-idp-frontend/alonix-docs/`** on the same `develop` branch — no separate docs repo required.
 
