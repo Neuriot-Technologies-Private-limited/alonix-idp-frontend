@@ -200,11 +200,16 @@ jobs:
             exit 1
           fi
           echo "Testing docs at ${BASE}/docs/"
-          for path in /docs/ /docs/introduction/what-is-alonix /docs/api-playground /docs/openapi.yaml; do
-            code="$(curl -fsS -o /dev/null -w "%{http_code}" "${BASE}${path}" || true)"
+          # Docusaurus uses trailing slashes on pages; static files have no trailing slash.
+          for path in \
+            /docs/ \
+            /docs/introduction/what-is-alonix/ \
+            /docs/api-playground/ \
+            /docs/openapi.yaml; do
+            code="$(curl -fsSL -o /dev/null -w "%{http_code}" "${BASE}${path}" || true)"
             echo "${path} -> HTTP ${code}"
             if [ "$code" != "200" ]; then
-              echo "Expected HTTP 200 for ${path}"
+              echo "Expected HTTP 200 for ${path} (use -L to follow redirects)"
               exit 1
             fi
           done

@@ -170,7 +170,7 @@ Docs live in **`alonix-idp-frontend/alonix-docs/`** on the same `develop` branch
 
 1. `security` — gitleaks, tests, audit  
 2. `deploy` — build docs + app, merge into `dist/docs/`, Firebase deploy  
-3. `deploy-docs` — smoke test `/docs/`, `/docs/api-playground`, `/docs/openapi.yaml`  
+3. `deploy-docs` — smoke test `/docs/`, `/docs/api-playground/`, `/docs/openapi.yaml`  
 4. `notify-slack`
 
 ### Local build before push (matches CI)
