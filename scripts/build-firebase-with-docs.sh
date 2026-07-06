@@ -15,14 +15,16 @@ if [ -z "${VITE_API_BASE_URL:-}" ] && [ ! -f .env.production ]; then
   exit 1
 fi
 
-echo "==> Building React app..."
-npm run build:findoutai
+BRAND="${VITE_BRAND_MODE:-1glance}"
+
+echo "==> Building React app (${BRAND})..."
+npm run "build:${BRAND}"
 
 echo "==> Building docs (/docs subpath)..."
 (
   cd alonix-docs
   npm ci
-  DOCUSAURUS_BRAND="${DOCUSAURUS_BRAND:-findoutai}" \
+  DOCUSAURUS_BRAND="${DOCUSAURUS_BRAND:-${BRAND}}" \
   DOCUSAURUS_BASE_URL=/docs/ \
   DOCUSAURUS_SITE_URL="${PUBLIC_APP_URL:-http://localhost:3000}" \
   DOCUSAURUS_API_MODE=mock \
