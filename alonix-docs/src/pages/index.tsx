@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -7,80 +7,81 @@ import Heading from '@theme/Heading';
 import {useBrand} from '@site/src/brand/useBrand';
 
 import styles from './index.module.css';
-import {sitePath as sp} from '@site/src/utils/sitePath';
+import {useSitePath} from '@site/src/utils/sitePath';
 
-const quickStart = [
-  {
-    title: 'Create your account',
-    description: 'Sign up, verify your email, and log in to your organization.',
-    link: sp('/getting-started/creating-account'),
-  },
-  {
-    title: 'Set up a workspace',
-    description: 'Create a group (workspace) where your team stores documents.',
-    link: sp('/tutorials/first-workspace'),
-  },
-  {
-    title: 'Upload your first document',
-    description: 'Add files and run the ingestion pipeline.',
-    link: sp('/tutorials/upload-document'),
-  },
-  {
-    title: 'Ask AI a question',
-    description: 'Chat with your documents using the AI assistant.',
-    link: sp('/tutorials/ask-ai'),
-  },
-];
-
-const popularGuides = [
-  {title: 'Documents & pipeline', link: sp('/user-guide/documents')},
-  {title: 'AI Chat', link: sp('/user-guide/ai-chat')},
-  {title: 'Invite team members', link: sp('/tutorials/invite-team')},
-  {title: 'Users & roles', link: sp('/user-guide/users-and-roles')},
-  {title: 'Connectors', link: sp('/user-guide/connectors')},
-  {title: 'Reports', link: sp('/user-guide/reports')},
-];
-
-const featureCategories = [
-  {
-    title: 'Work & organize',
-    items: ['Workspaces (Groups)', 'Documents vault', 'Document pipeline', 'Connectors'],
-    link: sp('/user-guide/workspaces'),
-  },
-  {
-    title: 'Intelligence',
-    items: ['AI Chat (RAG)', 'Source citations', 'Clarification questions'],
-    link: sp('/user-guide/ai-chat'),
-  },
-  {
-    title: 'Governance',
-    items: ['Activity logs', 'Reports & exports', 'Sensitivity levels', 'Audit trail'],
-    link: sp('/user-guide/activity-logs'),
-  },
-  {
-    title: 'Administration',
-    items: ['User management', 'Org settings', 'Billing (SaaS)', 'Profile'],
-    link: sp('/user-guide/org-settings'),
-  },
-];
-
-const faqPreview = [
-  {
-    q: 'What is a workspace vs. a group?',
-    a: 'They are the same thing. The app menu says Groups; this help center uses workspace when explaining concepts.',
-    link: sp('/glossary/terms#workspace'),
-  },
-  {
-    q: 'Why is my document stuck in Processing?',
-    a: 'The ingest, extract, or classify step may still be running. See pipeline status on the Documents page.',
-    link: sp('/troubleshooting/upload-problems'),
-  },
-  {
-    q: 'Who can invite users?',
-    a: 'Company admins and group (workspace) admins can send invitations.',
-    link: sp('/user-guide/users-and-roles'),
-  },
-];
+function createHomeContent(sp: (path: string) => string) {
+  return {
+    quickStart: [
+      {
+        title: 'Create your account',
+        description: 'Sign up, verify your email, and log in to your organization.',
+        link: sp('/getting-started/creating-account'),
+      },
+      {
+        title: 'Set up a workspace',
+        description: 'Create a group (workspace) where your team stores documents.',
+        link: sp('/tutorials/first-workspace'),
+      },
+      {
+        title: 'Upload your first document',
+        description: 'Add files and run the ingestion pipeline.',
+        link: sp('/tutorials/upload-document'),
+      },
+      {
+        title: 'Ask AI a question',
+        description: 'Chat with your documents using the AI assistant.',
+        link: sp('/tutorials/ask-ai'),
+      },
+    ],
+    popularGuides: [
+      {title: 'Documents & pipeline', link: sp('/user-guide/documents')},
+      {title: 'AI Chat', link: sp('/user-guide/ai-chat')},
+      {title: 'Invite team members', link: sp('/tutorials/invite-team')},
+      {title: 'Users & roles', link: sp('/user-guide/users-and-roles')},
+      {title: 'Connectors', link: sp('/user-guide/connectors')},
+      {title: 'Reports', link: sp('/user-guide/reports')},
+    ],
+    featureCategories: [
+      {
+        title: 'Work & organize',
+        items: ['Workspaces (Groups)', 'Documents vault', 'Document pipeline', 'Connectors'],
+        link: sp('/user-guide/workspaces'),
+      },
+      {
+        title: 'Intelligence',
+        items: ['AI Chat (RAG)', 'Source citations', 'Clarification questions'],
+        link: sp('/user-guide/ai-chat'),
+      },
+      {
+        title: 'Governance',
+        items: ['Activity logs', 'Reports & exports', 'Sensitivity levels', 'Audit trail'],
+        link: sp('/user-guide/activity-logs'),
+      },
+      {
+        title: 'Administration',
+        items: ['User management', 'Org settings', 'Billing (SaaS)', 'Profile'],
+        link: sp('/user-guide/org-settings'),
+      },
+    ],
+    faqPreview: [
+      {
+        q: 'What is a workspace vs. a group?',
+        a: 'They are the same thing. The app menu says Groups; this help center uses workspace when explaining concepts.',
+        link: sp('/glossary/terms#workspace'),
+      },
+      {
+        q: 'Why is my document stuck in Processing?',
+        a: 'The ingest, extract, or classify step may still be running. See pipeline status on the Documents page.',
+        link: sp('/troubleshooting/upload-problems'),
+      },
+      {
+        q: 'Who can invite users?',
+        a: 'Company admins and group (workspace) admins can send invitations.',
+        link: sp('/user-guide/users-and-roles'),
+      },
+    ],
+  };
+}
 
 function FeatureCard({
   title,
@@ -103,6 +104,11 @@ function FeatureCard({
 export default function Home(): React.JSX.Element {
   const {siteConfig} = useDocusaurusContext();
   const brand = useBrand();
+  const sp = useSitePath();
+  const {quickStart, popularGuides, featureCategories, faqPreview} = useMemo(
+    () => createHomeContent(sp),
+    [sp],
+  );
 
   return (
     <Layout

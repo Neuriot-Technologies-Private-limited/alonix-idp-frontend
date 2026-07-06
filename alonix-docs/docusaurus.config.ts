@@ -61,6 +61,23 @@ const config: Config = {
   markdown: {
     mermaid: true,
     preprocessor: ({fileContent}) => applyBrandTokens(fileContent, brand),
+    parseFrontMatter: async (params) => {
+      const parsed = await params.defaultParseFrontMatter(params);
+      const tokenize = (value: unknown): unknown =>
+        typeof value === 'string' ? applyBrandTokens(value, brand) : value;
+
+      const frontMatter = Object.fromEntries(
+        Object.entries(parsed.frontMatter).map(([key, value]) => [
+          key,
+          tokenize(value),
+        ]),
+      );
+
+      return {
+        frontMatter,
+        content: applyBrandTokens(parsed.content, brand),
+      };
+    },
   },
 
   themes: ['@docusaurus/theme-mermaid'],

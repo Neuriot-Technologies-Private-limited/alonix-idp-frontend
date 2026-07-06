@@ -24,6 +24,7 @@ export interface ConnectorItem {
 
 export interface BrowseResult {
   currentPath: string;
+  currentItemId?: string | null;
   rootPath: string;
   items: ConnectorItem[];
   connectorName: string;
@@ -33,6 +34,11 @@ export interface BrowseResult {
   nextBeforeUid?: string | null;
   searchQuery?: string | null;
   resultCount?: number;
+}
+
+export interface BrowseConnectorOptions {
+  path?: string;
+  itemId?: string;
 }
 
 export interface BrowseEmailOptions {
@@ -296,13 +302,18 @@ export async function fetchConnectorDeletionImpact(
 
 export async function browseConnector(
   connectorId: string,
-  browsePath?: string,
+  browsePathOrOptions?: string | BrowseConnectorOptions,
   mailboxId?: string,
   emailOptions?: BrowseEmailOptions
 ): Promise<BrowseResult> {
   const orgId = resolveOrgId();
   const params = new URLSearchParams();
-  if (browsePath) params.set('path', browsePath);
+  const browseOptions =
+    typeof browsePathOrOptions === 'string' || browsePathOrOptions == null
+      ? { path: browsePathOrOptions || undefined }
+      : browsePathOrOptions;
+  if (browseOptions.path) params.set('path', browseOptions.path);
+  if (browseOptions.itemId) params.set('itemId', browseOptions.itemId);
   if (emailOptions?.beforeUid) params.set('beforeUid', emailOptions.beforeUid);
   if (emailOptions?.limit) params.set('limit', String(emailOptions.limit));
   if (emailOptions?.search?.trim()) params.set('search', emailOptions.search.trim());

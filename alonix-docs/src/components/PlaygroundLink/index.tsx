@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from '@docusaurus/Link';
-import {sitePath} from '@site/src/utils/sitePath';
+import {useSitePath} from '@site/src/utils/sitePath';
 
 type PlaygroundLinkProps = {
   path: string;
@@ -13,13 +13,14 @@ export default function PlaygroundLink({
   method,
   label = 'Open this operation in API Playground',
 }: PlaygroundLinkProps): React.JSX.Element {
+  const sp = useSitePath();
   const params = new URLSearchParams({
     path,
     method: method.toLowerCase(),
   });
   return (
     <p>
-      <Link className="button button--primary button--sm" to={sitePath(`/api-playground?${params.toString()}`)}>
+      <Link className="button button--primary button--sm" to={sp(`/api-playground?${params.toString()}`)}>
         {label}
       </Link>
     </p>

@@ -18,11 +18,11 @@ Complete reference for the **{{brandName}} IDP REST API** (131 operations). All 
 
 ## Authentication
 
-Most endpoints require `Authorization: Bearer <token>` from [POST /users/login](/developer/api-reference/auth/post-users-login).
+Most endpoints require `Authorization: Bearer <token>` from [POST /users/login](/docs/developer/api-reference/auth/post-users-login).
 
 Workspace-scoped routes often need header `X-Group-Id` with your active group ObjectId.
 
-See [Authentication](/developer/authentication) for the full flow.
+See [Authentication](/docs/developer/authentication) for the full flow.
 
 ## Servers
 
@@ -35,18 +35,18 @@ Set `DOCUSAURUS_API_MODE=sandbox` to point the playground at your local backend.
 
 ## Operations by tag
 
-- **[Health](/developer/api-reference/health)** — 1 endpoints
-- **[Auth](/developer/api-reference/auth)** — 3 endpoints
-- **[Groups](/developer/api-reference/groups)** — 5 endpoints
-- **[Users](/developer/api-reference/users)** — 17 endpoints
-- **[Documents](/developer/api-reference/documents)** — 28 endpoints
-- **[Chats](/developer/api-reference/chats)** — 8 endpoints
-- **[Admin](/developer/api-reference/admin)** — 34 endpoints
-- **[Billing](/developer/api-reference/billing)** — 8 endpoints
-- **[Connectors](/developer/api-reference/connectors)** — 24 endpoints
-- **[Webhooks](/developer/api-reference/webhooks)** — 1 endpoints
-- **[Internal](/developer/api-reference/internal)** — 1 endpoints
-- **[Setup](/developer/api-reference/setup)** — 1 endpoints
+- **[Health](/docs/developer/api-reference/health)** — 1 endpoints
+- **[Auth](/docs/developer/api-reference/auth)** — 3 endpoints
+- **[Groups](/docs/developer/api-reference/groups)** — 5 endpoints
+- **[Users](/docs/developer/api-reference/users)** — 17 endpoints
+- **[Documents](/docs/developer/api-reference/documents)** — 28 endpoints
+- **[Chats](/docs/developer/api-reference/chats)** — 8 endpoints
+- **[Admin](/docs/developer/api-reference/admin)** — 34 endpoints
+- **[Billing](/docs/developer/api-reference/billing)** — 8 endpoints
+- **[Connectors](/docs/developer/api-reference/connectors)** — 24 endpoints
+- **[Webhooks](/docs/developer/api-reference/webhooks)** — 1 endpoints
+- **[Internal](/docs/developer/api-reference/internal)** — 1 endpoints
+- **[Setup](/docs/developer/api-reference/setup)** — 1 endpoints
 
 ## Rate limiting
 
@@ -54,5 +54,5 @@ Set `DOCUSAURUS_API_MODE=sandbox` to point the playground at your local backend.
 
 ## Related
 
-- [Developer setup](/developer/setup)
-- [Error handling](/developer/error-handling)
+- [Developer setup](/docs/developer/setup)
+- [Error handling](/docs/developer/error-handling)

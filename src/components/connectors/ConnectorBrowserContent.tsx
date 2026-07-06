@@ -94,7 +94,8 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
   const [selectedConnectorId, setSelectedConnectorId] = useState<string>(initialConnectorId || '');
   const [selectedMailboxId, setSelectedMailboxId] = useState<string>('');
   const [currentPath, setCurrentPath] = useState<string>('');
-  const [breadcrumbs, setBreadcrumbs] = useState<{ label: string; path: string }[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<string>('');
+  const [breadcrumbs, setBreadcrumbs] = useState<{ label: string; path: string; itemId?: string }[]>([]);
   const [selectedItem, setSelectedItem] = useState<ConnectorItem | null>(null);
   const [ingestSuccessKey, setIngestSuccessKey] = useState<string>('');
   const [search, setSearch] = useState('');
@@ -104,6 +105,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
       setSelectedConnectorId(initialConnectorId);
       setSelectedMailboxId('');
       setCurrentPath('');
+      setCurrentFolderId('');
       setBreadcrumbs([]);
       setSelectedItem(null);
     }
@@ -176,8 +178,12 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
     mailboxForActiveGroup;
 
   const { data: browseData, isLoading: loadingBrowse, error: browseError, refetch } = useQuery<BrowseResult>({
-    queryKey: ['connector-browse', selectedConnectorId, currentPath],
-    queryFn: () => browseConnector(selectedConnectorId, currentPath || undefined),
+    queryKey: ['connector-browse', selectedConnectorId, currentPath, currentFolderId],
+    queryFn: () =>
+      browseConnector(selectedConnectorId, {
+        path: currentPath || undefined,
+        itemId: currentFolderId || undefined,
+      }),
     enabled: !!selectedConnectorId && !isEmailConnector,
     staleTime: 30000,
   });
@@ -201,18 +207,20 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
     },
   });
 
-  const navigateTo = useCallback((path: string, label: string) => {
+  const navigateTo = useCallback((path: string, label: string, itemId?: string) => {
     setCurrentPath(path);
+    setCurrentFolderId(itemId || '');
     setSelectedItem(null);
     setBreadcrumbs((prev) => {
-      const idx = prev.findIndex((b) => b.path === path);
+      const idx = prev.findIndex((b) => b.path === path && (b.itemId || '') === (itemId || ''));
       if (idx >= 0) return prev.slice(0, idx + 1);
-      return [...prev, { label, path }];
+      return [...prev, { label, path, itemId }];
     });
   }, []);
 
   const navigateHome = useCallback(() => {
     setCurrentPath('');
+    setCurrentFolderId('');
     setBreadcrumbs([]);
     setSelectedItem(null);
   }, []);
@@ -221,6 +229,7 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
     setSelectedConnectorId(id);
     setSelectedMailboxId('');
     setCurrentPath('');
+    setCurrentFolderId('');
     setBreadcrumbs([]);
     setSelectedItem(null);
   }, []);
@@ -228,6 +237,8 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
   const filteredItems = (browseData?.items || []).filter((item) =>
     !search || item.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const isSharePointConnector = selectedConnector?.type === 'SHAREPOINT';
 
   const isModal = variant === 'modal';
 
@@ -488,12 +499,13 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
               {breadcrumbs.map((bc, i) => {
                 const isLastCrumb = i === breadcrumbs.length - 1;
                 return (
-                <React.Fragment key={bc.path}>
+                <React.Fragment key={`${bc.path}:${bc.itemId || 'root'}`}>
                   <ChevronRight className="w-3 h-3 shrink-0" aria-hidden />
                   <button
                     type="button"
                     onClick={() => {
                       setCurrentPath(bc.path);
+                      setCurrentFolderId(bc.itemId || '');
                       setBreadcrumbs((prev) => prev.slice(0, i + 1));
                       setSelectedItem(null);
                     }}
@@ -555,7 +567,11 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
                       type="button"
                       onClick={() => {
                         if (item.type === 'folder') {
-                          navigateTo(item.path!, item.name);
+                          if (isSharePointConnector && item.id) {
+                            navigateTo(item.path || item.name, item.name, item.id);
+                          } else {
+                            navigateTo(item.path || item.name, item.name);
+                          }
                         } else {
                           setSelectedItem(isActive ? null : item);
                         }
