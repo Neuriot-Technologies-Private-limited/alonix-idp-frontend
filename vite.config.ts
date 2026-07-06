@@ -204,7 +204,7 @@ export default defineConfig(({ mode }) => {
       ),
     },
     server: {
-      allowedHosts: ['localhost', '127.0.0.1', '.localhost'],
+      allowedHosts: ['localhost', '127.0.0.1', '.localhost', '.litng.ai', '.cloudspaces.litng.ai'],
       proxy: {
         '/api': {
           target: proxyTarget,
@@ -216,6 +216,19 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           ws: true,
           headers: { 'ngrok-skip-browser-warning': 'true' },
+        },
+        // Help Center (alonix-docs) — run with DOCUSAURUS_BASE_URL=/docs/ on port 3000
+        '/docs': {
+          target: process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000',
+          changeOrigin: true,
+        },
+        '/openapi.yaml': {
+          target: process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000',
+          changeOrigin: true,
+        },
+        '/playground': {
+          target: process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000',
+          changeOrigin: true,
         },
       },
     },

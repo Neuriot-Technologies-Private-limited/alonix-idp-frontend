@@ -17,6 +17,7 @@
     "mock": "node scripts/start-mock.js",
     "dev:mock": "concurrently -k -n mock,docs -c blue,green \"npm run mock\" \"npm run start\"",
     "dev:1glance": "DOCUSAURUS_BRAND=1glance npm run dev:mock",
+    "dev:1glance:subpath": "DOCUSAURUS_BRAND=1glance DOCUSAURUS_BASE_URL=/docs/ npm run start",
     "start:1glance": "DOCUSAURUS_BRAND=1glance npm run start",
     "build:1glance": "DOCUSAURUS_BRAND=1glance npm run build:ci",
     "prestart": "npm run sync:brand && npm run generate:mock-fixtures",
