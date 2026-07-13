@@ -32,6 +32,7 @@ import {
   type BillingPlan,
 } from '../../services/billingService';
 import { billingSubscriptionQueryKey } from '../../hooks/useOrgQuota';
+import { redirectToStripeCheckout } from '../../utils/stripeCheckoutUrl';
 
 // ── Plan styling ──────────────────────────────────────────────────────────
 const planStyles: Record<string, {
@@ -267,7 +268,7 @@ export const PricingPage: React.FC = () => {
       setUpgrading(vars.planName);
       return createBillingCheckoutSession(vars);
     },
-    onSuccess: ({ url }) => { window.location.href = url; },
+    onSuccess: ({ url }) => { redirectToStripeCheckout(url); },
     onSettled: () => setUpgrading(null),
   });
 
@@ -374,7 +375,7 @@ export const PricingPage: React.FC = () => {
         {/* FAQ / trust signals */}
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {[
-            { emoji: '🔒', title: 'Secure by default', body: 'SOC 2 aligned architecture. All data encrypted at rest and in transit.' },
+            { emoji: '🔒', title: 'Secure by default', body: 'Encrypted secrets, role-based access control, and audit logs across every plan.' },
             { emoji: '💳', title: 'No lock-in', body: 'Cancel anytime. Downgrade to Free whenever you want — no questions asked.' },
             { emoji: '🚀', title: 'Instant activation', body: 'Upgrade and your limits increase immediately. No re-login required.' },
           ].map(({ emoji, title, body }) => (

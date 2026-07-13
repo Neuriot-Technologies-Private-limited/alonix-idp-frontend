@@ -45,7 +45,7 @@
     "saveAmount": "save {{amount}}",
     "login": "Login",
     "trustTitle1": "Secure by default",
-    "trustBody1": "SOC 2 aligned architecture. All data encrypted at rest and in transit.",
+    "trustBody1": "Encrypted secrets, role-based access control, and audit logs across every plan.",
     "trustTitle2": "No lock-in",
     "trustBody2": "Cancel anytime. Downgrade to Free whenever you want — no questions asked.",
     "trustTitle3": "Instant activation",

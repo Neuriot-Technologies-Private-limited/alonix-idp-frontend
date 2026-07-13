@@ -344,7 +344,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
               {/* ── Trust bar ───────────────────────────────────────────── */}
               <div className="border-t border-border/8 px-7 py-3 flex items-center justify-center gap-6">
                 {[
-                  { icon: <Shield className="w-3 h-3" />, text: 'SOC 2 aligned' },
+                  { icon: <Shield className="w-3 h-3" />, text: 'Encrypted & audited' },
                   { icon: <RefreshCcw className="w-3 h-3" />, text: '30-day money-back' },
                   { icon: <Check className="w-3 h-3" />, text: 'Cancel anytime' },
                 ].map(({ icon, text }) => (

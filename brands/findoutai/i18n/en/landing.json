@@ -49,7 +49,7 @@
     },
     "secureWorkspace": {
       "title": "Enterprise-Grade Security",
-      "description": "SOC 2 aligned architecture with role-based access, PII redaction, and encrypted data pipelines."
+      "description": "Encrypted data pipelines, role-based access, and full audit logging keep your workspace secure."
     },
     "roleBasedFlow": {
       "title": "Role-Based Access",

@@ -156,11 +156,11 @@ jobs:
           fi
           TARGET_ALIAS="findout-v3"
           TARGET_SITE="$FIREBASE_HOSTING_SITE"
-          npx -y firebase-tools@latest target:apply hosting "$TARGET_ALIAS" "$TARGET_SITE" \
+          npx -y firebase-tools target:apply hosting "$TARGET_ALIAS" "$TARGET_SITE" \
             --project "$FIREBASE_PROJECT_ID"
           set +e
           DEPLOY_OUTPUT="$(
-            npx -y firebase-tools@latest deploy \
+            npx -y firebase-tools deploy \
               --only "hosting:${TARGET_ALIAS}" \
               --project "$FIREBASE_PROJECT_ID" \
               --non-interactive 2>&1

@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Bell,
   Camera,
   Check,
+  Database,
+  Download,
   Globe2,
   Loader2,
   Lock,
@@ -24,6 +26,8 @@ import type { UserDetails, UserProfilePreferences } from '../../types/auth';
 import { useAlert } from '../../components/alert';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../brand/useBrand';
+import { buildDataExportFilename, downloadJson, privacyApi } from '../../services/privacyApi';
+import { DeleteAccountModal } from './DeleteAccountModal';
 
 const AVATAR_MAX_BYTES = 1_400_000;
 
@@ -49,13 +53,16 @@ const LANGUAGES: { value: string; label: string }[] = [
   { value: 'de', label: 'Deutsch' },
 ];
 
-type SectionId = 'profile' | 'preferences' | 'security';
+type SectionId = 'profile' | 'preferences' | 'security' | 'privacy';
 
 const sections: { id: SectionId; label: string; icon: typeof User }[] = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'preferences', label: 'Preferences', icon: Globe2 },
   { id: 'security', label: 'Security', icon: Shield },
+  { id: 'privacy', label: 'Privacy & data', icon: Database },
 ];
+
+const SECTION_IDS: SectionId[] = ['profile', 'preferences', 'security', 'privacy'];
 
 function displayNameFromUser(u: UserDetails) {
   return u.displayName?.trim() || u.name?.trim() || u.username || u.email?.split('@')[0] || 'Member';
@@ -65,6 +72,7 @@ const ProfilePage: React.FC = () => {
   const { alert: appAlert } = useAlert();
   const { t } = useTranslation('profile');
   const brand = useBrand();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const context = useAuthStore((s) => s.context);
   const updateUser = useAuthStore((s) => s.updateUser);
@@ -75,7 +83,7 @@ const ProfilePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as SectionId | null;
   const [section, setSection] = useState<SectionId>(
-    tabParam && ['profile', 'preferences', 'security'].includes(tabParam) ? tabParam : 'profile'
+    tabParam && SECTION_IDS.includes(tabParam) ? tabParam : 'profile'
   );
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -117,7 +125,7 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     const t = searchParams.get('tab');
-    if (t && ['profile', 'preferences', 'security'].includes(t)) {
+    if (t && SECTION_IDS.includes(t as SectionId)) {
       setSection(t as SectionId);
     }
   }, [searchParams]);
@@ -246,6 +254,58 @@ const ProfilePage: React.FC = () => {
     },
     [currentPwd, newPwd, confirmPwd, context?.orgId, user?.orgId]
   );
+
+  const [exportBusy, setExportBusy] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const exportMyData = useCallback(async () => {
+    if (exportBusy) return;
+    setExportBusy(true);
+    try {
+      const payload = await privacyApi.exportMyData();
+      downloadJson(buildDataExportFilename(user?.email), payload);
+      await appAlert({
+        title: t('privacy.export.successTitle'),
+        description: t('privacy.export.successDescription'),
+        variant: 'success',
+      });
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      await appAlert({
+        title: t('privacy.export.errorTitle'),
+        description: ax.response?.data?.message || ax.message || 'Could not export your data.',
+        variant: 'danger',
+      });
+    } finally {
+      setExportBusy(false);
+    }
+  }, [appAlert, exportBusy, t, user?.email]);
+
+  const confirmDeleteMyData = useCallback(async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await privacyApi.deleteMyData();
+      setDeleteModalOpen(false);
+      await appAlert({
+        title: t('privacy.delete.successTitle'),
+        description: t('privacy.delete.successDescription'),
+        variant: 'success',
+      });
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      setDeleteError(
+        ax.response?.data?.message || ax.message || t('privacy.delete.errorTitle')
+      );
+    } finally {
+      setDeleteBusy(false);
+    }
+  }, [appAlert, deleteBusy, logout, navigate, t]);
 
   if (!user || !context) {
     return <Navigate to="/login" replace />;
@@ -702,9 +762,66 @@ const ProfilePage: React.FC = () => {
                 </div>
               </motion.section>
             )}
+
+            {section === 'privacy' && (
+              <motion.section
+                key="privacy"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="space-y-6"
+              >
+                <div className="rounded-3xl border border-border/10 bg-surface-highest/5 p-6 sm:p-8">
+                  <h2 className="font-display text-lg font-black text-foreground">
+                    {t('privacy.export.title')}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{t('privacy.export.description')}</p>
+                  <button
+                    type="button"
+                    onClick={() => void exportMyData()}
+                    disabled={exportBusy}
+                    className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-[11px] font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    {exportBusy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {exportBusy ? t('privacy.export.downloading') : t('privacy.export.button')}
+                  </button>
+                </div>
+
+                <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-6 sm:p-8">
+                  <h2 className="font-display text-lg font-black text-destructive">
+                    {t('privacy.delete.title')}
+                  </h2>
+                  <p className="mt-1 text-sm text-destructive/70">{t('privacy.delete.description')}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteModalOpen(true);
+                    }}
+                    className="mt-6 inline-flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/20 px-5 py-3 text-[12px] font-black uppercase tracking-widest text-destructive transition hover:bg-destructive/30"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t('privacy.delete.button')}
+                  </button>
+                </div>
+              </motion.section>
+            )}
           </AnimatePresence>
         </div>
       </div>
+
+      <DeleteAccountModal
+        isOpen={deleteModalOpen}
+        accountEmail={email}
+        busy={deleteBusy}
+        errorText={deleteError}
+        onClose={() => !deleteBusy && setDeleteModalOpen(false)}
+        onConfirm={confirmDeleteMyData}
+      />
     </div>
   );
 };

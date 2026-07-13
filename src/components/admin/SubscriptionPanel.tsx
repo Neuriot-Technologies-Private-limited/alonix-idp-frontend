@@ -24,6 +24,7 @@ import {
 import PricingModal from './PricingModal';
 import { useAlert } from '../alert';
 import { useOrgQuota } from '../../hooks/useOrgQuota';
+import { redirectToStripeCheckout } from '../../utils/stripeCheckoutUrl';
 
 
 function limitLabel(n: number) { return n === -1 ? '∞' : String(n); }
@@ -204,7 +205,7 @@ const SubscriptionPanel: React.FC = () => {
       return createBillingCheckoutSession({ planName, billingCycle });
     },
     onSuccess: ({ url }) => {
-      window.location.href = url;
+      redirectToStripeCheckout(url);
     },
     onError: async (err: unknown) => {
       const ax = err as { response?: { data?: { error?: string } }; message?: string };

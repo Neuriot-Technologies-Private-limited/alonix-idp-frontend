@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "vite --mode 1glance",
     "dev:1glance": "vite --mode 1glance",
+    "dev:with-docs": "bash scripts/build-docs-for-dev.sh && VITE_DOCS_MODE=static vite --mode 1glance",
+    "build:docs:dev": "bash scripts/build-docs-for-dev.sh",
     "dev:1glance:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise vite --mode 1glance",
     "dev:findoutai": "vite --mode findoutai",
     "dev:findoutai:enterprise": "VITE_DEPLOYMENT_PROFILE=enterprise vite --mode findoutai",
@@ -26,7 +28,7 @@
     "qa:deployment": "vitest run src/test/deploymentProfile.test.ts src/test/enterpriseBrandConfig.test.ts"
   },
   "dependencies": {
-    "@sentry/react": "^9.47.1",
+    "@sentry/react": "^10.0.0",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.95.2",
     "axios": "^1.13.6",
@@ -63,9 +65,11 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "firebase-tools": "^13.31.4",
     "globals": "^17.4.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.8",
+    "sirv": "^3.0.2",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",

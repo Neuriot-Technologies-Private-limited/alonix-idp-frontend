@@ -33,7 +33,7 @@
     "governance": "Governance",
     "company": "Company",
     "intelligence": "Intelligence",
-    "piiRedaction": "PII Redaction",
+    "roleBasedAccess": "Role-Based Access",
     "roleBasedFlow": "Role-Based Flow",
     "security": "Security",
     "compliance": "Compliance",

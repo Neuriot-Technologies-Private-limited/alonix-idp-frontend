@@ -24,9 +24,18 @@ RUN apk add --no-cache wget
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Transfer ownership to existing nginx user (nginx:1.27-alpine has nginx:nginx user/group)
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    touch /var/run/nginx.pid && \
+    chown nginx:nginx /var/run/nginx.pid
+
 EXPOSE 5173
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:5173/ || exit 1
+
+USER nginx
 
 CMD ["nginx", "-g", "daemon off;"]

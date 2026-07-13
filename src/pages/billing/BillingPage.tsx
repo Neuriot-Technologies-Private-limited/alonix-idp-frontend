@@ -22,6 +22,7 @@ import {
   type BillingSubscriptionResponse,
 } from '../../services/billingService';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../hooks/useOrgQuota';
+import { redirectToStripeCheckout } from '../../utils/stripeCheckoutUrl';
 
 function usagePercent(used: number, limit: number): number {
   if (limit === -1) return 0;
@@ -155,7 +156,7 @@ export const BillingPage: React.FC = () => {
     mutationFn: (vars: { planName: string; billingCycle?: BillingCycle }) =>
       createBillingCheckoutSession(vars),
     onSuccess: ({ url }) => {
-      window.location.href = url;
+      redirectToStripeCheckout(url);
     },
   });
 

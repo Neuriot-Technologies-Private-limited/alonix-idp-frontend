@@ -1,9 +1,11 @@
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin, type ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
+import sirv from 'sirv';
 
 const ROOT = __dirname;
+const DOCS_BUILD_DIR = path.resolve(ROOT, 'alonix-docs', 'build');
 const PUBLIC_BRAND_DIR = path.resolve(ROOT, 'public', 'brand');
 const THEME_DEST = path.resolve(ROOT, 'src', 'brand', 'theme.css');
 const BASELINE_ASSETS = path.resolve(ROOT, 'brands', '1glance', 'assets');
@@ -165,6 +167,55 @@ export function loadProfileEnv(profile: string, root: string): Record<string, st
   return parseEnvFile(path.join(root, 'profiles', `${normalized}.env`));
 }
 
+/** Serve pre-built Docusaurus at /docs/ (reliable on cloud dev; avoids webpack proxy ChunkLoadError). */
+function docsStaticPlugin(docsBuildDir: string): Plugin {
+  return {
+    name: 'alonix-docs-static',
+    configureServer(server) {
+      const indexPath = path.join(docsBuildDir, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        server.config.logger.warn(
+          `[alonix-docs] static mode: no build at ${docsBuildDir}\n` +
+            '  Run: DOCUSAURUS_SITE_URL=<your-app-url> npm run build:docs:dev'
+        );
+        return;
+      }
+
+      const serve = sirv(docsBuildDir, { dev: true, etag: true, maxAge: 0, single: false });
+
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ?? '';
+        if (!url.startsWith('/docs')) return next();
+
+        if (url === '/docs') {
+          res.statusCode = 301;
+          res.setHeader('Location', '/docs/');
+          res.end();
+          return;
+        }
+
+        const originalUrl = req.url;
+        req.url = url.slice('/docs'.length) || '/';
+        serve(req, res, () => {
+          req.url = originalUrl;
+          const subpath = url.slice('/docs'.length) || '/';
+          if (subpath.includes('.')) return next();
+          req.url = '/index.html';
+          serve(req, res, next);
+        });
+      });
+
+      server.config.logger.info(`[alonix-docs] static build at /docs/ ← ${docsBuildDir}`);
+    },
+  };
+}
+
+function resolveDocsMode(): 'static' | 'proxy' {
+  const explicit = process.env.VITE_DOCS_MODE?.trim();
+  if (explicit === 'static' || explicit === 'proxy') return explicit;
+  return fs.existsSync(path.join(DOCS_BUILD_DIR, 'index.html')) ? 'static' : 'proxy';
+}
+
 // https://vite.dev/config/
 /// <reference types="vitest/config" />
 export default defineConfig(({ mode }) => {
@@ -193,9 +244,42 @@ export default defineConfig(({ mode }) => {
   const mergedEnv: Record<string, string> = { ...env, ...buildEnvResolved };
   const proxyTarget =
     mergedEnv.VITE_DEV_PROXY_TARGET || mergedEnv.VITE_API_BASE_URL || 'http://localhost:5005';
+  const docsMode = resolveDocsMode();
+  const docsDevUrl = process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000';
+
+  const serverProxy: Record<string, ProxyOptions> = {
+    '/api': {
+      target: proxyTarget,
+      changeOrigin: true,
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+    },
+    '/socket.io': {
+      target: proxyTarget,
+      changeOrigin: true,
+      ws: true,
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+    },
+  };
+  if (docsMode === 'proxy') {
+    serverProxy['/docs'] = {
+      target: docsDevUrl,
+      changeOrigin: true,
+      ws: true,
+      timeout: 120_000,
+      proxyTimeout: 120_000,
+    };
+    serverProxy['/openapi.yaml'] = { target: docsDevUrl, changeOrigin: true };
+    serverProxy['/playground'] = { target: docsDevUrl, changeOrigin: true };
+  }
+
+  const plugins = [
+    react(),
+    brandPlugin(mode, brandEnv),
+    ...(docsMode === 'static' ? [docsStaticPlugin(DOCS_BUILD_DIR)] : []),
+  ].flat();
 
   return {
-    plugins: [react(), brandPlugin(mode, brandEnv)],
+    plugins,
     define: {
       ...Object.fromEntries(
         Object.entries(buildEnvResolved)
@@ -205,32 +289,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       allowedHosts: ['localhost', '127.0.0.1', '.localhost', '.litng.ai', '.cloudspaces.litng.ai'],
-      proxy: {
-        '/api': {
-          target: proxyTarget,
-          changeOrigin: true,
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-        },
-        '/socket.io': {
-          target: proxyTarget,
-          changeOrigin: true,
-          ws: true,
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-        },
-        // Help Center (alonix-docs) — run with DOCUSAURUS_BASE_URL=/docs/ on port 3000
-        '/docs': {
-          target: process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000',
-          changeOrigin: true,
-        },
-        '/openapi.yaml': {
-          target: process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000',
-          changeOrigin: true,
-        },
-        '/playground': {
-          target: process.env.VITE_DOCS_DEV_URL || 'http://localhost:3000',
-          changeOrigin: true,
-        },
-      },
+      proxy: serverProxy,
     },
     test: {
       environment: 'jsdom',

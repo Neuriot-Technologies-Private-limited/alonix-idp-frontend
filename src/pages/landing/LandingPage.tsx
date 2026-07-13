@@ -437,7 +437,7 @@ const LandingPage: React.FC = () => {
                 {
                   title: t('footer.platform', { ns: 'common', defaultValue: 'Platform' }), links: [
                     { label: t('footer.intelligence', { ns: 'common', defaultValue: 'Intelligence' }), href: '#intelligence' },
-                    { label: t('footer.piiRedaction', { ns: 'common', defaultValue: 'PII Redaction' }), href: '#features' },
+                    { label: t('footer.roleBasedAccess', { ns: 'common', defaultValue: 'Role-Based Access' }), href: '#features' },
                     { label: t('footer.roleBasedFlow', { ns: 'common', defaultValue: 'Role-Based Flow' }), href: '#features' }
                   ]
                 },

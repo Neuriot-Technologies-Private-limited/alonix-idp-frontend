@@ -102,7 +102,7 @@ const SignupPage: React.FC = () => {
             <ul className="space-y-6">
               {[
                 'Neural Document Analysis',
-                'Advanced PII Redaction',
+                'Encrypted Credential Storage',
                 'Role-Based Workspace Control',
                 'Isolated Private Data Nodes'
               ].map((item, i) => (
@@ -128,8 +128,8 @@ const SignupPage: React.FC = () => {
                 <ShieldCheck className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-1">Compliance Ready</p>
-                <p className="text-[11px] text-muted-foreground/70 font-bold leading-tight">SOC2 • GDPR • HIPAA <br />Compliant Infrastructure</p>
+                <p className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-1">Enterprise Security</p>
+                <p className="text-[11px] text-muted-foreground/70 font-bold leading-tight">Encrypted Credentials • RBAC <br />Audit Logs • Data Export &amp; Erasure</p>
               </div>
             </div>
           </div>

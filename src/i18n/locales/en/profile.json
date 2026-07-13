@@ -2,7 +2,8 @@
   "sections": {
     "profile": "Profile",
     "preferences": "Preferences",
-    "security": "Security"
+    "security": "Security",
+    "privacy": "Privacy & data"
   },
   "back": "Back",
   "removePhoto": "Remove photo",
@@ -76,5 +77,33 @@
     "groupAdmin": "Group admin",
     "searchUser": "Search user",
     "member": "Member"
+  },
+  "privacy": {
+    "title": "Privacy & data",
+    "subtitle": "Export a copy of your data, or permanently erase your personal data from {{brandName}}.",
+    "export": {
+      "title": "Export my data",
+      "description": "Download a JSON file containing your profile details, chat sessions and messages, and audit log entries where you are the actor.",
+      "button": "Download my data",
+      "downloading": "Preparing export…",
+      "successTitle": "Export downloaded",
+      "successDescription": "Your data export has been saved to your device.",
+      "errorTitle": "Export failed"
+    },
+    "delete": {
+      "title": "Delete my account & data",
+      "description": "Permanently erase your chat history and personal profile details, and anonymize your audit trail. Your account is deactivated and you're signed out immediately. This cannot be undone.",
+      "button": "Delete my account & data",
+      "modalTitle": "Confirm permanent deletion",
+      "modalWarning": "This permanently deletes your chat sessions and messages, clears your profile details and avatar, anonymizes your audit history, and deactivates your account. You will be signed out immediately and this cannot be undone.",
+      "confirmLabel": "Type {{email}} to confirm",
+      "confirmPlaceholder": "you@company.com",
+      "cancelButton": "Cancel",
+      "confirmButton": "Permanently delete",
+      "deleting": "Deleting…",
+      "errorTitle": "Deletion failed",
+      "successTitle": "Data deleted",
+      "successDescription": "Your personal data has been erased and you have been signed out."
+    }
   }
 }
