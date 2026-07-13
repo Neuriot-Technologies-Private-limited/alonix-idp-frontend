@@ -299,7 +299,7 @@ flowchart LR
 
 | Job | What it does |
 |-----|----------------|
-| **security** | Gitleaks secret scan, `npm run test:run`, `npm audit --audit-level=high` |
+| **security** | Gitleaks secret scan, `npm run test:run`, `npm audit --omit=dev --audit-level=high` |
 | **deploy** | Build Help Center → build React app → merge `alonix-docs/build` into `dist/docs/` → Firebase deploy |
 | **deploy-docs** | Smoke test live `/docs/`, `/docs/introduction/product-overview/`, `/docs/api-playground/`, `/docs/openapi.yaml` |
 | **notify-slack** | Slack webhook on success/failure (skipped if `SLACK_WEBHOOK_URL` unset) |

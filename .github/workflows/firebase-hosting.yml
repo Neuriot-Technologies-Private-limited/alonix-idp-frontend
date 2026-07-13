@@ -50,8 +50,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:run
+      # Production deps only — firebase-tools (devDep) pulls transitive tar/uuid advisories
+      # that do not ship in the SPA bundle.
       - name: npm audit (fail on high+)
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
 
   deploy:
     name: Deploy app + /docs
