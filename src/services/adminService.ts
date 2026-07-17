@@ -2,6 +2,7 @@ import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
 import { getOrgPipelineDocuments } from './chatApi';
 import { normalizeDocumentTypeLabel } from '../utils/documentFileType';
+import type { PiiHandlingPolicy } from '../constants/piiHandlingPolicy';
 
 function requireOrgId(): string {
   const id = useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId;
@@ -114,6 +115,7 @@ export interface GroupHealth {
   statusLabel: string;
   /** Present on dashboard-state: caller’s role in this workspace. */
   membershipRole?: 'GROUP_ADMIN' | 'SEARCH_USER' | null;
+  piiHandlingPolicy?: PiiHandlingPolicy | null;
 }
 
 export interface GroupMember {
@@ -249,7 +251,7 @@ export interface UpdateOrgSharePointSettingsInput {
 }
 
 export type CreateGroupResult =
-  | { ok: true; group: { id: string; name: string; users: number; docs: number; status: string; statusLabel: string } }
+  | { ok: true; group: { id: string; name: string; users: number; docs: number; status: string; statusLabel: string; piiHandlingPolicy?: PiiHandlingPolicy | null } }
   | { ok: false; error: string };
 
 const PIPELINE_STAGE_IDLE = { status: 'idle', startTime: null, endTime: null };
@@ -357,6 +359,7 @@ export const adminService = {
       status: 'Healthy',
       statusLabel: 'Healthy',
       membershipRole: g.membershipRole ?? undefined,
+      piiHandlingPolicy: g.piiHandlingPolicy ?? null,
     }));
   },
 
@@ -552,6 +555,7 @@ export const adminService = {
       enabledDocumentSensitivityLevels: Array.isArray(g.enabledDocumentSensitivityLevels)
         ? g.enabledDocumentSensitivityLevels
         : null,
+      piiHandlingPolicy: g.piiHandlingPolicy ?? null,
       members: mergedMembers,
       documents,
       recentActivity: (auditResult.logs || []).map((log) => ({
@@ -567,13 +571,15 @@ export const adminService = {
     };
   },
 
-  createGroup: async (name: string): Promise<CreateGroupResult> => {
+  createGroup: async (name: string, piiHandlingPolicy: PiiHandlingPolicy): Promise<CreateGroupResult> => {
     const orgId = requireOrgId();
     const trimmed = name.trim();
     if (!trimmed) return { ok: false, error: 'Enter a group name.' };
+    if (!piiHandlingPolicy) return { ok: false, error: 'Select a PII handling policy.' };
     try {
       const { data } = await apiClient.post<{ group: any }>(`/admin/orgs/${encodeURIComponent(orgId)}/groups`, {
         groupName: trimmed,
+        piiHandlingPolicy,
       });
       const g = data.group;
       const gid = g._id?.toString?.() || '';
@@ -586,6 +592,7 @@ export const adminService = {
           docs: 0,
           status: 'Healthy',
           statusLabel: 'Healthy',
+          piiHandlingPolicy: g.piiHandlingPolicy ?? piiHandlingPolicy,
         },
       };
     } catch (e: unknown) {

@@ -86,6 +86,7 @@ export const DocumentsPage: React.FC = () => {
         onConnectorTypeFilterChange={list.setConnectorFilterType}
         onShowConnectorDocuments={() => list.openConnectorDocuments(null)}
         connectorViewAllWorkspaces={list.connectorViewAllWorkspaces}
+        activeGroupName={list.activeGroupName}
       />
 
       <DocumentsVaultSection

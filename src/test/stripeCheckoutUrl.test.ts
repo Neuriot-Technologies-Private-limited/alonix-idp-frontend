@@ -40,12 +40,13 @@ describe('redirectToStripeCheckout', () => {
   beforeEach(() => {
     // @ts-expect-error - jsdom allows reassigning window.location for tests
     delete window.location;
-    // @ts-expect-error - minimal stub sufficient for href assignment checks
-    window.location = { href: '' };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).location = { href: '' };
   });
 
   afterEach(() => {
-    window.location = originalLocation;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).location = originalLocation;
   });
 
   it('navigates when the URL is an allowlisted Stripe host', () => {

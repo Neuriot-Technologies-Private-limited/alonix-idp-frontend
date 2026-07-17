@@ -48,6 +48,7 @@ type DocumentsPageHeaderProps = {
   onConnectorTypeFilterChange: (connectorType: string | null) => void;
   onShowConnectorDocuments: () => void;
   connectorViewAllWorkspaces: boolean;
+  activeGroupName?: string | null;
 };
 
 export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
@@ -71,6 +72,7 @@ export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
   onConnectorTypeFilterChange,
   onShowConnectorDocuments,
   connectorViewAllWorkspaces,
+  activeGroupName,
 }) => (
   <>
     <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -152,6 +154,10 @@ export const DocumentsPageHeader: React.FC<DocumentsPageHeaderProps> = ({
     {activeTab === 'Connectors' && connectorViewAllWorkspaces ? (
       <p className="text-[11px] text-muted-foreground font-medium px-1">
         Showing connector-ingested documents across all workspaces.
+      </p>
+    ) : activeTab === 'Connectors' && activeGroupName ? (
+      <p className="text-[11px] text-muted-foreground font-medium px-1">
+        Showing connector-ingested documents for workspace: {activeGroupName}.
       </p>
     ) : null}
 

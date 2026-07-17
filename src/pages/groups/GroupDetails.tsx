@@ -32,6 +32,11 @@ import {
   DOCUMENT_SENSITIVITY_LABELS,
   sensitivityLevelIndex,
 } from '../../constants/documentSensitivity';
+import {
+  PII_POLICY_LABELS,
+  PII_POLICY_DESCRIPTIONS,
+  type PiiHandlingPolicy,
+} from '../../constants/piiHandlingPolicy';
 import { DocumentSensitivityBadge } from '../documents/DocumentSensitivityBadge';
 import { GroupEmailMailboxPanel } from '../../components/groups/GroupEmailMailboxPanel';
 
@@ -752,6 +757,29 @@ export const GroupDetails: React.FC = () => {
                         </button>
                       </div>
                     ) : null}
+
+                    {/* PII Handling Policy — read-only, immutable after creation */}
+                    {group.piiHandlingPolicy && (
+                      <div className="space-y-2 pt-2 border-t border-border/15 border-dashed">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-3.5 w-3.5 text-primary/60" />
+                          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
+                            PII handling policy
+                          </label>
+                        </div>
+                        <div className="rounded-xl border border-border/25 bg-background/40 px-4 py-3 space-y-1">
+                          <p className="text-[12px] font-bold text-foreground">
+                            {PII_POLICY_LABELS[group.piiHandlingPolicy as PiiHandlingPolicy] || group.piiHandlingPolicy}
+                          </p>
+                          <p className="text-[10px] leading-relaxed text-muted-foreground/50">
+                            {PII_POLICY_DESCRIPTIONS[group.piiHandlingPolicy as PiiHandlingPolicy] || ''}
+                          </p>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground/35 italic">
+                          Set at creation — this policy cannot be modified.
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="pt-6 border-t border-border/20 dark:border-border/35 flex justify-end gap-2">
                     <button type="button" className="px-4 py-2 rounded-lg hover:bg-muted text-[10px] font-bold transition-all">Reset</button>

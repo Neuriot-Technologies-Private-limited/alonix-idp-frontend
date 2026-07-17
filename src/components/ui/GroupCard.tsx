@@ -4,10 +4,12 @@ import {
   FileText,
   ArrowUpRight,
   Lock,
-  Globe
+  Globe,
+  Shield,
 } from 'lucide-react';
 import { type GroupHealth } from '../../services/adminService';
 import { cn } from '../../utils/cn';
+import { PII_POLICY_SHORT_LABELS, type PiiHandlingPolicy } from '../../constants/piiHandlingPolicy';
 
 interface GroupCardProps {
   group: GroupHealth;
@@ -36,6 +38,23 @@ export const HealthBadge: React.FC<{ status: string, label: string, className?: 
   );
 };
 
+export const PiiPolicyBadge: React.FC<{ policy: PiiHandlingPolicy; className?: string }> = ({ policy, className }) => {
+  const label = PII_POLICY_SHORT_LABELS[policy];
+  if (!label) return null;
+  return (
+    <div
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[8px] font-bold uppercase tracking-[0.1em] backdrop-blur-sm shrink-0',
+        'text-violet bg-violet/10 border-violet/20',
+        className
+      )}
+    >
+      <Shield className="w-2.5 h-2.5" />
+      {label}
+    </div>
+  );
+};
+
 export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onClick, className, primaryActionLabel }) => {
   if (view === 'list') {
     return (
@@ -57,6 +76,9 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
               {group.name}
             </h3>
             <HealthBadge status={group.status} label={group.statusLabel} className="scale-75 origin-left" />
+            {group.piiHandlingPolicy && (
+              <PiiPolicyBadge policy={group.piiHandlingPolicy} className="scale-75 origin-left" />
+            )}
           </div>
           <p className="text-[9px] text-muted-foreground/40 uppercase tracking-widest font-bold">
             {group.membershipRole
@@ -114,6 +136,9 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, view = 'grid', onCl
         <p className="text-[9px] text-muted-foreground/30 uppercase tracking-widest font-bold">
           ID: {group.id.toString().slice(0, 8)}
         </p>
+        {group.piiHandlingPolicy && (
+          <PiiPolicyBadge policy={group.piiHandlingPolicy} />
+        )}
       </div>
 
       <div className="mt-auto pt-4 border-t border-border/25 dark:border-border/40 relative grid grid-cols-2 gap-2">

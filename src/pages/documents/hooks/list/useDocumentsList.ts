@@ -94,8 +94,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   const documentsInScope = React.useMemo(() => {
     if (!documents) return [];
 
-    const skipWorkspaceScope =
-      connectorViewAllWorkspaces || activeTab === 'Connectors';
+    const skipWorkspaceScope = connectorViewAllWorkspaces;
 
     const matchesActiveWorkspace = (d: DocumentRow) => {
       if (skipWorkspaceScope) return true;
@@ -126,13 +125,11 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   }, [search, activeTab, activeGroupIdForScope, connectorFilterId, connectorFilterType]);
 
   React.useEffect(() => {
-    if (activeTab === 'Connectors') {
-      setConnectorViewAllWorkspaces(true);
-      return;
+    if (activeTab !== 'Connectors') {
+      setConnectorFilterId(null);
+      setConnectorFilterType(null);
+      setConnectorViewAllWorkspaces(false);
     }
-    setConnectorFilterId(null);
-    setConnectorFilterType(null);
-    setConnectorViewAllWorkspaces(false);
   }, [activeTab]);
 
   React.useEffect(() => {
@@ -306,7 +303,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
           p.classification.status === 'error'
         );
       }).length,
-      fromConnectors: orgWideDocumentsInScope.filter((d: DocumentRow) => isConnectorSourcedDoc(d)).length,
+      fromConnectors: documentsInScope.filter((d: DocumentRow) => isConnectorSourcedDoc(d)).length,
     };
   }, [documentsInScope, orgWideDocumentsInScope, documents?.length]);
 
@@ -343,7 +340,6 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
   );
 
   const handleSetActiveTab = React.useCallback((tab: DocumentPipelineTab) => {
-    if (tab === 'Connectors') setConnectorViewAllWorkspaces(true);
     setActiveTab(tab);
   }, []);
 
@@ -396,5 +392,6 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     context,
     groups,
     adminGroupIds,
+    activeGroupName: activeGroup?.groupName ?? null,
   };
 }

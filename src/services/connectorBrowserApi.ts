@@ -391,7 +391,7 @@ export async function addMailbox(connectorId: string, payload: AddMailboxPayload
 
 export async function ingestFile(
   connectorId: string,
-  payload: { path?: string; messageId?: string; itemId?: string }
+  payload: { path?: string; messageId?: string; itemId?: string; groupId?: string }
 ): Promise<IngestResult> {
   const orgId = resolveOrgId();
   const { data } = await apiClient.post<IngestResult>(

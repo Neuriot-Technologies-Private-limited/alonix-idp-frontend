@@ -30,7 +30,10 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "What will this workspace be used for?",
       "cancelButton": "Cancel",
-      "createButton": "Create Workspace"
+      "createButton": "Create Workspace",
+      "piiPolicyLabel": "PII handling policy",
+      "piiPolicyImmutableWarning": "This policy cannot be changed after creation.",
+      "piiPolicyRequired": "Select a PII handling policy."
     },
     "invite": {
       "title": "Invite Users",
@@ -41,5 +44,24 @@
       "cancelButton": "Cancel",
       "inviteButton": "Send Invites"
     }
+  },
+  "piiPolicy": {
+    "sectionTitle": "PII handling policy",
+    "immutableNote": "Set at creation — this policy cannot be modified.",
+    "RAW_PII_ALLOWED": {
+      "label": "Raw PII allowed",
+      "description": "PII is stored as-is in documents with no masking or encryption."
+    },
+    "MASK_PII_NO_STORAGE": {
+      "label": "Mask PII — no storage",
+      "description": "PII is detected and stripped before indexing. No PII is retained."
+    },
+    "MASK_PII_STORE_ENCRYPTED": {
+      "label": "Mask PII — encrypted vault",
+      "description": "PII is masked with an encrypted vault that enables query-time rehydration."
+    },
+    "badgeRawPii": "Raw PII",
+    "badgePiiMasked": "PII masked",
+    "badgePiiEncrypted": "PII encrypted"
   }
 }

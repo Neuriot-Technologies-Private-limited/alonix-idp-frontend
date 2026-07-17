@@ -193,7 +193,14 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
       if (selectedConnector?.type === 'EMAIL') {
         return ingestFile(selectedConnectorId, { messageId: item.id });
       }
-      return ingestFile(selectedConnectorId, { path: item.path, itemId: item.id });
+      if (!activeGroupId) {
+        return Promise.reject(new Error('Select a workspace before ingesting from this connector.'));
+      }
+      return ingestFile(selectedConnectorId, {
+        path: item.path,
+        itemId: item.id,
+        groupId: activeGroupId,
+      });
     },
     onSuccess: (_, item) => {
       setIngestError('');
@@ -675,26 +682,36 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
                     Queued for ingestion!
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    id={`ingest-file-${selectedItem.id ?? selectedItem.path ?? selectedItem.name}`}
-                    title={ingestBlocked ? capMessage('documentsMonth') : undefined}
-                    onClick={() => {
-                      if (ingestBlocked) {
-                        setIngestError(capMessage('documentsMonth'));
-                        return;
-                      }
-                      setIngestError('');
-                      ingestMutation.mutate(selectedItem);
-                    }}
-                    disabled={ingestMutation.isPending || ingestBlocked}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {ingestMutation.isPending
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Queuing…</>
-                      : <><Zap className="w-4 h-4" /> Ingest This File</>
-                    }
-                  </button>
+                  <>
+                    {!activeGroupId ? (
+                      <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-3 py-2.5 text-center">
+                        <p className="text-[11px] font-semibold text-amber-400/90">
+                          Select a workspace from the top bar to ingest into that group.
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        id={`ingest-file-${selectedItem.id ?? selectedItem.path ?? selectedItem.name}`}
+                        title={ingestBlocked ? capMessage('documentsMonth') : undefined}
+                        onClick={() => {
+                          if (ingestBlocked) {
+                            setIngestError(capMessage('documentsMonth'));
+                            return;
+                          }
+                          setIngestError('');
+                          ingestMutation.mutate(selectedItem);
+                        }}
+                        disabled={ingestMutation.isPending || ingestBlocked}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
+                      >
+                        {ingestMutation.isPending
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Queuing…</>
+                          : <><Zap className="w-4 h-4" /> Ingest This File</>
+                        }
+                      </button>
+                    )}
+                  </>
                 )}
                 {(ingestError || ingestMutation.isError) && (
                   <p className="text-xs text-destructive text-center">
@@ -702,7 +719,9 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
                   </p>
                 )}
                 <p className="text-[10px] text-muted-foreground text-center">
-                  File will be processed through the AI ingestion pipeline
+                  {activeGroupId
+                    ? `File will be ingested into ${activeGroup?.groupName || 'the selected workspace'}`
+                    : 'File will be processed through the AI ingestion pipeline'}
                 </p>
               </div>
             </div>
