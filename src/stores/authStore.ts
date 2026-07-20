@@ -33,12 +33,6 @@ function mergeAuthContext(
   incoming: AuthContextPayload,
   current: AuthContextPayload | null
 ): AuthContextPayload {
-  const hasIncomingGroups = Array.isArray(incoming.groups) && incoming.groups.length > 0;
-  const hasCurrentGroups =
-    Array.isArray(current?.groups) && (current?.groups?.length ?? 0) > 0;
-  if (!hasIncomingGroups && hasCurrentGroups && current) {
-    return current;
-  }
   const selectedId = current?.activeGroupId;
   if (selectedId && incoming.groups?.some((g) => g.groupId === selectedId)) {
     return applyActiveGroupToContext(incoming, selectedId);

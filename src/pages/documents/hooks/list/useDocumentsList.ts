@@ -117,7 +117,6 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     activeGroupIdForScope,
     activeGroupNameNorm,
     connectorViewAllWorkspaces,
-    activeTab,
   ]);
 
   React.useEffect(() => {
@@ -165,7 +164,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
       list = list.filter((d: DocumentRow) => {
         const { label } = resolveCustodianDisplay(d.uploader, custodianNameByEmail);
         return (
-          d.fileName.toLowerCase().includes(q) ||
+          d.fileName?.toLowerCase().includes(q) ||
           String(d.uploader ?? '').toLowerCase().includes(q) ||
           label.toLowerCase().includes(q)
         );
@@ -305,7 +304,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
       }).length,
       fromConnectors: documentsInScope.filter((d: DocumentRow) => isConnectorSourcedDoc(d)).length,
     };
-  }, [documentsInScope, orgWideDocumentsInScope, documents?.length]);
+  }, [documentsInScope, documents?.length]);
 
   const headerSubtitle = isCompanyAdmin
     ? 'Organization-wide vault: ingest, run pipeline stages, and review AI outputs across all workspaces.'

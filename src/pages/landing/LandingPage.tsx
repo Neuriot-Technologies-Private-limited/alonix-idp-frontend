@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import BrandHomeLink from '../../components/branding/BrandHomeLink';
 import { BillingCycleToggle } from '../../components/admin/BillingCycleToggle';
-import PublicPricingGrid, { discountPercentFromPlans } from '../../components/billing/PublicPricingGrid';
+import PublicPricingGrid from '../../components/billing/PublicPricingGrid';
 import { ProductScreenshotFrame } from '../../components/landing/ProductScreenshotFrame';
 import { ProductShowcaseSection } from '../../components/landing/ProductShowcaseSection';
 import { NoLinePhilosophyVisual } from '../../components/landing/NoLinePhilosophyVisual';
@@ -21,7 +21,7 @@ import {
   PRODUCT_SCREEN_ASPECT,
   PRODUCT_SCREEN_POSITION,
 } from '../../components/landing/productScreens';
-import { fetchBillingPlans } from '../../services/billingService';
+import { fetchBillingPlans, discountPercentFromPlans } from '../../services/billingService';
 import type { BillingCycle } from '../../utils/billingUtils';
 import { useBrand } from '../../brand/useBrand';
 import { isEnterpriseBuild } from '../../brand/deploymentProfile';

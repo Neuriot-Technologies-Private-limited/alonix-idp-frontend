@@ -5,11 +5,13 @@ import { Modal } from '../../components/ui/Modal';
 import { ThemedSelect } from '../../components/ui/ThemedSelect';
 import { cn } from '../../utils/cn';
 
+import type { AuthContextPayload } from '../../types/auth';
+
 export interface DocumentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   orgWideUpload: boolean;
-  groups: any[];
+  groups: NonNullable<AuthContextPayload['groups']>;
   targetGroupId: string;
   setTargetGroupId: (id: string) => void;
   selectedFiles: File[];

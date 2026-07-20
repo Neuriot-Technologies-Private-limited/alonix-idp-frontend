@@ -3,6 +3,8 @@ import { useAuthStore } from '../stores/authStore';
 import { getOrgPipelineDocuments } from './chatApi';
 import { normalizeDocumentTypeLabel } from '../utils/documentFileType';
 import type { PiiHandlingPolicy } from '../constants/piiHandlingPolicy';
+import type { DocumentPipelineStages } from '../pages/documents/types/documentRow';
+import type { DocumentRow } from '../pages/documents/types/documentRow';
 
 function requireOrgId(): string {
   const id = useAuthStore.getState().context?.orgId ?? useAuthStore.getState().user?.orgId;
@@ -256,8 +258,32 @@ export type CreateGroupResult =
 
 const PIPELINE_STAGE_IDLE = { status: 'idle', startTime: null, endTime: null };
 
+export interface MergedPipelineStage {
+  status: string;
+  startTime: string | null;
+  endTime: string | null;
+  errorMessage?: string | null;
+}
+
+function normalizePipelineStage(raw: unknown): MergedPipelineStage {
+  const s = raw as Record<string, unknown> | null | undefined;
+  if (!s) return { ...PIPELINE_STAGE_IDLE };
+  return {
+    status: typeof s.status === 'string' ? s.status : 'idle',
+    startTime: s.startTime != null ? String(s.startTime) : null,
+    endTime: s.endTime != null ? String(s.endTime) : null,
+    ...(s.errorMessage != null ? { errorMessage: String(s.errorMessage) } : {}),
+  };
+}
+
+export interface MergedPipeline {
+  ingestion: MergedPipelineStage;
+  extraction: MergedPipelineStage;
+  classification: MergedPipelineStage;
+}
+
 /** Safe pipeline for UI when API omits stages (avoids crash on `p.ingestion.status`). */
-export function mergePipeline(raw: unknown): any {
+export function mergePipeline(raw: unknown): MergedPipeline {
   const p = raw as Record<string, unknown> | null | undefined;
   if (!p) {
     return {
@@ -267,9 +293,9 @@ export function mergePipeline(raw: unknown): any {
     };
   }
   return {
-    ingestion: (p.ingestion as object) ?? { ...PIPELINE_STAGE_IDLE },
-    extraction: (p.extraction as object) ?? { ...PIPELINE_STAGE_IDLE },
-    classification: (p.classification as object) ?? { ...PIPELINE_STAGE_IDLE },
+    ingestion: normalizePipelineStage(p.ingestion),
+    extraction: normalizePipelineStage(p.extraction),
+    classification: normalizePipelineStage(p.classification),
   };
 }
 
@@ -283,24 +309,25 @@ function coalesceUploadIso(d: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
-export function normalizePipelineDocument(d: Record<string, unknown>): Record<string, unknown> {
+export function normalizePipelineDocument(d: Record<string, unknown>): DocumentRow {
   const fileName = String(d.fileName ?? d.title ?? '').trim();
   const uploaderRaw = d.uploader ?? d.uploadedBy;
   const uploader =
     uploaderRaw != null && String(uploaderRaw).trim() !== '' ? String(uploaderRaw) : 'Unknown';
-  const uploadedBy =
+  const uploadedBy: string | undefined =
     d.uploadedBy != null && String(d.uploadedBy).trim() !== ''
       ? String(d.uploadedBy)
       : String(uploader).trim().toUpperCase() === 'SYSTEM_CONNECTOR'
         ? 'SYSTEM_CONNECTOR'
-        : d.uploadedBy;
+        : undefined;
   const sourceType =
     d.sourceType != null && String(d.sourceType).trim() !== ''
       ? String(d.sourceType).toUpperCase()
       : uploadedBy === 'SYSTEM_CONNECTOR'
         ? 'EMAIL'
         : 'UPLOAD';
-  const connectorId = d.connectorId != null && String(d.connectorId).trim() !== '' ? String(d.connectorId) : null;
+  const connectorId =
+    d.connectorId != null && String(d.connectorId).trim() !== '' ? String(d.connectorId) : undefined;
   const ingestSource =
     d.ingestSource === 'connector' ||
     connectorId ||
@@ -315,11 +342,13 @@ export function normalizePipelineDocument(d: Record<string, unknown>): Record<st
       ? String(rawLevel).trim().toUpperCase().replace(/-/g, '_')
       : 'INTERNAL_USE';
   const type = normalizeDocumentTypeLabel(d.type != null ? String(d.type) : null, fileName);
+  const id = String(d.id ?? d._id ?? '');
   return {
     ...d,
+    id,
     ...(fileName ? { fileName } : {}),
     type,
-    pipeline: mergePipeline(d.pipeline),
+    pipeline: mergePipeline(d.pipeline) as DocumentPipelineStages,
     uploader,
     uploadedBy,
     sourceType,
@@ -348,19 +377,36 @@ export const adminService = {
 
   getGroupHealth: async (): Promise<GroupHealth[]> => {
     const orgId = requireOrgId();
-    const { data } = await apiClient.get<{ groups: any[] }>(`/admin/orgs/${encodeURIComponent(orgId)}/groups`);
+    const { data } = await apiClient.get<{ groups: Record<string, unknown>[] }>(`/admin/orgs/${encodeURIComponent(orgId)}/groups`);
     const groups = data.groups || [];
-    return groups.map((g) => ({
-      id: g.id || g._id,
-      name: g.name || g.groupName,
-      slug: g.slug,
-      users: typeof g.memberCount === 'number' ? g.memberCount : 0,
-      docs: typeof g.documentCount === 'number' ? g.documentCount : 0,
-      status: 'Healthy',
-      statusLabel: 'Healthy',
-      membershipRole: g.membershipRole ?? undefined,
-      piiHandlingPolicy: g.piiHandlingPolicy ?? null,
-    }));
+    return groups.map((g) => {
+      const idRaw = g.id ?? g._id;
+      const id =
+        typeof idRaw === 'object' && idRaw && 'toString' in idRaw
+          ? String((idRaw as { toString: () => string }).toString())
+          : String(idRaw ?? '');
+      const policy = g.piiHandlingPolicy;
+      const piiHandlingPolicy =
+        policy === 'RAW_PII_ALLOWED' ||
+        policy === 'MASK_PII_NO_STORAGE' ||
+        policy === 'MASK_PII_STORE_ENCRYPTED'
+          ? policy
+          : null;
+      return {
+        id,
+        name: String(g.name || g.groupName || ''),
+        slug: g.slug != null ? String(g.slug) : undefined,
+        users: typeof g.memberCount === 'number' ? g.memberCount : 0,
+        docs: typeof g.documentCount === 'number' ? g.documentCount : 0,
+        status: 'Healthy' as const,
+        statusLabel: 'Healthy',
+        membershipRole:
+          g.membershipRole === 'GROUP_ADMIN' || g.membershipRole === 'SEARCH_USER'
+            ? g.membershipRole
+            : undefined,
+        piiHandlingPolicy,
+      };
+    });
   },
 
   getAuditLogs: async (query: AuditLogsQuery = {}): Promise<AuditLogsResult> => {
@@ -454,18 +500,21 @@ export const adminService = {
 
   getUsers: async (): Promise<User[]> => {
     const orgId = requireOrgId();
-    const { data } = await apiClient.get<{ users: any[] }>(`/admin/orgs/${encodeURIComponent(orgId)}/users`);
-    return (data.users || []).map((u: any) => ({
-      _id: u._id,
-      name: u.name || u.email,
-      role: u.orgRole === 'COMPANY_ADMIN' ? 'COMPANY_ADMIN' : 'MEMBER',
+    const { data } = await apiClient.get<{ users: Record<string, unknown>[] }>(`/admin/orgs/${encodeURIComponent(orgId)}/users`);
+    return (data.users || []).map((u) => {
+      const row = u as Record<string, unknown>;
+      return {
+      _id: row._id as string,
+      name: (row.name as string) || (row.email as string),
+      role: row.orgRole === 'COMPANY_ADMIN' ? 'COMPANY_ADMIN' : 'MEMBER',
       lastActive: '—',
-      status: u.emailVerified ? 'Active' : 'Pending',
-      groupID: u.groupID,
-    }));
+      status: row.emailVerified ? 'Active' : 'Pending',
+      groupID: row.groupID as string | undefined,
+    };
+    });
   },
 
-  getDocuments: async (): Promise<any[]> => {
+  getDocuments: async (): Promise<DocumentRow[]> => {
     const { data } = await getOrgPipelineDocuments();
     return (data.documents || []).map((row) => normalizePipelineDocument(row as Record<string, unknown>));
   },
@@ -474,7 +523,7 @@ export const adminService = {
     limit?: number;
     ingestSource?: 'connector';
     connectorId?: string;
-  }): Promise<any[]> => {
+  }): Promise<DocumentRow[]> => {
     const { data } = await getOrgPipelineDocuments(params);
     return (data.documents || []).map((row) => normalizePipelineDocument(row as Record<string, unknown>));
   },
@@ -496,66 +545,95 @@ export const adminService = {
       );
 
     const [{ data: g }, { data: mem }, { data: pipe }, { data: inv }, auditResult] = await Promise.all([
-      apiClient.get<any>(`/groups/${encodeURIComponent(id)}`),
-      apiClient.get<{ members: any[] }>(`/admin/groups/${encodeURIComponent(id)}/members`),
+      apiClient.get<Record<string, unknown>>(`/groups/${encodeURIComponent(id)}`),
+      apiClient.get<{ members: Record<string, unknown>[] }>(`/admin/groups/${encodeURIComponent(id)}/members`),
       getOrgPipelineDocuments(),
-      apiClient.get<{ invites: any[] }>(`/admin/groups/${encodeURIComponent(id)}/invites`),
+      apiClient.get<{ invites: Record<string, unknown>[] }>(`/admin/groups/${encodeURIComponent(id)}/invites`),
       auditFetch,
     ]);
 
-    const groupName = g.groupName || g.name || 'Workspace';
-    const docsRaw = (pipe.documents || []).filter((d: any) => String(d.groupId) === String(id));
+    const groupName = String(g.groupName || g.name || 'Workspace');
+    const docsRaw = (pipe.documents || []).filter(
+      (d) => String((d as Record<string, unknown>).groupId) === String(id)
+    );
 
-    const members: GroupMember[] = (mem.members || []).map((m: any) => ({
-      id: m.userEmail,
-      name: m.userEmail,
-      email: m.userEmail,
-      role: m.role === 'GROUP_ADMIN' ? 'Group Admin' : 'Search User',
-      roleCode: m.role === 'GROUP_ADMIN' ? 'GROUP_ADMIN' : 'SEARCH_USER',
-      maxDocumentSensitivity: m.maxDocumentSensitivity || 'INTERNAL_USE',
-      membershipState: 'joined',
-    }));
+    const members: GroupMember[] = (mem.members || []).map((m) => {
+      const row = m as Record<string, unknown>;
+      return {
+      id: row.userEmail as string,
+      name: row.userEmail as string,
+      email: row.userEmail as string,
+      role: row.role === 'GROUP_ADMIN' ? 'Group Admin' : 'Search User',
+      roleCode: row.role === 'GROUP_ADMIN' ? 'GROUP_ADMIN' : 'SEARCH_USER',
+      maxDocumentSensitivity: (row.maxDocumentSensitivity as string) || 'INTERNAL_USE',
+      membershipState: 'joined' as const,
+    };
+    });
 
-    const inviteMembers: GroupMember[] = (inv.invites || []).map((item: any) => ({
-      id: `invite:${String(item.id)}`,
-      inviteId: String(item.id),
-      name: String(item.inviteeName || item.email || ''),
-      email: String(item.email || ''),
+    const inviteMembers: GroupMember[] = (inv.invites || []).map((item) => {
+      const row = item as Record<string, unknown>;
+      return {
+      id: `invite:${String(row.id)}`,
+      inviteId: String(row.id),
+      name: String(row.inviteeName || row.email || ''),
+      email: String(row.email || ''),
       role: 'Search User',
-      membershipState: item.status === 'expired' ? 'expired' : 'invited',
-    }));
+      membershipState: row.status === 'expired' ? 'expired' : 'invited',
+    };
+    });
 
     const dedupedInviteMembers = inviteMembers.filter(
       (im) => !members.some((m) => m.email.toLowerCase() === im.email.toLowerCase())
     );
     const mergedMembers = [...members, ...dedupedInviteMembers];
 
-    const documents: GroupDocument[] = docsRaw.slice(0, 24).map((d: any) => ({
-      id: d.id,
-      name: d.title || d.fileName,
-      size: d.size || '—',
-      status: d.pipeline?.ingestion?.status === 'done' ? 'Healthy' : 'Pending',
-      date: d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—',
-      type: d.type || 'FILE',
-      sensitivityLevel: d.sensitivityLevel || 'INTERNAL_USE',
-    }));
+    const documents: GroupDocument[] = docsRaw.slice(0, 24).map((d) => {
+      const row = d as Record<string, unknown>;
+      const pipeline = row.pipeline as { ingestion?: { status?: string } } | undefined;
+      return {
+      id: String(row.id),
+      name: String(row.title || row.fileName),
+      size: String(row.size || '—'),
+      status: pipeline?.ingestion?.status === 'done' ? 'Healthy' : 'Pending',
+      date: row.uploadedAt ? new Date(String(row.uploadedAt)).toLocaleDateString() : '—',
+      type: String(row.type || 'FILE'),
+      sensitivityLevel: String(row.sensitivityLevel || 'INTERNAL_USE'),
+    };
+    });
+
+    const groupIdRaw = g._id as { toString?: () => string } | string | undefined;
+    const groupId =
+      typeof groupIdRaw === 'object' && groupIdRaw?.toString
+        ? groupIdRaw.toString()
+        : String(groupIdRaw || id);
 
     return {
-      id: g._id?.toString?.() || id,
+      id: groupId,
       name: groupName,
-      slug: g.slug,
+      slug: g.slug != null ? String(g.slug) : undefined,
       users: members.length,
       docs: typeof g.documentCount === 'number' ? g.documentCount : docsRaw.length,
       status: 'Healthy',
       statusLabel: 'Healthy',
-      description: g.description || 'Workspace details from your organization.',
-      createdOn: g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
+      description: String(g.description || 'Workspace details from your organization.'),
+      createdOn: g.createdAt
+        ? new Date(String(g.createdAt)).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
+        : '—',
       storageUsed: '—',
       confidenceScore: '—',
       enabledDocumentSensitivityLevels: Array.isArray(g.enabledDocumentSensitivityLevels)
-        ? g.enabledDocumentSensitivityLevels
+        ? (g.enabledDocumentSensitivityLevels as string[])
         : null,
-      piiHandlingPolicy: g.piiHandlingPolicy ?? null,
+      piiHandlingPolicy:
+        g.piiHandlingPolicy === 'RAW_PII_ALLOWED' ||
+        g.piiHandlingPolicy === 'MASK_PII_NO_STORAGE' ||
+        g.piiHandlingPolicy === 'MASK_PII_STORE_ENCRYPTED'
+          ? g.piiHandlingPolicy
+          : null,
       members: mergedMembers,
       documents,
       recentActivity: (auditResult.logs || []).map((log) => ({
@@ -577,22 +655,27 @@ export const adminService = {
     if (!trimmed) return { ok: false, error: 'Enter a group name.' };
     if (!piiHandlingPolicy) return { ok: false, error: 'Select a PII handling policy.' };
     try {
-      const { data } = await apiClient.post<{ group: any }>(`/admin/orgs/${encodeURIComponent(orgId)}/groups`, {
+      const { data } = await apiClient.post<{ group: Record<string, unknown> }>(
+        `/admin/orgs/${encodeURIComponent(orgId)}/groups`,
+        {
         groupName: trimmed,
         piiHandlingPolicy,
-      });
-      const g = data.group;
-      const gid = g._id?.toString?.() || '';
+      }
+      );
+      const created = data.group;
+      const gidRaw = created._id as { toString?: () => string } | string | undefined;
+      const gid =
+        typeof gidRaw === 'object' && gidRaw?.toString ? gidRaw.toString() : String(gidRaw || '');
       return {
         ok: true,
         group: {
           id: gid,
-          name: g.groupName || trimmed,
+          name: String(created.groupName || trimmed),
           users: 0,
           docs: 0,
           status: 'Healthy',
           statusLabel: 'Healthy',
-          piiHandlingPolicy: g.piiHandlingPolicy ?? piiHandlingPolicy,
+          piiHandlingPolicy: (created.piiHandlingPolicy as PiiHandlingPolicy) ?? piiHandlingPolicy,
         },
       };
     } catch (e: unknown) {

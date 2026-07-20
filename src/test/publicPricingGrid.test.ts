@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BillingPlan } from '../services/billingService';
-import { discountPercentFromPlans } from '../components/billing/PublicPricingGrid';
+import { discountPercentFromPlans } from '../services/billingService';
 
 function plan(name: string, fraction?: number): BillingPlan {
   return {

@@ -14,11 +14,12 @@ import { useUploadStore } from '../../../../stores/uploadStore';
 import { useAlert } from '../../../../components/alert';
 import { quotaErrorMessage } from '../../../../utils/billingQuota';
 import { useAuthStore } from '../../../../stores/authStore';
+import type { GroupContext } from '../../../../types/auth';
 import { optimisticAppendUploadedDocument } from '../../../../utils/pipelineDocumentsCache';
 
 export function useDocumentUpload(opts: {
   isCompanyAdmin: boolean;
-  groups: { groupId: string; groupName: string; role?: string; maxDocumentSensitivity?: string }[];
+  groups: GroupContext[];
   adminGroupIds?: string[] | null;
   orgRole?: string | null;
   orgId: string | null | undefined;
@@ -44,9 +45,13 @@ export function useDocumentUpload(opts: {
   const [targetGroupId, setTargetGroupId] = useState('');
   const [uploadSensitivityLevel, setUploadSensitivityLevel] = useState<string>('INTERNAL_USE');
 
-  const uploadGroupChoices = React.useMemo(() => {
+  const uploadGroupChoices = React.useMemo((): GroupContext[] => {
     if (isCompanyAdmin) {
-      return groupHealthList.map((h) => ({ groupId: h.id, groupName: h.name }));
+      return groupHealthList.map((h) => ({
+        groupId: h.id,
+        groupName: h.name,
+        role: 'GROUP_ADMIN' as const,
+      }));
     }
     return groups.filter((g) => g.role === 'GROUP_ADMIN');
   }, [isCompanyAdmin, groupHealthList, groups]);

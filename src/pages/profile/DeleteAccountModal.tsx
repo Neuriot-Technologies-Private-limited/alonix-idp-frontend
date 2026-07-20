@@ -25,7 +25,8 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   const [typedEmail, setTypedEmail] = useState('');
 
   useEffect(() => {
-    if (isOpen) setTypedEmail('');
+    if (!isOpen) return;
+    queueMicrotask(() => setTypedEmail(''));
   }, [isOpen]);
 
   const canConfirm = isDeleteConfirmationValid(typedEmail, accountEmail) && !busy;

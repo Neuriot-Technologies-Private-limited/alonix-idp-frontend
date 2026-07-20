@@ -3,7 +3,8 @@ import { useAuthStore } from '../stores/authStore';
 
 export const useRbac = () => {
   const context = useAuthStore((s) => s.context);
-  const groups = context?.groups ?? [];
+  const contextGroups = context?.groups;
+  const groups = useMemo(() => contextGroups ?? [], [contextGroups]);
   const orgRole = context?.orgRole;
 
   const accessibleGroupIds = useMemo(() => groups.map((g) => g.groupId), [groups]);

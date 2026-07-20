@@ -96,7 +96,7 @@ export function applyJobUpdateToPipelineCache(
       docs.map((d) => {
         if (String(d.id) !== docId && String(d._id ?? '') !== docId) return d;
         const p = mergePipeline(d.pipeline);
-        const prevStage = p[stage] as Record<string, unknown> | undefined;
+        const prevStage = p[stage] as unknown as Record<string, unknown> | undefined;
         const nextStage: Record<string, unknown> = {
           ...prevStage,
           status,

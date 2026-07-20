@@ -1,7 +1,5 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useId,
   useMemo,
@@ -13,30 +11,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import type { AlertOptions, ConfirmOptions } from './types';
 import { variantIcon, variantStyles } from './alertVariants';
+import { AlertContext, type AlertContextValue } from './AlertContext';
 
 type Queued =
   | { id: number; kind: 'confirm'; options: ConfirmOptions; resolve: (ok: boolean) => void }
   | { id: number; kind: 'alert'; options: AlertOptions; resolve: () => void };
-
-export interface AlertContextValue {
-  alert: (options: AlertOptions) => Promise<void>;
-  confirm: (options: ConfirmOptions) => Promise<boolean>;
-}
-
-const AlertContext = createContext<AlertContextValue | null>(null);
-
-export function useAlert(): AlertContextValue {
-  const ctx = useContext(AlertContext);
-  if (!ctx) {
-    throw new Error('useAlert must be used within AlertProvider');
-  }
-  return ctx;
-}
-
-/** Optional: returns null outside provider (e.g. Storybook) instead of throwing */
-export function useAlertOptional(): AlertContextValue | null {
-  return useContext(AlertContext);
-}
 
 export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [queue, setQueue] = useState<Queued[]>([]);

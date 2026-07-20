@@ -23,8 +23,8 @@ const TopNavBar: React.FC = () => {
 
   // Handle scroll for transparency
   useEffect(() => {
-    const handleScroll = (e: any) => {
-      const scrollY = e.target.scrollTop;
+    const handleScroll = (e: Event) => {
+      const scrollY = (e.target as HTMLElement).scrollTop;
       setIsScrolled(scrollY > 20);
     };
 

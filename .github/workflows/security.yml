@@ -33,6 +33,20 @@ jobs:
           gitleaks version
           gitleaks detect --source . --verbose
 
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: ESLint (src)
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test:run
+
   npm-audit:
     runs-on: ubuntu-latest
     steps:

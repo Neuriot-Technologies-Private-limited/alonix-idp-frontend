@@ -49,10 +49,12 @@ export function useChatPage() {
     showToast,
   });
 
-  composerClearRef.current = () => {
-    composer.setText('');
-    composer.clearComposerError();
-  };
+  useEffect(() => {
+    composerClearRef.current = () => {
+      composer.setText('');
+      composer.clearComposerError();
+    };
+  }, [composer]);
 
   const resetChatSurface = useCallback(() => {
     sessions.createNewChat();

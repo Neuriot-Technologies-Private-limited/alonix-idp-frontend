@@ -21,6 +21,19 @@ import { Loader } from '../../components/ui/Loader';
 import { StatCard } from '../../components/ui/StatCard';
 import { getChatSessions, type ChatSessionDto } from '../../services/chatApi';
 
+interface DashboardDocumentPreview {
+  id: string;
+  title?: string;
+  fileName?: string;
+  status?: string;
+  updatedAt?: string;
+  pipeline?: {
+    ingestion?: { status?: string };
+    extraction?: { status?: string };
+    classification?: { status?: string };
+  };
+}
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -32,7 +45,8 @@ export const Dashboard: React.FC = () => {
   const stats = dash?.stats;
   const groupRows = dash?.groups ?? [];
   const userRows = dash?.usersPreview ?? [];
-  const docRows = (dash?.documents as any[] | undefined) ?? [];
+  const dashDocuments = dash?.documents as DashboardDocumentPreview[] | undefined;
+  const docRows = React.useMemo(() => dashDocuments ?? [], [dashDocuments]);
   const statsLoading = dashLoading;
   const groupsLoading = dashLoading;
   const usersLoading = dashLoading;
@@ -58,7 +72,7 @@ export const Dashboard: React.FC = () => {
     memberContext.every((g) => g.role === 'SEARCH_USER');
 
   const analysisBusyCount = React.useMemo(() => {
-    return docRows.filter((d: any) => {
+    return docRows.filter((d) => {
       const p = d.pipeline;
       return (
         p?.ingestion?.status === 'processing' ||
@@ -292,7 +306,7 @@ export const Dashboard: React.FC = () => {
                   No documents in your accessible workspaces yet. Open Documents to upload or ingest files.
                 </p>
               ) : (
-                docRows.slice(0, 5).map((d: any) => (
+                docRows.slice(0, 5).map((d) => (
                   <div
                     key={d.id}
                     onClick={() => navigate('/documents')}
@@ -349,7 +363,7 @@ export const Dashboard: React.FC = () => {
                     : 'Organization user list is visible to company admins. Use chat and documents in your assigned workspaces.'}
                 </p>
               ) : (
-                userRows.slice(0, 5).map((u: any) => (
+                userRows.slice(0, 5).map((u) => (
                   <div
                     key={u._id}
                     onClick={() => hasAnyGroupAdmin && navigate('/users')}

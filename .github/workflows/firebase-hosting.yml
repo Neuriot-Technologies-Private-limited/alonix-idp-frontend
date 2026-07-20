@@ -49,6 +49,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: ESLint (src)
+        run: npm run lint
       - run: npm run test:run
       # Production deps only — firebase-tools (devDep) pulls transitive tar/uuid advisories
       # that do not ship in the SPA bundle.
@@ -142,6 +144,17 @@ jobs:
           SERVICE_ACCOUNT_FILE="$RUNNER_TEMP/firebase-service-account.json"
           printf "%s" "$FIREBASE_SERVICE_ACCOUNT" > "$SERVICE_ACCOUNT_FILE"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SERVICE_ACCOUNT_FILE" >> "$GITHUB_ENV"
+
+      # F-005: firebase.json's committed connect-src is a baseline allowlist
+      # (self, Sentry, Stripe) that deliberately omits the production API/socket
+      # host, since that host varies by deploy target. This step appends it
+      # just before deploy so it never lives as a hardcoded value in the repo.
+      - name: Patch firebase.json CSP connect-src
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
+          VITE_CSP_CONNECT_EXTRA: ${{ vars.VITE_CSP_CONNECT_EXTRA }}
+        run: node scripts/generate-firebase-csp.mjs --patch
 
       - name: Deploy live hosting (app + /docs)
         env:

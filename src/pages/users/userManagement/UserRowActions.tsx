@@ -52,33 +52,6 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
   const pendingInvite = isPendingInviteUser(user);
   const isSelf = Boolean(selfEmail && user.email.toLowerCase().trim() === selfEmail);
 
-  if (pendingInvite) {
-    if (canResendInvite && onResendInvite) {
-      return (
-        <button
-          type="button"
-          aria-label="Reinvite user"
-          title="Resend expired invitation email"
-          onClick={(e) => {
-            e.stopPropagation();
-            onResendInvite(user);
-          }}
-          className="inline-flex items-center gap-1 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-warning transition-all hover:bg-warning/20"
-        >
-          <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          Reinvite
-        </button>
-      );
-    }
-    return (
-      <span
-        className="text-[9px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-400/75"
-        title="Awaiting invite acceptance"
-      >
-        Invited
-      </span>
-    );
-  }
   const isInActiveGroup = React.useMemo(() => {
     const gid = String(activeGroupId || '').trim();
     if (!gid) return false;
@@ -156,6 +129,34 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
     return groupActions;
   }, [canManageCompany, isSelf, companyActions, groupActions]);
 
+  if (pendingInvite) {
+    if (canResendInvite && onResendInvite) {
+      return (
+        <button
+          type="button"
+          aria-label="Reinvite user"
+          title="Resend expired invitation email"
+          onClick={(e) => {
+            e.stopPropagation();
+            onResendInvite(user);
+          }}
+          className="inline-flex items-center gap-1 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-warning transition-all hover:bg-warning/20"
+        >
+          <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Reinvite
+        </button>
+      );
+    }
+    return (
+      <span
+        className="text-[9px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-400/75"
+        title="Awaiting invite acceptance"
+      >
+        Invited
+      </span>
+    );
+  }
+
   if (actions.length === 0) {
     return (
       <span className="text-[10px] font-medium text-muted-foreground/35" title="No actions for your account on this row">
@@ -178,7 +179,7 @@ export const UserRowActions: React.FC<UserRowActionsProps> = ({
           }}
           className={className}
         >
-          <Icon className="h-4 w-4" aria-hidden />
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         </button>
       ))}
     </div>

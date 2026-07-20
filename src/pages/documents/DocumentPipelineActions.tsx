@@ -2,17 +2,19 @@ import React from 'react';
 import { Loader2, Import, ScanText, Tags, ScrollText, Trash2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { isConnectorPendingDocumentId } from '../../utils/connectorIngestOptimistic';
+import { mergePipeline } from '../../services/adminService';
+import type { DocumentRow } from './types/documentRow';
 
 export interface DocumentPipelineActionsProps {
-  docItem: any;
+  docItem: DocumentRow;
   bulkBusyActive: boolean;
   docBusy: boolean;
   actionBusyKey: string | null;
   bustKey: (docId: string, action: string) => string;
   runPipeline: (docId: string, action: 'ingest' | 'extract' | 'classify') => void;
-  onOpenResults: (doc: any) => void;
+  onOpenResults: (doc: DocumentRow) => void;
   /** Vault delete — DELETE /documents/:id (`id` = Mongo document `_id`). */
-  onDeleteDocument?: (docItem: any) => void;
+  onDeleteDocument?: (docItem: DocumentRow) => void;
   /** When this equals docItem.id, delete control shows a spinner. */
   deleteBusyId?: string | null;
   /** When this equals docItem.id, Results button shows a spinner. */
@@ -36,7 +38,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   readOnly = false,
 }) => {
   const resultsLoading = resultsLoadingDocId === String(docItem?.id ?? '');
-  const p = docItem?.pipeline ?? {};
+  const p = mergePipeline(docItem?.pipeline);
   const ingestionStatus = p?.ingestion?.status ?? 'idle';
   const extractionStatus = p?.extraction?.status ?? 'idle';
   const classificationStatus = p?.classification?.status ?? 'idle';

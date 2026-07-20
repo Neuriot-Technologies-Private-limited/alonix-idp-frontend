@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
 import { getDocumentAccessUrl, getFreshSourceUrl } from '../../../services/chatApi';
+import { isAllowedExternalDocumentUrl } from '../../../utils/safeDocumentUrl';
 import type { NormSource } from '../types/chatConversation';
 
 function resolveMimeType(source: NormSource): string {
-  let mimeType = source.source_type || 'application/pdf';
+  const mimeType = source.source_type || 'application/pdf';
   if (mimeType && !mimeType.includes('/')) {
     const lower = mimeType.toLowerCase();
     if (lower === 'pdf') return 'application/pdf';
@@ -60,7 +61,9 @@ export function useChatSourceNavigation(
             source.source_file.startsWith('http://') ||
             source.source_file.startsWith('https://')
           ) {
-            openUrlWithPage(source.source_file, mimeType, source.page);
+            if (isAllowedExternalDocumentUrl(source.source_file)) {
+              openUrlWithPage(source.source_file, mimeType, source.page);
+            }
             return;
           }
         }

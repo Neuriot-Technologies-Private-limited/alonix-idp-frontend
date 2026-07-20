@@ -102,12 +102,14 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
 
   useEffect(() => {
     if (initialConnectorId) {
-      setSelectedConnectorId(initialConnectorId);
-      setSelectedMailboxId('');
-      setCurrentPath('');
-      setCurrentFolderId('');
-      setBreadcrumbs([]);
-      setSelectedItem(null);
+      queueMicrotask(() => {
+        setSelectedConnectorId(initialConnectorId);
+        setSelectedMailboxId('');
+        setCurrentPath('');
+        setCurrentFolderId('');
+        setBreadcrumbs([]);
+        setSelectedItem(null);
+      });
     }
   }, [initialConnectorId]);
 
@@ -153,15 +155,15 @@ const ConnectorBrowserContent: React.FC<ConnectorBrowserContentProps> = ({
   useEffect(() => {
     if (!isEmailConnector) return;
     if (mailboxForActiveGroup) {
-      setSelectedMailboxId(mailboxForActiveGroup._id);
+      queueMicrotask(() => setSelectedMailboxId(mailboxForActiveGroup._id));
       return;
     }
     if (mailboxes.length === 1 && !activeGroupId) {
-      setSelectedMailboxId(mailboxes[0]._id);
+      queueMicrotask(() => setSelectedMailboxId(mailboxes[0]._id));
       return;
     }
     if (!loadingMailboxes && !loadingGroupMailbox) {
-      setSelectedMailboxId('');
+      queueMicrotask(() => setSelectedMailboxId(''));
     }
   }, [
     isEmailConnector,

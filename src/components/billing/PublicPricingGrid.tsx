@@ -11,7 +11,6 @@ import {
   monthlyPrice,
   annualTotal,
   annualSavings,
-  annualDiscountPercent,
   limitLabel,
   fmtBytes,
   type BillingCycle,
@@ -182,10 +181,5 @@ export const PublicPricingGrid: React.FC<PublicPricingGridProps> = ({
     </div>
   );
 };
-
-export function discountPercentFromPlans(plans: BillingPlan[]): number {
-  const first = sortBillingPlans(plans)[0];
-  return annualDiscountPercent(first);
-}
 
 export default PublicPricingGrid;

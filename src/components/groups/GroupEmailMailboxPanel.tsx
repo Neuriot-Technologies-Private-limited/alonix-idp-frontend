@@ -16,7 +16,7 @@ import type { Mailbox } from '../../services/connectorBrowserApi';
 import { cn } from '../../utils/cn';
 import { useAlert } from '../alert';
 
-interface ConnectorListItem extends Pick<OrgConnector, '_id' | 'name' | 'type' | 'config' | 'status'> {}
+type ConnectorListItem = Pick<OrgConnector, '_id' | 'name' | 'type' | 'config' | 'status'>;
 
 interface GroupEmailMailboxPanelProps {
   groupId: string;

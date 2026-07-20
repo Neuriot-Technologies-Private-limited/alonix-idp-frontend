@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './services/queryClient';
@@ -7,29 +8,29 @@ import { AlertProvider } from './components/alert';
 import { UploadToastPanel } from './components/ui/UploadToastPanel';
 import { useAuthStore } from './stores/authStore';
 import AppLayout from './layout/AppLayout';
-import LoginPage from './pages/auth/LoginPage';
-import SignupPage from './pages/auth/SignupPage';
-import SetupPasswordPage from './pages/auth/SetupPasswordPage';
-import VerifyPage from './pages/auth/VerifyPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import LandingPage from './pages/landing/LandingPage';
 import { RoleProtectedRoute } from './components/auth/RoleProtectedRoute';
-
-import { Dashboard } from './pages/dashboard/Dashboard';
-import { GroupManagement } from './pages/groups/GroupManagement';
-import { UserManagement } from './pages/users/UserManagement';
-import { ActivityLogs } from './pages/dashboard/ActivityLogs';
-import { ReportsPage } from './pages/reports/ReportsPage';
-import { GroupDetails } from './pages/groups/GroupDetails';
-
-import { DocumentsPage } from './pages/documents/DocumentsPage';
-import ChatPage from './pages/chat/ChatPage';
-import ProfilePage from './pages/profile/ProfilePage';
-import OrgSettingsPage from './pages/profile/OrgSettingsPage';
-import BillingPage from './pages/billing/BillingPage';
-import PricingPage from './pages/billing/PricingPage';
-import ConnectorBrowserPage from './pages/connectors/ConnectorBrowserPage';
+import {
+  LoginPage,
+  SignupPage,
+  SetupPasswordPage,
+  VerifyPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  LandingPage,
+  Dashboard,
+  GroupManagement,
+  UserManagement,
+  ActivityLogs,
+  ReportsPage,
+  GroupDetails,
+  DocumentsPage,
+  ChatPage,
+  ProfilePage,
+  OrgSettingsPage,
+  BillingPage,
+  PricingPage,
+  ConnectorBrowserPage,
+} from './routes/lazyPages';
 import ScrollToTop from './components/routing/ScrollToTop';
 import { getDefaultAuthedPath, isSearchUserOnly } from './utils/routingAuth';
 import { hasActiveSession } from './utils/session';
@@ -144,6 +145,7 @@ function App() {
           <UploadToastPanel />
         <Router>
           <ScrollToTop />
+          <Suspense fallback={<AuthBootstrapSpinner />}>
           <Routes>
             <Route
               path="/"
@@ -205,6 +207,7 @@ function App() {
             <Route path="/forbidden" element={<ForbiddenPage />} />
             <Route path="*" element={<Navigate to={isEnterpriseBuild() ? '/login' : '/'} replace />} />
           </Routes>
+          </Suspense>
         </Router>
         </AlertProvider>
       </ThemeProvider>

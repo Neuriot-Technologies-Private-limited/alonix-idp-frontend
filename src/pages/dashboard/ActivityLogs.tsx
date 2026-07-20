@@ -76,7 +76,8 @@ export const ActivityLogs: React.FC = () => {
   );
 
   const { data: auditResult, isLoading } = useAuditLogs(auditQuery);
-  const logs = auditResult?.logs ?? [];
+  const auditLogs = auditResult?.logs;
+  const logs = React.useMemo(() => auditLogs ?? [], [auditLogs]);
 
   const { data: byUser } = useQuery({
     queryKey: ['metrics-by-user', range],

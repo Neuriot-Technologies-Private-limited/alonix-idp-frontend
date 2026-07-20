@@ -262,9 +262,9 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                   ) : null}
                   <td className="px-2 py-4">
                     <DocumentAssetIdentity
-                      fileName={docItem.fileName}
-                      type={docItem.type}
-                      size={docItem.size}
+                      fileName={docItem.fileName ?? ''}
+                      type={docItem.type ?? ''}
+                      size={docItem.size ?? ''}
                       density="table"
                       sensitivityLevel={docItem.sensitivityLevel}
                       canOpenFile={Boolean(docItem?.id)}
@@ -342,9 +342,9 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                   ) : null}
                   <div className="min-w-0 flex-1 space-y-3">
                     <DocumentAssetIdentity
-                      fileName={docItem.fileName}
-                      type={docItem.type}
-                      size={docItem.size}
+                      fileName={docItem.fileName ?? ''}
+                      type={docItem.type ?? ''}
+                      size={docItem.size ?? ''}
                       density="card"
                       sensitivityLevel={docItem.sensitivityLevel}
                       canOpenFile={Boolean(docItem?.id)}

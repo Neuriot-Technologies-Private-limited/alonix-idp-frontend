@@ -29,7 +29,6 @@ export function isAllowedStripeCheckoutUrl(url: string): boolean {
  */
 export function redirectToStripeCheckout(url: string): void {
   if (!isAllowedStripeCheckoutUrl(url)) {
-    // eslint-disable-next-line no-console
     console.error('Blocked redirect to non-Stripe checkout URL:', url);
     return;
   }

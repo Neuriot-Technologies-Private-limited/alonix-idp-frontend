@@ -116,7 +116,7 @@ export const ChatMessagePair = React.memo(function ChatMessagePair({
         </div>
         <div
           className="mt-1 space-y-1 overflow-visible break-words whitespace-pre-wrap pb-1 text-[15px] leading-[1.65] text-muted-foreground/80 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary/40 [&_a]:underline-offset-2 [&_code]:rounded-md [&_code]:bg-surface-highest/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border/40 [&_pre]:bg-surface-highest/5 [&_pre]:p-4 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_th]:border [&_th]:border-border/60 [&_th]:bg-surface-highest/10 [&_th]:px-3 [&_th]:py-2 [&_tr:nth-child(even)]:bg-surface-highest/5"
-          // eslint-disable-next-line react/no-danger
+          // Sanitized HTML from mdToHtml / parseHtmlWithSources
           dangerouslySetInnerHTML={{ __html: html }}
           onClick={async (e) => {
             const pill = (e.target as HTMLElement).closest('[data-source-key]');

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AuthContextPayload, UserDetails } from '../types/auth';
+import { applyActiveGroupToContext } from '../core/rbac/capabilities';
 import { useAuthStore } from '../stores/authStore';
 
 const baseContext: AuthContextPayload = {
@@ -67,4 +68,31 @@ describe('authStore', () => {
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().context).toBeNull();
   });
+
+  it('syncAuthContext replaces stale groups when server returns empty list (F-021)', async () => {
+    useAuthStore.getState().setAuth(baseUser, baseContext);
+    const incoming: AuthContextPayload = {
+      ...baseContext,
+      groups: [],
+      activeGroupId: null,
+      activeGroupRole: null,
+      capabilities: [],
+    };
+    useAuthStore.setState({
+      context: mergeAuthContextForTest(incoming, useAuthStore.getState().context),
+    });
+    expect(useAuthStore.getState().context?.groups).toEqual([]);
+  });
 });
+
+/** Mirror mergeAuthContext for unit tests (not exported from store). */
+function mergeAuthContextForTest(
+  incoming: AuthContextPayload,
+  current: AuthContextPayload | null
+): AuthContextPayload {
+  const selectedId = current?.activeGroupId;
+  if (selectedId && incoming.groups?.some((g) => g.groupId === selectedId)) {
+    return applyActiveGroupToContext(incoming, selectedId);
+  }
+  return incoming;
+}

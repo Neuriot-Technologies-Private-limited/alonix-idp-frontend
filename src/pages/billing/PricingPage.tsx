@@ -239,8 +239,10 @@ export const PricingPage: React.FC = () => {
   const [upgradeResult, setUpgradeResult] = useState<'success' | 'canceled' | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('upgrade') === 'success') setUpgradeResult('success');
-    if (params.get('upgrade') === 'canceled') setUpgradeResult('canceled');
+    const result = params.get('upgrade');
+    if (result === 'success' || result === 'canceled') {
+      queueMicrotask(() => setUpgradeResult(result));
+    }
   }, []);
 
   const { data: plans = [], isLoading: plansLoading, isError: plansError } = useQuery({

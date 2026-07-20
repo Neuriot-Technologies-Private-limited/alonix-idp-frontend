@@ -22,6 +22,7 @@ import {
   parseConnectorPendingDocumentId,
 } from '../../../../utils/connectorIngestOptimistic';
 import { useAlert } from '../../../../components/alert';
+import { mergePipeline } from '../../../../services/adminService';
 import type { DocumentRow } from '../../types/documentRow';
 
 type PipelineAction = 'ingest' | 'extract' | 'classify';
@@ -113,7 +114,7 @@ export function useDocumentPipeline(
         const docItem = documents?.find((d: DocumentRow) => d.id === id);
         if (!docItem?.pipeline || !docCanManage(docItem)) continue;
         if (action === 'ingest' && isConnectorPendingDocumentId(id)) continue;
-        const p = docItem.pipeline;
+        const p = mergePipeline(docItem.pipeline);
         if (action === 'ingest' && (p.ingestion.status === 'processing' || p.ingestion.status === 'done'))
           continue;
         if (action === 'extract' && (p.extraction.status === 'processing' || p.extraction.status === 'done'))

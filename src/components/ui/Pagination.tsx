@@ -32,12 +32,12 @@ export const Pagination: React.FC<PaginationProps> = ({
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + showMax - 1);
-      
+      const end = Math.min(totalPages, start + showMax - 1);
+
       if (end === totalPages) {
         start = Math.max(1, end - showMax + 1);
       }
-      
+
       for (let i = start; i <= end; i++) pages.push(i);
     }
     return pages;

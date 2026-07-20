@@ -218,7 +218,7 @@ const EmailMailroomView: React.FC<EmailMailroomViewProps> = ({
     if (hasPendingIngestion) return;
     const hasIngested = emailDetail.ingestion.items.some((item) => item.status === 'ingested');
     if (ingestFeedback.mode === 'queued' && !hasIngested) return;
-    setIsPollingIngest(false);
+    queueMicrotask(() => setIsPollingIngest(false));
     const failedNames = emailDetail.ingestion.items
       .filter((item) => item.status === 'failed' || item.status === 'not_ingested')
       .map((item) => item.fileName);

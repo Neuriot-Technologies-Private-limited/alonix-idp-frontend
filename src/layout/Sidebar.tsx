@@ -15,8 +15,9 @@ import { useUIStore } from '../stores/uiStore';
 import { useRbac } from '../hooks/useRbac';
 import { cn } from '../utils/cn';
 import { useBrand } from '../brand/useBrand';
+import type { LucideIcon } from 'lucide-react';
 interface NavItem {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   path: string;
   capability?: string;
@@ -100,7 +101,7 @@ const Sidebar: React.FC = () => {
       )}
       <nav className="space-y-1">
         {items.map((item) => {
-          if (item.capability && !hasCapability(item.capability as any)) return null;
+          if (item.capability && !hasCapability(item.capability)) return null;
 
           return (
             <NavLink

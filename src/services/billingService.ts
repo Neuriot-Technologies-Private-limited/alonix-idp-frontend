@@ -1,5 +1,11 @@
 import apiClient from './api/client';
-import { fmtBytes, limitLabel, stripePriceIdForCycle, type BillingCycle } from '../utils/billingUtils';
+import {
+  annualDiscountPercent,
+  fmtBytes,
+  limitLabel,
+  stripePriceIdForCycle,
+  type BillingCycle,
+} from '../utils/billingUtils';
 
 /** Plan document from GET /billing/plans or subscription.plan (enriched on server). */
 export interface BillingPlan {
@@ -67,6 +73,14 @@ export const PLAN_ORDER: Record<string, number> = {
 
 export function sortBillingPlans<T extends { name: string }>(plans: T[]): T[] {
   return [...plans].sort((a, b) => (PLAN_ORDER[a.name] ?? 99) - (PLAN_ORDER[b.name] ?? 99));
+}
+
+/** Integer discount percent from the first plan in a sorted list (e.g. for marketing badges). */
+export function discountPercentFromPlans<T extends { name: string; annualDiscountFraction?: number }>(
+  plans: T[]
+): number {
+  const first = sortBillingPlans(plans)[0];
+  return annualDiscountPercent(first);
 }
 
 /** Next self-serve paid tier (skips ENTERPRISE). */

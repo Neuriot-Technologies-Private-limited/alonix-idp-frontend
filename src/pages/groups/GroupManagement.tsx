@@ -35,7 +35,7 @@ export const GroupManagement: React.FC = () => {
   const isCompanyAdmin = orgRole === 'COMPANY_ADMIN';
 
   /** Server scopes list to org; non–company-admins only see workspaces they belong to. */
-  const directoryGroups = groups ?? [];
+  const directoryGroups = React.useMemo(() => groups ?? [], [groups]);
 
   // Filter groups based on search query (name or id)
   const filteredGroups = React.useMemo(() => {

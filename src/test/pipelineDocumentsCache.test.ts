@@ -10,6 +10,18 @@ import {
   readPipelineStageStatus,
 } from '../utils/pipelineDocumentsCache';
 
+type PipelineCacheRow = {
+  id: string;
+  fileName?: string;
+  group?: string;
+  type?: string;
+  pipeline?: {
+    ingestion?: { status?: string };
+    extraction?: { status?: string };
+    classification?: { status?: string };
+  };
+};
+
 describe('pipelineDocumentsCache', () => {
   it('maps pipeline actions to stage keys', () => {
     expect(pipelineActionToStage('ingest')).toBe('ingestion');
@@ -29,8 +41,8 @@ describe('pipelineDocumentsCache', () => {
 
     optimisticSetPipelineStage(qc, 'doc-1', 'ingestion', 'processing', 'org-1');
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
-    expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
+    const rows = qc.getQueryData<PipelineCacheRow[]>(['pipeline-documents', 'org-1', 'all']);
+    expect(rows?.[0]?.pipeline?.ingestion?.status).toBe('processing');
   });
 
   it('optimisticAppendUploadedDocument prepends a new row', () => {
@@ -50,7 +62,7 @@ describe('pipelineDocumentsCache', () => {
       'org-1'
     );
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
+    const rows = qc.getQueryData<PipelineCacheRow[]>(['pipeline-documents', 'org-1', 'all']);
     expect(rows).toHaveLength(2);
     expect(rows?.[0].id).toBe('new-doc');
     expect(rows?.[0].group).toBe('Ops');
@@ -71,8 +83,8 @@ describe('pipelineDocumentsCache', () => {
     optimisticSetPipelineStage(qc, 'doc-1', 'ingestion', 'processing', 'org-1');
     markPipelineStageFailed(qc, 'doc-1', 'ingestion', 'org-1');
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
-    expect(rows?.[0].pipeline.ingestion.status).toBe('error');
+    const rows = qc.getQueryData<PipelineCacheRow[]>(['pipeline-documents', 'org-1', 'all']);
+    expect(rows?.[0]?.pipeline?.ingestion?.status).toBe('error');
   });
 
   it('applyJobUpdateToPipelineCache patches stage from websocket payload', () => {
@@ -96,8 +108,8 @@ describe('pipelineDocumentsCache', () => {
       'org-1'
     );
 
-    const rows = qc.getQueryData<any[]>(['pipeline-documents', 'org-1', 'all']);
-    expect(rows?.[0].pipeline.ingestion.status).toBe('processing');
+    const rows = qc.getQueryData<PipelineCacheRow[]>(['pipeline-documents', 'org-1', 'all']);
+    expect(rows?.[0]?.pipeline?.ingestion?.status).toBe('processing');
   });
 
   it('applyJobUpdateToPipelineCache skips unknown document without HTTP refetch', () => {

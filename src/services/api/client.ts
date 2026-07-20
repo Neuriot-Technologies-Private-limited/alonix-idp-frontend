@@ -4,7 +4,7 @@ import { getCsrfTokenFromCookie, setCsrfToken } from '../../utils/csrf';
 import { hasActiveSession } from '../../utils/session';
 
 /** Ensures REST paths hit `/api/...` (avoids 404 when env points at server root without `/api`). */
-function normalizeApiBaseUrl(raw: string | undefined): string {
+export function normalizeApiBaseUrl(raw: string | undefined): string {
   const b = (raw || '').trim();
   if (!b || b === '/') return '/api';
   if (b.endsWith('/api') || b.endsWith('/api/')) return b.replace(/\/$/, '');
