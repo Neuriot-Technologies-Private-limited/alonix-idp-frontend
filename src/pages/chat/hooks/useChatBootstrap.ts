@@ -19,7 +19,7 @@ export function useChatBootstrap({
   useEffect(() => {
     if (!user || !context) return;
     const email = (user.email || '').trim();
-    let gid = context.activeGroupId || user.groupId || user.groupID || activeGroupId || '';
+    const gid = context.activeGroupId || user.groupId || user.groupID || activeGroupId || '';
 
     connectSocket(email, gid);
 

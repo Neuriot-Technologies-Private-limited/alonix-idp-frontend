@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import {
   useInfiniteQuery,
   useQuery,
@@ -32,8 +39,8 @@ export function useChatSessions({
   const groupKey = activeGroupId?.trim() || '';
 
   const [currentSession, setCurrentSession] = useState<string | null>(null);
-  const [conversationPairs, setConversationPairs] = useState<ConversationPair[]>([]);
-  /** When `sidebar`, history query may replace conversation pairs; composer keeps `local`. */
+  const [localPairs, setLocalPairs] = useState<ConversationPair[]>([]);
+  /** When `sidebar`, pairs come from history query; composer keeps `local`. */
   const [historySyncMode, setHistorySyncMode] = useState<'sidebar' | 'local'>('local');
   const [alertModal, setAlertModal] = useState<ChatAlertState>({
     open: false,
@@ -80,20 +87,34 @@ export function useChatSessions({
   const isHistoryLoading =
     historySyncMode === 'sidebar' && Boolean(currentSession) && historyQuery.isPending;
 
+  const conversationPairs = useMemo(() => {
+    if (historySyncMode === 'sidebar') {
+      if (historyQuery.isError) return [];
+      return historyQuery.data ?? [];
+    }
+    return localPairs;
+  }, [historySyncMode, historyQuery.data, historyQuery.isError, localPairs]);
+
+  const setConversationPairs: Dispatch<SetStateAction<ConversationPair[]>> = useCallback(
+    (action) => {
+      if (historySyncMode === 'sidebar' && currentSession) {
+        const key = chatQueryKeys.history(groupKey, currentSession);
+        queryClient.setQueryData<ConversationPair[]>(key, (prev) => {
+          const base = prev ?? [];
+          return typeof action === 'function' ? action(base) : action;
+        });
+        return;
+      }
+      setLocalPairs(action);
+    },
+    [currentSession, groupKey, historySyncMode, queryClient, setLocalPairs]
+  );
+
   useEffect(() => {
-    if (!currentSession || historySyncMode !== 'sidebar') {
-      return;
+    if (historySyncMode === 'sidebar' && historyQuery.isError) {
+      showToast('Failed to load chat history.', 'error');
     }
-    if (historyQuery.isError) {
-      const msg = 'Failed to load chat history.';
-      showToast(msg, 'error');
-      setConversationPairs([]);
-      return;
-    }
-    if (historyQuery.data) {
-      setConversationPairs(historyQuery.data);
-    }
-  }, [currentSession, historyQuery.data, historyQuery.isError, historySyncMode, showToast]);
+  }, [historySyncMode, historyQuery.isError, showToast]);
 
   useEffect(() => {
     if (sessionsQuery.isError) {
@@ -115,10 +136,10 @@ export function useChatSessions({
   );
 
   const createNewChat = useCallback(() => {
-    setConversationPairs([]);
+    setLocalPairs([]);
     setCurrentSession(null);
     setHistorySyncMode('local');
-  }, []);
+  }, [setLocalPairs, setCurrentSession, setHistorySyncMode]);
 
   const selectChatSession = useCallback(
     (sessionId: string, setErrorText: (msg: string) => void) => {
@@ -126,12 +147,8 @@ export function useChatSessions({
       setErrorText('');
       setHistorySyncMode('sidebar');
       setCurrentSession(sessionId);
-      const cached = queryClient.getQueryData<ConversationPair[]>(
-        chatQueryKeys.history(groupKey, sessionId)
-      );
-      setConversationPairs(cached ?? []);
     },
-    [groupKey, queryClient, userEmail]
+    [setCurrentSession, setHistorySyncMode, userEmail]
   );
 
   const handleDeleteChatSession = useCallback(
@@ -164,6 +181,7 @@ export function useChatSessions({
       invalidateChatSessions,
       onCurrentSessionDeleted,
       queryClient,
+      setAlertModal,
       showToast,
       userEmail,
     ]
