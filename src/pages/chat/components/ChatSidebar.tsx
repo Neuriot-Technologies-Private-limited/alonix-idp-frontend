@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { MessageSquarePlus, Trash2 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import type { ChatSessionDto } from '../../../services/chatApi';
@@ -6,7 +7,10 @@ import { useTranslation } from 'react-i18next';
 type ChatSidebarProps = {
   hidden: boolean;
   sessions: ChatSessionDto[];
-  isSessionLoading: boolean;
+  isSessionsListLoading: boolean;
+  hasMoreSessions: boolean;
+  isFetchingNextSessionsPage: boolean;
+  onLoadMoreSessions: () => void;
   currentSession: string | null;
   onNewChat: () => void;
   onSelectSession: (id: string) => void | Promise<void>;
@@ -17,7 +21,10 @@ type ChatSidebarProps = {
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   hidden,
   sessions,
-  isSessionLoading,
+  isSessionsListLoading,
+  hasMoreSessions,
+  isFetchingNextSessionsPage,
+  onLoadMoreSessions,
   currentSession,
   onNewChat,
   onSelectSession,
@@ -25,6 +32,31 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   formatSessionMeta,
 }) => {
   const { t } = useTranslation('chat');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const listEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = scrollContainerRef.current;
+    const target = listEndRef.current;
+    if (!root || !target || !hasMoreSessions || isFetchingNextSessionsPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          onLoadMoreSessions();
+        }
+      },
+      { root, rootMargin: '120px', threshold: 0.1 }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [
+    hasMoreSessions,
+    isFetchingNextSessionsPage,
+    onLoadMoreSessions,
+    sessions.length,
+  ]);
+
   return (
     <aside
       className={cn(
@@ -48,8 +80,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-2 sm:px-2 sm:py-3">
-        {isSessionLoading && sessions.length === 0 ? (
+      <div
+        ref={scrollContainerRef}
+        className="min-h-0 flex-1 overflow-y-auto px-1.5 py-2 sm:px-2 sm:py-3"
+      >
+        {isSessionsListLoading && sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-12">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-primary" />
             <p className="text-xs text-muted-foreground">{t('loadingSessions')}</p>
@@ -100,10 +135,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 </button>
               </li>
             ))}
+            <li aria-hidden className="h-px">
+              <div ref={listEndRef} className="h-px w-full" />
+            </li>
           </ul>
         )}
+        {isFetchingNextSessionsPage && sessions.length > 0 ? (
+          <div className="flex justify-center py-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-primary" />
+          </div>
+        ) : null}
       </div>
     </aside>
   );
 };
-

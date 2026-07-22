@@ -3,15 +3,13 @@ import { useAuthStore } from '../../../stores/authStore';
 import { connectSocket, disconnectSocket } from '../../../services/chatSocket';
 
 interface UseChatBootstrapOptions {
-  userEmail: string;
   activeGroupId: string;
   onGroupChange: () => void;
-  loadChatSessions: (groupIdOverride?: string) => Promise<void>;
 }
 
 export function useChatBootstrap({
+  activeGroupId,
   onGroupChange,
-  loadChatSessions,
 }: UseChatBootstrapOptions) {
   const user = useAuthStore((s) => s.user);
   const context = useAuthStore((s) => s.context);
@@ -21,25 +19,29 @@ export function useChatBootstrap({
   useEffect(() => {
     if (!user || !context) return;
     const email = (user.email || '').trim();
-    let gid = context.activeGroupId || user.groupId || user.groupID || '';
+    let gid = context.activeGroupId || user.groupId || user.groupID || activeGroupId || '';
 
-    void (async () => {
-      try {
-        await syncAuthContext();
+    connectSocket(email, gid);
+
+    void syncAuthContext()
+      .then(() => {
         const refreshed = useAuthStore.getState().context;
-        gid = refreshed?.activeGroupId || refreshed?.groups?.[0]?.groupId || gid;
-      } catch {
-        /* keep store context */
-      }
-
-      if (prevResolvedGroupIdRef.current !== null && prevResolvedGroupIdRef.current !== gid) {
-        onGroupChange();
-      }
-      prevResolvedGroupIdRef.current = gid;
-
-      connectSocket(email, gid);
-      void loadChatSessions(gid);
-    })();
+        const nextGid =
+          refreshed?.activeGroupId || refreshed?.groups?.[0]?.groupId || gid;
+        if (
+          prevResolvedGroupIdRef.current !== null &&
+          prevResolvedGroupIdRef.current !== nextGid
+        ) {
+          onGroupChange();
+        }
+        prevResolvedGroupIdRef.current = nextGid;
+        if (nextGid && nextGid !== gid) {
+          connectSocket(email, nextGid);
+        }
+      })
+      .catch(() => {
+        prevResolvedGroupIdRef.current = gid;
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap when user/context ids settle
   }, [user?.email, context?.activeGroupId]);
 

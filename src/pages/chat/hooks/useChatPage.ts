@@ -31,6 +31,7 @@ export function useChatPage() {
   const sessions = useChatSessions({
     userEmail,
     activeGroupId,
+    sessionsQueryEnabled: true,
     showToast,
     onCurrentSessionDeleted: () => composerClearRef.current(),
   });
@@ -44,7 +45,11 @@ export function useChatPage() {
     setCurrentSession: sessions.setCurrentSession,
     setConversationPairs: sessions.setConversationPairs,
     onAnswerSuccess: () => {
-      if (userEmail) void sessions.loadChatSessions();
+      if (!userEmail) return;
+      sessions.invalidateChatSessions();
+      if (sessions.currentSession) {
+        sessions.invalidateChatHistory(sessions.currentSession);
+      }
     },
     showToast,
   });
@@ -69,10 +74,8 @@ export function useChatPage() {
   );
 
   useChatBootstrap({
-    userEmail,
     activeGroupId,
     onGroupChange: resetChatSurface,
-    loadChatSessions: sessions.loadChatSessions,
   });
 
   useEffect(() => {

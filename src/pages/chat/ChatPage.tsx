@@ -45,7 +45,10 @@ const ChatPage: React.FC = () => {
       <ChatSidebar
         hidden={sidebarHidden}
         sessions={sessions.chatDataState}
-        isSessionLoading={sessions.isSessionLoading}
+        isSessionsListLoading={sessions.isSessionsListLoading}
+        hasMoreSessions={sessions.hasMoreSessions}
+        isFetchingNextSessionsPage={sessions.isFetchingNextSessionsPage}
+        onLoadMoreSessions={() => void sessions.fetchNextSessionsPage()}
         currentSession={sessions.currentSession}
         onNewChat={resetChatSurface}
         onSelectSession={(id) => void sessions.selectChatSession(id, composer.setErrorText)}
@@ -65,7 +68,7 @@ const ChatPage: React.FC = () => {
           onClose={() => sessions.setAlertModal({ open: false, title: '', msg: '' })}
         />
 
-        {sessions.isSessionLoading && sessions.chatDataState.length > 0 && (
+        {sessions.isHistoryLoading && (
           <div className="flex items-center justify-center gap-2 border-b border-border/40 bg-surface-highest/10 py-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-primary" />
             <span className="text-xs text-muted-foreground">Loading…</span>

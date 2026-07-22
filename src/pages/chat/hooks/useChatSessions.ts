@@ -1,16 +1,22 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   deleteChat,
   getChatHistory,
-  getChatSessions,
-  type ChatSessionDto,
+  getChatSessionsPage,
 } from '../../../services/chatApi';
 import { mapHistoryMessageToPair } from '../utils/mapChatMessages';
 import type { ChatAlertState, ConversationPair } from '../types/chatConversation';
+import { CHAT_SESSIONS_PAGE_SIZE, chatQueryKeys } from './chatQueryKeys';
 
 interface UseChatSessionsOptions {
   userEmail: string;
   activeGroupId: string;
+  sessionsQueryEnabled: boolean;
   showToast: (msg: string, type?: 'error' | 'ok') => void;
   onCurrentSessionDeleted?: () => void;
 }
@@ -18,84 +24,127 @@ interface UseChatSessionsOptions {
 export function useChatSessions({
   userEmail,
   activeGroupId,
+  sessionsQueryEnabled,
   showToast,
   onCurrentSessionDeleted,
 }: UseChatSessionsOptions) {
-  const [chatDataState, setChatDataState] = useState<ChatSessionDto[]>([]);
+  const queryClient = useQueryClient();
+  const groupKey = activeGroupId?.trim() || '';
+
   const [currentSession, setCurrentSession] = useState<string | null>(null);
-  const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [conversationPairs, setConversationPairs] = useState<ConversationPair[]>([]);
+  /** When `sidebar`, history query may replace conversation pairs; composer keeps `local`. */
+  const [historySyncMode, setHistorySyncMode] = useState<'sidebar' | 'local'>('local');
   const [alertModal, setAlertModal] = useState<ChatAlertState>({
     open: false,
     title: '',
     msg: '',
   });
 
-  const sortSessions = useCallback(
-    (list: ChatSessionDto[]) =>
-      [...list].sort(
-        (a, b) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime()
-      ),
-    []
+  const sessionsQuery = useInfiniteQuery({
+    queryKey: chatQueryKeys.sessions(groupKey),
+    queryFn: async ({ pageParam }) => {
+      const response = await getChatSessionsPage(groupKey || undefined, {
+        limit: CHAT_SESSIONS_PAGE_SIZE,
+        cursor: pageParam,
+      });
+      return response.data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
+    enabled: sessionsQueryEnabled && Boolean(userEmail && groupKey),
+  });
+
+  const chatDataState = useMemo(
+    () => sessionsQuery.data?.pages.flatMap((page) => page.sessions ?? []) ?? [],
+    [sessionsQuery.data]
   );
 
-  const loadChatSessions = useCallback(
-    async (groupIdOverride?: string) => {
-      setIsSessionLoading(true);
-      const gid = groupIdOverride ?? activeGroupId;
-      try {
-        const response = await getChatSessions(gid || undefined);
-        const sessions = response.data?.sessions || [];
-        setChatDataState(sortSessions(sessions));
-      } catch {
-        showToast('Failed to load chat sessions.', 'error');
-      } finally {
-        setIsSessionLoading(false);
-      }
+  const isSessionsListLoading = sessionsQuery.isPending;
+  const isFetchingMoreSessions = sessionsQuery.isFetchingNextPage;
+
+  const historyQuery = useQuery({
+    queryKey: chatQueryKeys.history(groupKey, currentSession ?? ''),
+    queryFn: async () => {
+      const response = await getChatHistory(currentSession!, groupKey || undefined);
+      const messages = Array.isArray(response.data) ? response.data : [];
+      return (messages as Record<string, unknown>[]).map(mapHistoryMessageToPair);
     },
-    [activeGroupId, showToast, sortSessions]
+    enabled:
+      sessionsQueryEnabled &&
+      historySyncMode === 'sidebar' &&
+      Boolean(userEmail && groupKey && currentSession),
+  });
+
+  const isHistoryLoading =
+    historySyncMode === 'sidebar' && Boolean(currentSession) && historyQuery.isPending;
+
+  useEffect(() => {
+    if (!currentSession || historySyncMode !== 'sidebar') {
+      return;
+    }
+    if (historyQuery.isError) {
+      const msg = 'Failed to load chat history.';
+      showToast(msg, 'error');
+      setConversationPairs([]);
+      return;
+    }
+    if (historyQuery.data) {
+      setConversationPairs(historyQuery.data);
+    }
+  }, [currentSession, historyQuery.data, historyQuery.isError, historySyncMode, showToast]);
+
+  useEffect(() => {
+    if (sessionsQuery.isError) {
+      showToast('Failed to load chat sessions.', 'error');
+    }
+  }, [sessionsQuery.isError, showToast]);
+
+  const invalidateChatSessions = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: chatQueryKeys.sessions(groupKey) });
+  }, [groupKey, queryClient]);
+
+  const invalidateChatHistory = useCallback(
+    (sessionId: string) => {
+      void queryClient.invalidateQueries({
+        queryKey: chatQueryKeys.history(groupKey, sessionId),
+      });
+    },
+    [groupKey, queryClient]
   );
 
   const createNewChat = useCallback(() => {
     setConversationPairs([]);
     setCurrentSession(null);
+    setHistorySyncMode('local');
   }, []);
 
   const selectChatSession = useCallback(
-    async (sessionId: string, setErrorText: (msg: string) => void) => {
+    (sessionId: string, setErrorText: (msg: string) => void) => {
       if (!userEmail) return;
-      setCurrentSession(sessionId);
-      setIsSessionLoading(true);
       setErrorText('');
-
-      try {
-        const response = await getChatHistory(sessionId, activeGroupId || undefined);
-        const messages = Array.isArray(response.data) ? response.data : [];
-        setConversationPairs(
-          (messages as Record<string, unknown>[]).map(mapHistoryMessageToPair)
-        );
-      } catch {
-        const msg = 'Failed to load chat history.';
-        setErrorText(msg);
-        showToast(msg, 'error');
-        setConversationPairs([]);
-      } finally {
-        setIsSessionLoading(false);
-      }
+      setHistorySyncMode('sidebar');
+      setCurrentSession(sessionId);
+      const cached = queryClient.getQueryData<ConversationPair[]>(
+        chatQueryKeys.history(groupKey, sessionId)
+      );
+      setConversationPairs(cached ?? []);
     },
-    [activeGroupId, showToast, userEmail]
+    [groupKey, queryClient, userEmail]
   );
 
   const handleDeleteChatSession = useCallback(
     async (sessionId: string, setErrorText: (msg: string) => void) => {
       if (!sessionId || !userEmail) return;
       try {
-        await deleteChat(sessionId, activeGroupId || undefined);
+        await deleteChat(sessionId, groupKey || undefined);
         if (currentSession === sessionId) {
           createNewChat();
           onCurrentSessionDeleted?.();
         }
-        void loadChatSessions();
+        queryClient.removeQueries({ queryKey: chatQueryKeys.history(groupKey, sessionId) });
+        invalidateChatSessions();
       } catch (error: unknown) {
         const ax = error as { response?: { data?: { message?: string; error?: string } } };
         const backendMsg =
@@ -108,19 +157,39 @@ export function useChatSessions({
         showToast(backendMsg, 'error');
       }
     },
-    [activeGroupId, createNewChat, currentSession, loadChatSessions, onCurrentSessionDeleted, showToast, userEmail]
+    [
+      createNewChat,
+      currentSession,
+      groupKey,
+      invalidateChatSessions,
+      onCurrentSessionDeleted,
+      queryClient,
+      showToast,
+      userEmail,
+    ]
   );
+
+  const fetchNextSessionsPage = useCallback(() => {
+    if (sessionsQuery.hasNextPage && !sessionsQuery.isFetchingNextPage) {
+      void sessionsQuery.fetchNextPage();
+    }
+  }, [sessionsQuery]);
 
   return {
     chatDataState,
     currentSession,
     setCurrentSession,
-    isSessionLoading,
+    isSessionsListLoading,
+    isHistoryLoading,
+    isFetchingNextSessionsPage: isFetchingMoreSessions,
+    hasMoreSessions: Boolean(sessionsQuery.hasNextPage),
+    fetchNextSessionsPage,
     conversationPairs,
     setConversationPairs,
     alertModal,
     setAlertModal,
-    loadChatSessions,
+    invalidateChatSessions,
+    invalidateChatHistory,
     createNewChat,
     selectChatSession,
     handleDeleteChatSession,

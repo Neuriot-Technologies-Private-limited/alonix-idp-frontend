@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { askQuestion } from '../../../services/chatApi';
 import { quotaErrorMessage } from '../../../utils/billingQuota';
@@ -36,6 +36,11 @@ export function useChatComposer({
   const [isResponseLoading, setIsResponseLoading] = useState(false);
   const [errorText, setErrorText] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const activeSessionRef = useRef<string | null>(currentSession);
+
+  useEffect(() => {
+    activeSessionRef.current = currentSession;
+  }, [currentSession]);
 
   const clearComposerError = useCallback(() => setErrorText(''), []);
 
@@ -62,6 +67,7 @@ export function useChatComposer({
         sessionId = uuidv4();
         setCurrentSession(sessionId);
       }
+      const requestSessionId = sessionId;
       try {
         const response = await askQuestion(
           queryText,
@@ -71,7 +77,12 @@ export function useChatComposer({
           null
         );
         const apiResponse = response.data;
-        if (apiResponse.session_id && apiResponse.session_id !== currentSession) {
+        const stillOnRequestSession = activeSessionRef.current === requestSessionId;
+        if (!stillOnRequestSession) {
+          onAnswerSuccess();
+          return;
+        }
+        if (apiResponse.session_id && apiResponse.session_id !== requestSessionId) {
           setCurrentSession(apiResponse.session_id);
         }
         const responseKind = resolveResponseKind(apiResponse);
@@ -90,9 +101,11 @@ export function useChatComposer({
         setText('');
         onAnswerSuccess();
       } catch (err) {
-        const msg = quotaErrorMessage(err, 'Failed to get answer.');
-        setErrorText(msg);
-        showToast(msg, 'error');
+        if (activeSessionRef.current === requestSessionId) {
+          const msg = quotaErrorMessage(err, 'Failed to get answer.');
+          setErrorText(msg);
+          showToast(msg, 'error');
+        }
       } finally {
         setIsResponseLoading(false);
       }

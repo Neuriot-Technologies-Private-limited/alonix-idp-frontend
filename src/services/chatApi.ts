@@ -22,6 +22,26 @@ export async function getChatSessions(groupId?: string | null) {
   return apiClient.get<{ sessions: ChatSessionDto[] }>(`${base}/sessions`);
 }
 
+export type ChatSessionsPageParams = {
+  limit?: number;
+  cursor?: string | null;
+};
+
+export type ChatSessionsPageResult = {
+  sessions: ChatSessionDto[];
+  nextCursor?: string | null;
+  hasMore?: boolean;
+};
+
+/** Paginated sessions (chat sidebar); Dashboard uses {@link getChatSessions} without limit. */
+export async function getChatSessionsPage(
+  groupId?: string | null,
+  params?: ChatSessionsPageParams
+) {
+  const base = chatsBase(groupId);
+  return apiClient.get<ChatSessionsPageResult>(`${base}/sessions`, { params });
+}
+
 export async function getChatHistory(sessionId: string, groupId?: string | null) {
   const base = chatsBase(groupId);
   return apiClient.get<unknown[]>(`${base}/session/${encodeURIComponent(sessionId)}`);
