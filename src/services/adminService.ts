@@ -541,26 +541,48 @@ export const adminService = {
 
   getGroupDetail: async (id: string): Promise<GroupDetail> => {
     requireOrgId();
-    const auditFetch = apiClient
-      .get<AuditLogsResult>(`/admin/groups/${encodeURIComponent(id)}/audit-logs`, {
-        params: { limit: 25 },
-      })
-      .then(({ data }) => data)
-      .catch(
-        (): AuditLogsResult => ({
-          logs: [],
-          total: 0,
-          skip: 0,
-          limit: 25,
-        })
-      );
 
-    const [{ data: g }, { data: mem }, { data: pipe }, { data: inv }, auditResult] = await Promise.all([
-      apiClient.get<Record<string, unknown>>(`/groups/${encodeURIComponent(id)}`),
-      apiClient.get<{ members: Record<string, unknown>[] }>(`/admin/groups/${encodeURIComponent(id)}/members`),
+    // Resolve the group first. A deleted/missing workspace must not fan out
+    // members/invites/audit calls (those also 404 and spam the network panel).
+    let g: Record<string, unknown>;
+    try {
+      const res = await apiClient.get<Record<string, unknown>>(`/groups/${encodeURIComponent(id)}`);
+      g = res.data;
+    } catch (err: unknown) {
+      const ax = err as { response?: { status?: number; data?: { message?: string } } };
+      if (ax.response?.status === 404) {
+        const notFound = new Error(ax.response?.data?.message || 'Group not found') as Error & {
+          status?: number;
+          code?: string;
+        };
+        notFound.status = 404;
+        notFound.code = 'GROUP_NOT_FOUND';
+        throw notFound;
+      }
+      throw err;
+    }
+
+    const [{ data: mem }, { data: pipe }, { data: inv }, auditResult] = await Promise.all([
+      apiClient
+        .get<{ members: Record<string, unknown>[] }>(`/admin/groups/${encodeURIComponent(id)}/members`)
+        .catch(() => ({ data: { members: [] as Record<string, unknown>[] } })),
       getOrgPipelineDocuments(),
-      apiClient.get<{ invites: Record<string, unknown>[] }>(`/admin/groups/${encodeURIComponent(id)}/invites`),
-      auditFetch,
+      apiClient
+        .get<{ invites: Record<string, unknown>[] }>(`/admin/groups/${encodeURIComponent(id)}/invites`)
+        .catch(() => ({ data: { invites: [] as Record<string, unknown>[] } })),
+      apiClient
+        .get<AuditLogsResult>(`/admin/groups/${encodeURIComponent(id)}/audit-logs`, {
+          params: { limit: 25 },
+        })
+        .then(({ data }) => data)
+        .catch(
+          (): AuditLogsResult => ({
+            logs: [],
+            total: 0,
+            skip: 0,
+            limit: 25,
+          })
+        ),
     ]);
 
     const groupName = String(g.groupName || g.name || 'Workspace');

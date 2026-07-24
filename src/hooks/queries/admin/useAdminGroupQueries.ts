@@ -21,5 +21,10 @@ export const useGroupDetail = (id: string) => {
     queryKey: ['group-detail', id, orgId],
     queryFn: () => adminService.getGroupDetail(id),
     enabled: !!id && !!orgId,
+    retry: (failureCount, error) => {
+      const status = (error as { status?: number } | undefined)?.status;
+      if (status === 404) return false;
+      return failureCount < 1;
+    },
   });
 };

@@ -63,10 +63,16 @@ export const GroupDetails: React.FC = () => {
   const { alert: appAlert, confirm } = useAlert();
   const authUser = useAuthStore((s) => s.user);
 
-  const { data: group, isLoading } = useGroupDetail(id || '');
+  const { data: group, isLoading, isError, error, failureReason } = useGroupDetail(id || '');
   const { data: groups = [] } = useGroupHealth();
   const { data: allUsers = [] } = useUsers();
   const queryClient = useQueryClient();
+
+  const groupMissing =
+    isError &&
+    ((error as { status?: number; code?: string } | null)?.status === 404 ||
+      (error as { code?: string } | null)?.code === 'GROUP_NOT_FOUND' ||
+      (failureReason as { status?: number } | null)?.status === 404);
 
   const resendInviteMutation = useMutation({
     mutationFn: async (inviteId: string) => {
@@ -189,7 +195,24 @@ export const GroupDetails: React.FC = () => {
 
   if (isLoading) return <Loader variant="section" label="Loading cluster" />;
 
-  if (!group) return <div className="p-6 text-muted-foreground">Group not found</div>;
+  if (groupMissing || (!group && isError)) {
+    return <Navigate to="/groups" replace />;
+  }
+
+  if (!group) {
+    return (
+      <div className="flex flex-col items-start gap-3 p-6">
+        <p className="text-muted-foreground">Group not found. It may have been deleted.</p>
+        <button
+          type="button"
+          onClick={() => navigate('/groups', { replace: true })}
+          className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          Back to groups
+        </button>
+      </div>
+    );
+  }
 
   const inDirectory =
     id &&
@@ -281,8 +304,8 @@ export const GroupDetails: React.FC = () => {
         return;
       }
       await adminService.deleteGroup(id, group.name);
+      queryClient.removeQueries({ queryKey: ['group-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['group-health'] });
-      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-state'] });
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
@@ -293,7 +316,7 @@ export const GroupDetails: React.FC = () => {
         description: `"${group.name}" and all associated data have been permanently removed. Members have been notified by email.`,
         variant: 'success',
       });
-      navigate('/groups');
+      navigate('/groups', { replace: true });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } }; message?: string };
       void appAlert({
