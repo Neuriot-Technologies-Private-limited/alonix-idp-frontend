@@ -359,6 +359,17 @@ export function normalizePipelineDocument(d: Record<string, unknown>): DocumentR
   };
 }
 
+export interface GroupDeleteImpact {
+  groupId: string;
+  groupName: string;
+  documents: number;
+  members: number;
+  chatSessions: number;
+  chatMessages: number;
+  s3Objects: number;
+  warnings: string[];
+}
+
 export const adminService = {
   getStats: async (): Promise<AdminStats> => {
     const orgId = requireOrgId();
@@ -776,6 +787,19 @@ export const adminService = {
       { params: query, responseType: 'blob' }
     );
     return data;
+  },
+
+  getGroupDeleteImpact: async (groupId: string): Promise<GroupDeleteImpact> => {
+    const { data } = await apiClient.get<GroupDeleteImpact>(
+      `/groups/${encodeURIComponent(groupId)}/delete-impact`
+    );
+    return data;
+  },
+
+  deleteGroup: async (groupId: string, confirmName: string): Promise<void> => {
+    await apiClient.delete(`/groups/${encodeURIComponent(groupId)}`, {
+      data: { confirmName },
+    });
   },
 
   getGroupSensitivityPolicy: async (groupId: string): Promise<string[] | null> => {

@@ -59,6 +59,7 @@ export const GroupDetails: React.FC = () => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
   const [policyDraft, setPolicyDraft] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { alert: appAlert, confirm } = useAlert();
   const authUser = useAuthStore((s) => s.user);
 
@@ -242,6 +243,67 @@ export const GroupDetails: React.FC = () => {
       policyDraft.length === DOCUMENT_SENSITIVITY_LEVELS.length &&
       DOCUMENT_SENSITIVITY_LEVELS.every((k) => policyDraft.includes(k));
     await updateSensitivityPolicyMutation.mutateAsync(isAll ? [] : policyDraft);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!id || !group) return;
+    setIsDeleting(true);
+    try {
+      const impact = await adminService.getGroupDeleteImpact(id);
+      const ok = await confirm({
+        title: `Permanently delete "${group.name}"?`,
+        description: (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This action is <strong className="text-destructive">irreversible</strong>. The following data will be permanently removed:
+            </p>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+              <li><strong>{impact.documents}</strong> document{impact.documents !== 1 ? 's' : ''}</li>
+              <li><strong>{impact.members}</strong> member{impact.members !== 1 ? 's' : ''}</li>
+              <li><strong>{impact.chatSessions}</strong> chat session{impact.chatSessions !== 1 ? 's' : ''}</li>
+            </ul>
+            {impact.warnings.length > 0 && (
+              <div className="rounded-lg bg-warning/10 border border-warning/25 p-2.5 text-xs text-warning">
+                {impact.warnings.map((w, i) => <p key={i}>{w}</p>)}
+              </div>
+            )}
+            <p className="text-xs text-destructive/80 font-medium">
+              All affected members will receive an email notification about this deletion.
+            </p>
+          </div>
+        ),
+        confirmLabel: 'Delete permanently',
+        cancelLabel: 'Cancel',
+        variant: 'danger',
+      });
+      if (!ok) {
+        setIsDeleting(false);
+        return;
+      }
+      await adminService.deleteGroup(id, group.name);
+      queryClient.invalidateQueries({ queryKey: ['group-health'] });
+      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-state'] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['my-chat-sessions-count'] });
+      void useAuthStore.getState().syncAuthContext();
+      void appAlert({
+        title: 'Group deleted',
+        description: `"${group.name}" and all associated data have been permanently removed. Members have been notified by email.`,
+        variant: 'success',
+      });
+      navigate('/groups');
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } }; message?: string };
+      void appAlert({
+        title: 'Delete failed',
+        description: ax.response?.data?.message || ax.message || 'Could not delete the group',
+        variant: 'danger',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleRemoveMember = async (member: { email: string; name: string }) => {
@@ -794,14 +856,20 @@ export const GroupDetails: React.FC = () => {
                       <h4 className="text-sm font-black uppercase">Danger Zone</h4>
                     </div>
                     <p className="text-[10px] text-destructive/60 font-medium leading-relaxed">
-                      Deactivate or delete this workspace. Only organization administrators can perform these actions.
+                      Permanently delete this workspace and all associated data. Only organization administrators can perform this action.
                     </p>
                     <button
                       type="button"
-                      className="w-full py-3 rounded-xl bg-destructive text-destructive-foreground text-[10px] font-black uppercase tracking-widest hover:bg-destructive/90 transition-all shadow-glass flex items-center justify-center gap-2"
+                      disabled={isDeleting}
+                      onClick={() => void handleDeleteGroup()}
+                      className="w-full py-3 rounded-xl bg-destructive text-destructive-foreground text-[10px] font-black uppercase tracking-widest hover:bg-destructive/90 transition-all shadow-glass flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Delete / Deactivate Group
+                      {isDeleting ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      Delete group
                     </button>
                   </div>
                 ) : null}
