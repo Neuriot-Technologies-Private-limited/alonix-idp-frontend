@@ -176,7 +176,20 @@ function docsStaticPlugin(docsBuildDir: string): Plugin {
       if (!fs.existsSync(indexPath)) {
         server.config.logger.warn(
           `[alonix-docs] static mode: no build at ${docsBuildDir}\n` +
-            '  Run: DOCUSAURUS_SITE_URL=<your-app-url> npm run build:docs:dev'
+            '  Run: DOCUSAURUS_SITE_URL=<your-public-5173-url> npm run build:docs:dev'
+        );
+        return;
+      }
+
+      const indexHtml = fs.readFileSync(indexPath, 'utf8');
+      const hasDocsBase = /["'/]docs\/assets\//.test(indexHtml);
+      if (!hasDocsBase) {
+        server.config.logger.error(
+          `[alonix-docs] REFUSING to serve ${docsBuildDir} — it was built with baseUrl=/ (not /docs/).\n` +
+            '  On Lightning open /docs/ only after rebuilding:\n' +
+            '    DOCUSAURUS_SITE_URL=https://5173-<id>.cloudspaces.litng.ai npm run build:docs:dev\n' +
+            '    VITE_DOCS_MODE=static npm run dev\n' +
+            '  Or: DOCUSAURUS_SITE_URL=... npm run dev:with-docs'
         );
         return;
       }
