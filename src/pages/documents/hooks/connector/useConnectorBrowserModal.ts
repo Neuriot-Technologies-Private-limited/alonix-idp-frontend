@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { getConnectorDialogFocusables } from '../../utils/connector/dialogFocus';
 
 export function useConnectorBrowserModal() {

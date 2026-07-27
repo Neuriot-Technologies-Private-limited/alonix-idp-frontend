@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
 /**
  * Resets scroll on route change. Public pages use window; authed layout uses <main>.

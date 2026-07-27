@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router';
 import {
   CreditCard, Zap, TrendingUp, Users, FileText, MessageSquare, HardDrive,
   CheckCircle2, AlertTriangle, ArrowUpRight, Loader2, Crown,

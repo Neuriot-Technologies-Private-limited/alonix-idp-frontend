@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { ArrowLeft, BarChart3, FileText, HardDrive, Activity, Users, CheckCircle, XCircle, Loader2, ArrowUpRight } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';

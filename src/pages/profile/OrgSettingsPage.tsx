@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ArrowLeft, Building2, Database, ShieldCheck, Users } from 'lucide-react';
 import { useRbac } from '../../hooks/useRbac';
 import { cn } from '../../utils/cn';

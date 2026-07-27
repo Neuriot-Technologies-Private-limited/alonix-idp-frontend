@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, LayoutDashboard, Sparkles } from 'lucide-react';

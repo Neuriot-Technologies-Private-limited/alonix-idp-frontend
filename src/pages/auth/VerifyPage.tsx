@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { Loader2, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Check, Zap, Star, Sparkles, Building2, Mail, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import {

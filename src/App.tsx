@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './services/queryClient';
 import { ThemeProvider } from './core/theme/ThemeProvider';

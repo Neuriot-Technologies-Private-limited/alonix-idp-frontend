@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { ArrowLeft, Clock, Search, Loader2 } from 'lucide-react';
 import { ActivityFeed } from '../../components/admin/ActivityFeed';
 import { useRbac } from '../../hooks/useRbac';

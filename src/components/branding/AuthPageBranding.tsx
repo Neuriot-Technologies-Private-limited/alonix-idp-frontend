@@ -5,7 +5,7 @@
  * Wraps in a Link → "/" for consistent nav.
  */
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import { useBrand } from '../../brand/useBrand';
 

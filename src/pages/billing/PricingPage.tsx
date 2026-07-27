@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import {
   Check, Zap, ArrowRight,
   Loader2, Sparkles, Star, Building2, Mail,

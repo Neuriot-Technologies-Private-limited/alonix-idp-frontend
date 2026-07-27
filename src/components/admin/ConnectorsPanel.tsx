@@ -6,7 +6,7 @@ import {
   History, Zap,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
   createOrgConnector,
   deleteOrgConnector,

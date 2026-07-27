@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, Loader2, CheckCircle2, ChevronLeft, ShieldCheck, Building2 } from 'lucide-react';
 import { AuthPageLogo, AuthPageFooter } from '../../components/branding/AuthPageBranding';

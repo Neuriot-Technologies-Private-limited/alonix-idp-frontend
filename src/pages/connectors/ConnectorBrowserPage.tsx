@@ -2,7 +2,7 @@
  * @deprecated Standalone connector route redirects to Documents with the connector modal.
  * Use `ConnectorBrowserContent` from `components/connectors` or open `/documents?connectors=1`.
  */
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router';
 
 const ConnectorBrowserPage = () => {
   const location = useLocation();
