@@ -3,8 +3,19 @@
 # Required on Lightning / any host where the app is at :5173 and docs at /docs/.
 set -euo pipefail
 
+# Lightning / conda Node: npm_config_prefix breaks nvm and makes nested `npm` fail
+# ("nvm is not compatible with npm_config_prefix" → "npm: command not found").
+unset npm_config_prefix 2>/dev/null || true
+unset NPM_CONFIG_PREFIX 2>/dev/null || true
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/alonix-docs"
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "ERROR: npm not found on PATH after unsetting npm_config_prefix."
+  echo "       On Lightning try: unset npm_config_prefix && nvm use 22"
+  exit 1
+fi
 
 if [ ! -d node_modules ]; then
   echo "==> Installing alonix-docs dependencies..."

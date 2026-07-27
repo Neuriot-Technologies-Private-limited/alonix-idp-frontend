@@ -167,38 +167,81 @@ export function loadProfileEnv(profile: string, root: string): Record<string, st
   return parseEnvFile(path.join(root, 'profiles', `${normalized}.env`));
 }
 
+const DOCS_SETUP_HINT = [
+  'Help Center is not ready at /docs/.',
+  '',
+  'On Lightning (Vite :5173), rebuild docs for the /docs/ subpath, then restart Vite:',
+  '',
+  '  DOCUSAURUS_SITE_URL=https://5173-<studio-id>.cloudspaces.litng.ai npm run build:docs:dev',
+  '  VITE_DOCS_MODE=static npm run dev',
+  '',
+  'Or one-shot:',
+  '  DOCUSAURUS_SITE_URL=https://5173-<studio-id>.cloudspaces.litng.ai npm run dev:with-docs',
+].join('\n');
+
+function docsUnavailableHtml(reason: string): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Help Center not built</title>
+  <style>
+    body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 2rem; line-height: 1.5; color: #111; background: #fafafa; }
+    h1 { font-size: 1.15rem; margin: 0 0 1rem; }
+    pre { background: #111; color: #e8e8e8; padding: 1rem; overflow: auto; border-radius: 8px; white-space: pre-wrap; }
+    p { color: #444; max-width: 52rem; }
+  </style>
+</head>
+<body>
+  <h1>Help Center (/docs) is not available</h1>
+  <p>${reason}</p>
+  <pre>${DOCS_SETUP_HINT}</pre>
+</body>
+</html>`;
+}
+
 /** Serve pre-built Docusaurus at /docs/ (reliable on cloud dev; avoids webpack proxy ChunkLoadError). */
 function docsStaticPlugin(docsBuildDir: string): Plugin {
   return {
     name: 'alonix-docs-static',
     configureServer(server) {
       const indexPath = path.join(docsBuildDir, 'index.html');
-      if (!fs.existsSync(indexPath)) {
+      const indexExists = fs.existsSync(indexPath);
+      const indexHtml = indexExists ? fs.readFileSync(indexPath, 'utf8') : '';
+      const hasDocsBase = indexExists && /["'/]docs\/assets\//.test(indexHtml);
+
+      if (!indexExists) {
         server.config.logger.warn(
-          `[alonix-docs] static mode: no build at ${docsBuildDir}\n` +
+          `[alonix-docs] no build at ${docsBuildDir}\n` +
             '  Run: DOCUSAURUS_SITE_URL=<your-public-5173-url> npm run build:docs:dev'
         );
-        return;
-      }
-
-      const indexHtml = fs.readFileSync(indexPath, 'utf8');
-      const hasDocsBase = /["'/]docs\/assets\//.test(indexHtml);
-      if (!hasDocsBase) {
+      } else if (!hasDocsBase) {
         server.config.logger.error(
-          `[alonix-docs] REFUSING to serve ${docsBuildDir} — it was built with baseUrl=/ (not /docs/).\n` +
-            '  On Lightning open /docs/ only after rebuilding:\n' +
+          `[alonix-docs] REFUSING to serve ${docsBuildDir} — built with baseUrl=/ (not /docs/).\n` +
+            '  Rebuild:\n' +
             '    DOCUSAURUS_SITE_URL=https://5173-<id>.cloudspaces.litng.ai npm run build:docs:dev\n' +
-            '    VITE_DOCS_MODE=static npm run dev\n' +
-            '  Or: DOCUSAURUS_SITE_URL=... npm run dev:with-docs'
+            '    VITE_DOCS_MODE=static npm run dev'
         );
-        return;
       }
 
-      const serve = sirv(docsBuildDir, { dev: true, etag: true, maxAge: 0, single: false });
+      const serve = hasDocsBase
+        ? sirv(docsBuildDir, { dev: true, etag: true, maxAge: 0, single: false })
+        : null;
 
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? '';
         if (!url.startsWith('/docs')) return next();
+
+        if (!serve) {
+          const reason = !indexExists
+            ? `Missing <code>alonix-docs/build</code> (expected at ${docsBuildDir}).`
+            : 'Existing build used <code>baseUrl=/</code>; Lightning needs <code>baseUrl=/docs/</code>.';
+          res.statusCode = 503;
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.end(docsUnavailableHtml(reason));
+          return;
+        }
 
         if (url === '/docs') {
           res.statusCode = 301;
@@ -218,7 +261,9 @@ function docsStaticPlugin(docsBuildDir: string): Plugin {
         });
       });
 
-      server.config.logger.info(`[alonix-docs] static build at /docs/ ← ${docsBuildDir}`);
+      if (serve) {
+        server.config.logger.info(`[alonix-docs] static build at /docs/ ← ${docsBuildDir}`);
+      }
     },
   };
 }
@@ -226,7 +271,8 @@ function docsStaticPlugin(docsBuildDir: string): Plugin {
 function resolveDocsMode(): 'static' | 'proxy' {
   const explicit = process.env.VITE_DOCS_MODE?.trim();
   if (explicit === 'static' || explicit === 'proxy') return explicit;
-  return fs.existsSync(path.join(DOCS_BUILD_DIR, 'index.html')) ? 'static' : 'proxy';
+  // Prefer static (or a clear /docs help page) over proxying to :3000 on cloud hosts.
+  return 'static';
 }
 
 // https://vite.dev/config/
