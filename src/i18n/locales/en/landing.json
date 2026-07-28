@@ -6,7 +6,11 @@
   },
   "product": {
     "screenshotAlt": "{{brandName}} dashboard — document trends, workspaces, and activity",
-    "pathLabel": "app.1glance.ai/users"
+    "pathLabel": "app.1glance.ai/users",
+    "showcaseEyebrow": "Product preview",
+    "showcaseTitleBefore": "Built for teams who live in",
+    "showcaseTitleHighlight": "documents",
+    "showcaseDescription": "Real screens from {{brandName}} — operational visibility on the dashboard, document vault, groups, users, and grounded answers in chat."
   },
   "features": {
     "sectionId": "features",

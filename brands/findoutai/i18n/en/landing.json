@@ -26,7 +26,8 @@
   },
   "product": {
     "screenshotAlt": "{{brandName}} dashboard showing document intelligence features",
-    "pathLabel": "app.findoutai.com / dashboard"
+    "pathLabel": "app.findoutai.com / dashboard",
+    "showcaseDescription": "Real screens from {{brandName}} — operational visibility on the dashboard, document vault, groups, users, and grounded answers in chat."
   },
   "intelligence": {
     "sectionTitle": "Built on Advanced AI",

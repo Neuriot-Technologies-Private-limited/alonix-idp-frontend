@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
+import { useBrand } from '../../brand/useBrand';
 import { ProductScreenshotFrame } from './ProductScreenshotFrame';
 import {
   PRODUCT_SCREENS,
@@ -10,6 +12,8 @@ import {
 } from './productScreens';
 
 export const ProductShowcaseSection: React.FC = () => {
+  const { t } = useTranslation('landing');
+  const brand = useBrand();
   const [view, setView] = React.useState<ProductScreenId>('dashboard');
   const active = PRODUCT_SCREENS.find((v) => v.id === view) ?? PRODUCT_SCREENS[0];
 
@@ -19,13 +23,15 @@ export const ProductShowcaseSection: React.FC = () => {
 
       <div className="relative z-10 mx-auto max-w-7xl">
         <div className="mb-12 text-center space-y-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">Product preview</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
+            {t('product.showcaseEyebrow')}
+          </p>
           <h2 className="font-display text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
-            Built for teams who live in <span className="text-primary italic">documents</span>
+            {t('product.showcaseTitleBefore')}{' '}
+            <span className="text-primary italic">{t('product.showcaseTitleHighlight')}</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed">
-            Real screens from Alonix IDP — operational visibility on the dashboard, document vault,
-            groups, users, and grounded answers in chat.
+            {t('product.showcaseDescription', { brandName: brand.name })}
           </p>
         </div>
 
