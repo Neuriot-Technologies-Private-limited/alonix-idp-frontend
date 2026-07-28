@@ -88,7 +88,7 @@ const LoginPage: React.FC = () => {
             <AuthPageLogo animate className="h-12 md:h-14 mb-12 origin-left object-contain" />
             <h3 className="text-3xl md:text-4xl font-extrabold font-display leading-[1.1] mb-8 text-foreground">
               {t('login.tagline')}
-              to the <br />
+             <br />
               <span className="text-primary underline decoration-primary/20 underline-offset-[12px] decoration-4">
                 {t('login.taglineHighlight')}
               </span>
