@@ -18,8 +18,38 @@ const mockUrl = process.env.DOCUSAURUS_API_MOCK_URL?.trim() || '/mock-api';
 const sandboxUrl =
   process.env.DOCUSAURUS_API_SANDBOX_URL ?? 'http://localhost:5005/api';
 
-const siteUrl =
-  process.env.DOCUSAURUS_SITE_URL?.trim() || 'http://localhost:3000';
+/**
+ * Docusaurus `url` must be an origin only (no path). Paths belong in `baseUrl`
+ * (e.g. /docs/). CI sometimes passes a host with trailing slash or a duplicated
+ * `.web.app` suffix — normalize so builds fail clearly instead of with a cryptic
+ * "sub-path" validation error.
+ */
+function normalizeSiteUrl(raw: string): string {
+  const trimmed = raw.trim();
+  const withProtocol = /^(https?:)?\/\//i.test(trimmed)
+    ? trimmed.startsWith('//')
+      ? `https:${trimmed}`
+      : trimmed
+    : `https://${trimmed}`;
+  let parsed: URL;
+  try {
+    parsed = new URL(withProtocol);
+  } catch {
+    throw new Error(
+      `Invalid DOCUSAURUS_SITE_URL="${raw}". Expected an origin like https://app.example.com`,
+    );
+  }
+  if (parsed.pathname && parsed.pathname !== '/') {
+    console.warn(
+      `[alonix-docs] Stripping path "${parsed.pathname}" from DOCUSAURUS_SITE_URL; use DOCUSAURUS_BASE_URL for subpaths.`,
+    );
+  }
+  return parsed.origin;
+}
+
+const siteUrl = normalizeSiteUrl(
+  process.env.DOCUSAURUS_SITE_URL?.trim() || 'http://localhost:3000',
+);
 const baseUrl = process.env.DOCUSAURUS_BASE_URL?.trim() || '/';
 const routeBasePath = isSubpathDeploy() ? '/' : 'docs';
 

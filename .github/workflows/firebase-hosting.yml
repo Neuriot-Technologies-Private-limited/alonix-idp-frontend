@@ -87,16 +87,16 @@ jobs:
           FIREBASE_HOSTING_SITE: ${{ secrets.FIREBASE_HOSTING_SITE }}
         run: |
           set -euo pipefail
-          if [ -n "${PUBLIC_APP_URL:-}" ]; then
-            SITE_URL="${PUBLIC_APP_URL%/}"
-          elif [ -n "${FIREBASE_HOSTING_SITE:-}" ]; then
-            SITE_URL="https://${FIREBASE_HOSTING_SITE}.web.app"
-          else
-            echo "Set vars.PUBLIC_APP_URL or secrets.FIREBASE_HOSTING_SITE for docs build"
-            exit 1
-          fi
+          # shellcheck source=scripts/resolve-firebase-site-url.sh
+          source scripts/resolve-firebase-site-url.sh
+          SITE_URL="$(resolve_public_site_url "${PUBLIC_APP_URL:-}" "${FIREBASE_HOSTING_SITE:-}")"
+          SITE_ID="$(normalize_firebase_site_id "${FIREBASE_HOSTING_SITE:-}")"
           echo "url=${SITE_URL}" >> "$GITHUB_OUTPUT"
+          echo "site_id=${SITE_ID}" >> "$GITHUB_OUTPUT"
           echo "Docs site URL: ${SITE_URL}"
+          if [ -n "${SITE_ID}" ]; then
+            echo "Firebase hosting site id: ${SITE_ID}"
+          fi
 
       - name: Build docs (Help Center)
         working-directory: alonix-docs
@@ -169,8 +169,14 @@ jobs:
             echo "FIREBASE_HOSTING_SITE secret is required"
             exit 1
           fi
+          # shellcheck source=scripts/resolve-firebase-site-url.sh
+          source scripts/resolve-firebase-site-url.sh
           TARGET_ALIAS="findout-v3"
-          TARGET_SITE="$FIREBASE_HOSTING_SITE"
+          TARGET_SITE="$(normalize_firebase_site_id "$FIREBASE_HOSTING_SITE")"
+          if [ -z "$TARGET_SITE" ]; then
+            echo "FIREBASE_HOSTING_SITE resolved to empty site id (got: ${FIREBASE_HOSTING_SITE})"
+            exit 1
+          fi
           npx -y firebase-tools target:apply hosting "$TARGET_ALIAS" "$TARGET_SITE" \
             --project "$FIREBASE_PROJECT_ID"
           set +e
@@ -206,10 +212,24 @@ jobs:
           PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
         run: |
           set -euo pipefail
+          # Checkout is not required for curl smoke tests, but the helper script is.
+          # Inline the same normalization so this job stays checkout-free.
+          normalize_firebase_site_id() {
+            local raw="${1:-}"
+            raw="$(printf '%s' "$raw" | tr -d '[:space:]')"
+            raw="${raw#https://}"
+            raw="${raw#http://}"
+            raw="${raw%%/*}"
+            raw="${raw%.web.app}"
+            raw="${raw%.firebaseapp.com}"
+            raw="${raw%.}"
+            printf '%s' "$raw"
+          }
           if [ -n "${PUBLIC_APP_URL:-}" ]; then
-            BASE="${PUBLIC_APP_URL%/}"
+            BASE="$(node -e 'const u=new URL(/^(https?:)?\/\//i.test(process.argv[1])?process.argv[1].startsWith("//")?`https:${process.argv[1]}`:process.argv[1]:`https://${process.argv[1]}`); process.stdout.write(u.origin)' "${PUBLIC_APP_URL}")"
           elif [ -n "${FIREBASE_HOSTING_SITE:-}" ]; then
-            BASE="https://${FIREBASE_HOSTING_SITE}.web.app"
+            SITE_ID="$(normalize_firebase_site_id "$FIREBASE_HOSTING_SITE")"
+            BASE="https://${SITE_ID}.web.app"
           else
             echo "Set vars.PUBLIC_APP_URL or secrets.FIREBASE_HOSTING_SITE for smoke tests"
             exit 1
