@@ -72,7 +72,11 @@ const VerifyPage: React.FC = () => {
     setError('');
     setInfo('');
     try {
-      await authApi.resendVerification(emailParam, orgIdParam || undefined);
+      const data = await authApi.resendVerification(emailParam, orgIdParam || undefined);
+      if (data.sent === false) {
+        setError('We still could not send the verification email. Try again later or contact support.');
+        return;
+      }
       setInfo('If the account exists, a new code was sent.');
       setTimer(59);
     } catch {
@@ -146,9 +150,13 @@ const VerifyPage: React.FC = () => {
 
           {devMailHint ? (
             <p className="mb-4 text-xs font-bold text-warning/90 bg-warning/10 border border-warning/25 rounded-xl px-4 py-3 leading-relaxed">
-              Email was not sent from this server (SMTP off or not configured). For local development, open the{' '}
-              <span className="text-warning">terminal where the API runs</span> — the 6-digit code is printed there.
-                To receive real mail, set <code className="rounded bg-surface-highest/10 px-1 py-0.5 text-[10px]">SMTP_ENABLED=true</code> and valid SMTP credentials in the backend <code className="rounded bg-surface-highest/10 px-1 py-0.5 text-[10px]">.env</code>.
+              Your account was created, but we could not send the verification email. Tap Resend below.
+              {import.meta.env.DEV ? (
+                <>
+                  {' '}
+                  If SMTP is off locally, the 6-digit code is printed in the API terminal.
+                </>
+              ) : null}
             </p>
           ) : null}
           {error ? (
