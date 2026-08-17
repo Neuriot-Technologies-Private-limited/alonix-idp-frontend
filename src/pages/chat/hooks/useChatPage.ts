@@ -87,7 +87,7 @@ export function useChatPage() {
         behavior: 'smooth',
       });
     });
-  }, [sessions.conversationPairs, composer.isResponseLoading]);
+  }, [sessions.conversationPairs, composer.isResponseLoading, composer.pendingQuery]);
 
   const toggleSidebar = useCallback(() => setSidebarHidden((p) => !p), []);
 

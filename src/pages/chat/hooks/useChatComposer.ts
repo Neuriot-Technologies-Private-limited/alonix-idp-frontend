@@ -7,7 +7,7 @@ import {
   extractClarificationOptions,
   resolveResponseKind,
 } from '../utils/clarificationOptions';
-import type { ConversationPair } from '../types/chatConversation';
+import type { ConversationPair, PendingChatQuery } from '../types/chatConversation';
 
 interface UseChatComposerOptions {
   collectionName: string;
@@ -35,6 +35,7 @@ export function useChatComposer({
   const [text, setText] = useState('');
   const [isResponseLoading, setIsResponseLoading] = useState(false);
   const [errorText, setErrorText] = useState('');
+  const [pendingQuery, setPendingQuery] = useState<PendingChatQuery | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const activeSessionRef = useRef<string | null>(currentSession);
 
@@ -53,7 +54,8 @@ export function useChatComposer({
 
   const submitQuery = useCallback(
     async (queryText: string) => {
-      if (!queryText.trim() || isResponseLoading) return;
+      const trimmed = queryText.trim();
+      if (!trimmed || isResponseLoading) return;
       if (qaBlocked) {
         const msg = capMessage('questionsMonth');
         setErrorText(msg);
@@ -68,9 +70,12 @@ export function useChatComposer({
         setCurrentSession(sessionId);
       }
       const requestSessionId = sessionId;
+      activeSessionRef.current = requestSessionId;
+      setPendingQuery({ sessionId: requestSessionId, text: trimmed });
+      setText('');
       try {
         const response = await askQuestion(
-          queryText,
+          trimmed,
           collectionName,
           activeGroupId,
           sessionId,
@@ -90,7 +95,7 @@ export function useChatComposer({
         setConversationPairs((prev) => [
           ...prev,
           mapApiAnswerToPair(
-            queryText,
+            trimmed,
             apiResponse.answer || '',
             responseKind === 'clarification' ? null : apiResponse.sources,
             responseKind,
@@ -98,15 +103,16 @@ export function useChatComposer({
             apiResponse.query_id
           ),
         ]);
-        setText('');
         onAnswerSuccess();
       } catch (err) {
         if (activeSessionRef.current === requestSessionId) {
+          setText(trimmed);
           const msg = quotaErrorMessage(err, 'Failed to get answer.');
           setErrorText(msg);
           showToast(msg, 'error');
         }
       } finally {
+        setPendingQuery(null);
         setIsResponseLoading(false);
       }
     },
@@ -150,5 +156,6 @@ export function useChatComposer({
     submitClarificationOption,
     inputRef,
     focusComposer,
+    pendingQuery,
   };
 }

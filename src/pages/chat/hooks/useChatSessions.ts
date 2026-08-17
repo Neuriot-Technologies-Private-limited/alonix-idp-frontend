@@ -17,6 +17,12 @@ import {
   getChatSessionsPage,
 } from '../../../services/chatApi';
 import { mapHistoryMessageToPair } from '../utils/mapChatMessages';
+import {
+  buildChatTranscriptFilename,
+  downloadTextFile,
+  formatChatSessionTranscript,
+  type ChatTranscriptMessage,
+} from '../utils/formatChatSessionTranscript';
 import type { ChatAlertState, ConversationPair } from '../types/chatConversation';
 import { CHAT_SESSIONS_PAGE_SIZE, chatQueryKeys } from './chatQueryKeys';
 
@@ -47,6 +53,7 @@ export function useChatSessions({
     title: '',
     msg: '',
   });
+  const [downloadingSessionId, setDownloadingSessionId] = useState<string | null>(null);
 
   const sessionsQuery = useInfiniteQuery({
     queryKey: chatQueryKeys.sessions(groupKey),
@@ -151,6 +158,39 @@ export function useChatSessions({
     [setCurrentSession, setHistorySyncMode, userEmail]
   );
 
+  const handleDownloadChatSession = useCallback(
+    async (sessionId: string, title: string, setErrorText: (msg: string) => void) => {
+      if (!sessionId || !userEmail || downloadingSessionId) return;
+      setDownloadingSessionId(sessionId);
+      try {
+        const response = await getChatHistory(sessionId, groupKey || undefined);
+        const messages = Array.isArray(response.data)
+          ? (response.data as ChatTranscriptMessage[])
+          : [];
+        const body = formatChatSessionTranscript({
+          title,
+          exportedAt: new Date(),
+          messages,
+        });
+        downloadTextFile(buildChatTranscriptFilename(title), body);
+        showToast('Chat transcript downloaded.', 'ok');
+      } catch (error: unknown) {
+        const ax = error as { response?: { data?: { message?: string; error?: string } } };
+        const backendMsg =
+          ax?.response?.data?.message ||
+          ax?.response?.data?.error ||
+          (error instanceof Error ? error.message : '') ||
+          'Failed to download chat transcript.';
+        setAlertModal({ open: true, title: 'Download chat failed', msg: backendMsg });
+        setErrorText(backendMsg);
+        showToast(backendMsg, 'error');
+      } finally {
+        setDownloadingSessionId(null);
+      }
+    },
+    [downloadingSessionId, groupKey, showToast, userEmail]
+  );
+
   const handleDeleteChatSession = useCallback(
     async (sessionId: string, setErrorText: (msg: string) => void) => {
       if (!sessionId || !userEmail) return;
@@ -210,6 +250,8 @@ export function useChatSessions({
     invalidateChatHistory,
     createNewChat,
     selectChatSession,
+    handleDownloadChatSession,
     handleDeleteChatSession,
+    downloadingSessionId,
   };
 }

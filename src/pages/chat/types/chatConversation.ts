@@ -12,6 +12,11 @@ export interface NormSource {
   source_type?: string;
 }
 
+export interface PendingChatQuery {
+  sessionId: string;
+  text: string;
+}
+
 export interface ConversationPair {
   /** Stable React key — from API `query_id` when available. */
   pairId: string;

@@ -50,8 +50,12 @@ const ChatPage: React.FC = () => {
         isFetchingNextSessionsPage={sessions.isFetchingNextSessionsPage}
         onLoadMoreSessions={() => void sessions.fetchNextSessionsPage()}
         currentSession={sessions.currentSession}
+        downloadingSessionId={sessions.downloadingSessionId}
         onNewChat={resetChatSurface}
         onSelectSession={(id) => void sessions.selectChatSession(id, composer.setErrorText)}
+        onDownloadSession={(id, title) =>
+          void sessions.handleDownloadChatSession(id, title, composer.setErrorText)
+        }
         onDeleteSession={(id) => void sessions.handleDeleteChatSession(id, composer.setErrorText)}
         formatSessionMeta={formatSessionMeta}
       />
@@ -107,7 +111,15 @@ const ChatPage: React.FC = () => {
             );
           })}
 
-          {composer.isResponseLoading && <ChatThinkingIndicator label={t('thinking')} />}
+          {composer.pendingQuery &&
+          composer.pendingQuery.sessionId === sessions.currentSession ? (
+            <ChatThinkingIndicator
+              question={composer.pendingQuery.text}
+              questionLabel={t('question')}
+              answerLabel={t('answer')}
+              label={t('thinking')}
+            />
+          ) : null}
         </main>
 
         <ChatComposer

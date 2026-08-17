@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MessageSquarePlus, Trash2 } from 'lucide-react';
+import { Download, Loader2, MessageSquarePlus, Trash2 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import type { ChatSessionDto } from '../../../services/chatApi';
 import { useTranslation } from 'react-i18next';
@@ -12,8 +12,10 @@ type ChatSidebarProps = {
   isFetchingNextSessionsPage: boolean;
   onLoadMoreSessions: () => void;
   currentSession: string | null;
+  downloadingSessionId?: string | null;
   onNewChat: () => void;
   onSelectSession: (id: string) => void | Promise<void>;
+  onDownloadSession: (id: string, title: string) => void | Promise<void>;
   onDeleteSession: (id: string) => void | Promise<void>;
   formatSessionMeta: (iso: string) => string;
 };
@@ -26,8 +28,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isFetchingNextSessionsPage,
   onLoadMoreSessions,
   currentSession,
+  downloadingSessionId = null,
   onNewChat,
   onSelectSession,
+  onDownloadSession,
   onDeleteSession,
   formatSessionMeta,
 }) => {
@@ -118,21 +122,42 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     {formatSessionMeta(session.last_updated)}
                   </span>
                 </button>
-                <button
-                  type="button"
+                <div
                   className={cn(
-                    'flex shrink-0 items-center self-center rounded-lg p-2 text-muted-foreground/60 opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100',
+                    'flex shrink-0 items-center self-center opacity-0 transition group-hover:opacity-100',
                     currentSession === session.session_id && 'opacity-100'
                   )}
-                  title={t('deleteSession')}
-                  aria-label={t('deleteSession')}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void onDeleteSession(session.session_id);
-                  }}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-muted-foreground/60 transition hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                    title={t('downloadSession')}
+                    aria-label={t('downloadSession')}
+                    disabled={downloadingSessionId === session.session_id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onDownloadSession(session.session_id, session.title);
+                    }}
+                  >
+                    {downloadingSessionId === session.session_id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-muted-foreground/60 transition hover:bg-destructive/10 hover:text-destructive"
+                    title={t('deleteSession')}
+                    aria-label={t('deleteSession')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onDeleteSession(session.session_id);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </li>
             ))}
             <li aria-hidden className="h-px">
