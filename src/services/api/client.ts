@@ -64,6 +64,32 @@ function isSessionBootstrapRequest(config: InternalAxiosRequestConfig): boolean 
   return SESSION_BOOTSTRAP_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
+/**
+ * Shown instead of the raw backend "Invalid or missing CSRF token" text.
+ * That message is a developer-facing detail (usually a stale/expired session
+ * or a dropped cross-site cookie) — end users should never see it verbatim.
+ */
+const CSRF_FRIENDLY_MESSAGE =
+  'We couldn\u2019t verify your session. Please refresh the page and try again. ' +
+  'If this keeps happening, log out and log back in.';
+
+function isCsrfError(error: unknown): boolean {
+  const err = error as { response?: { status?: number; data?: { message?: string; code?: string } } };
+  if (err.response?.status !== 403) return false;
+  if (err.response?.data?.code === 'CSRF_INVALID') return true;
+  return String(err.response?.data?.message || '').toLowerCase().includes('csrf');
+}
+
+/** Replaces the raw backend CSRF message with user-friendly copy, in place, so
+ * every screen reading `error.response.data.message` sees the friendly text
+ * without each one needing its own special-casing. */
+function makeCsrfErrorFriendly(error: unknown): void {
+  const err = error as { response?: { data?: Record<string, unknown> } };
+  if (!err.response?.data) return;
+  err.response.data.originalMessage = err.response.data.message;
+  err.response.data.message = CSRF_FRIENDLY_MESSAGE;
+}
+
 let csrfBootstrapInflight: Promise<void> | null = null;
 let unauthorizedHandling: Promise<void> | null = null;
 let contextBootstrapCooldownUntil = 0;
@@ -128,9 +154,7 @@ apiClient.interceptors.request.use(async (config) => {
     if (!csrf) {
       const { user, context } = useAuthStore.getState();
       if (hasActiveSession(user, context)) {
-        return Promise.reject(
-          new Error('CSRF token unavailable — refresh the page or sign in again')
-        );
+        return Promise.reject(new Error(CSRF_FRIENDLY_MESSAGE));
       }
     } else {
       config.headers['X-CSRF-Token'] = csrf;
@@ -174,12 +198,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error) => {
-    const csrfMsg = String(error.response?.data?.message || '');
-    if (
-      error.response?.status === 403 &&
-      csrfMsg.toLowerCase().includes('csrf') &&
-      !(error.config as { _csrfRetried?: boolean })?._csrfRetried
-    ) {
+    if (isCsrfError(error) && !(error.config as { _csrfRetried?: boolean })?._csrfRetried) {
       try {
         await bootstrapContextForCsrf();
         const csrf = getCsrfTokenFromCookie();
@@ -191,6 +210,13 @@ apiClient.interceptors.response.use(
       } catch {
         /* fall through */
       }
+    }
+
+    // Reached when a CSRF failure could not be silently resolved (no fresh
+    // token available, or the retried request failed again). Surface a
+    // friendly message instead of the raw backend text.
+    if (isCsrfError(error)) {
+      makeCsrfErrorFriendly(error);
     }
 
     if (error.response?.status === 401) {

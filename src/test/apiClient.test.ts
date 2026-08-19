@@ -312,7 +312,7 @@ describe('apiClient response interceptor — 403 CSRF retry', () => {
     expect(result).toEqual({ data: 'ok' });
   });
 
-  it('does not retry a request that has already failed a CSRF retry', async () => {
+  it('does not retry a request that has already failed a CSRF retry, and rewrites the message', async () => {
     const getSpy = vi.spyOn(apiClient, 'get');
     const error: AnyConfig = {
       response: { status: 403, data: { message: 'csrf mismatch' } },
@@ -320,6 +320,18 @@ describe('apiClient response interceptor — 403 CSRF retry', () => {
     };
     await expect(responseRejected(error)).rejects.toBe(error);
     expect(getSpy).not.toHaveBeenCalled();
+    expect(error.response.data.message).toMatch(/verify your session/);
+    expect(error.response.data.originalMessage).toBe('csrf mismatch');
+  });
+
+  it('recognizes the CSRF_INVALID code even without "csrf" in the message text', async () => {
+    const error: AnyConfig = {
+      response: { status: 403, data: { message: 'Forbidden', code: 'CSRF_INVALID' } },
+      config: { url: '/documents', method: 'post', headers: {}, _csrfRetried: true },
+    };
+    await expect(responseRejected(error)).rejects.toBe(error);
+    expect(error.response.data.message).toMatch(/verify your session/);
+    expect(error.response.data.originalMessage).toBe('Forbidden');
   });
 
   it('leaves non-CSRF 403 errors untouched', async () => {
@@ -462,7 +474,7 @@ describe('apiClient request interceptor — CSRF bootstrap for mutating requests
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce({ data: {} } as AnyConfig);
 
     const config = makeConfig({ url: '/documents', method: 'post', data: { name: 'doc' } });
-    await expect(requestFulfilled(config)).rejects.toThrow(/CSRF token unavailable/);
+    await expect(requestFulfilled(config)).rejects.toThrow(/verify your session/);
     expect(getSpy).toHaveBeenCalledWith('/users/me/context');
   });
 
@@ -485,13 +497,13 @@ describe('apiClient request interceptor — CSRF bootstrap for mutating requests
       .mockRejectedValueOnce({ response: { status: 429 } });
 
     const first = makeConfig({ url: '/documents', method: 'post', data: { name: 'doc' } });
-    await expect(requestFulfilled(first)).rejects.toThrow(/CSRF token unavailable/);
+    await expect(requestFulfilled(first)).rejects.toThrow(/verify your session/);
     expect(getSpy).toHaveBeenCalledTimes(1);
 
     // Still within the 429 cooldown window: no second network call is made.
     vi.setSystemTime(realNowAtStart + 45_000);
     const second = makeConfig({ url: '/documents', method: 'post', data: { name: 'doc' } });
-    await expect(requestFulfilled(second)).rejects.toThrow(/CSRF token unavailable/);
+    await expect(requestFulfilled(second)).rejects.toThrow(/verify your session/);
     expect(getSpy).toHaveBeenCalledTimes(1);
   });
 });
