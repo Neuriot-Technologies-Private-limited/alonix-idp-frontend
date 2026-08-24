@@ -62,15 +62,6 @@ export interface AuditLogsResult {
   limit: number;
 }
 
-export interface SiemStatus {
-  enabled: boolean;
-  configured: boolean;
-  lastSuccessAt: string | null;
-  lastError: string | null;
-  eventsForwarded: number;
-  eventsFailed: number;
-}
-
 export interface ActivitySeriesPoint {
   period: string;
   auditEvents: number;
@@ -717,11 +708,6 @@ export const adminService = {
     }
   },
 
-  getSiemStatus: async (): Promise<SiemStatus> => {
-    const { data } = await apiClient.get<SiemStatus>('/health/siem');
-    return data;
-  },
-
   getOrgAiSettings: async (): Promise<OrgAiSettings> => {
     const orgId = requireOrgId();
     const { data } = await apiClient.get<{ settings: OrgAiSettings }>(
@@ -854,7 +840,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
 export {
   useDashboardState,
   useAdminStats,
-  useSiemStatus,
   useOrgAiSettings,
   useUsers,
   useAuditLogs,

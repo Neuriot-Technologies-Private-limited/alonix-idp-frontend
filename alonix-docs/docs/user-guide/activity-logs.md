@@ -45,7 +45,7 @@ Use filters such as:
 
 ### 4. Export logs (if available)
 
-Some deployments allow exporting log segments for SIEM or compliance archives. Follow your org retention policy.
+Some deployments allow exporting log segments as CSV, PDF, or Excel for compliance archives. Follow your org retention policy.
 
 ### 5. Regular review cadence
 

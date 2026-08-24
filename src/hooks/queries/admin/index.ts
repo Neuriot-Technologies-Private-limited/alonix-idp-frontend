@@ -1,7 +1,6 @@
 export {
   useDashboardState,
   useAdminStats,
-  useSiemStatus,
   useOrgAiSettings,
   useOrgSharePointSettings,
   useUsers,

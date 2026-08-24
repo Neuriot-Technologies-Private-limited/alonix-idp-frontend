@@ -118,6 +118,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           <input
             type="file"
             multiple
+            accept=".pdf,.json,.xlsx,.xls,.csv,.txt,.doc,.docx,.png,.jpg,.jpeg,.tif,.tiff,.webp,application/pdf,application/json,text/csv,text/plain"
             className="absolute inset-0 cursor-pointer opacity-0"
             onChange={(e) => {
               const files = Array.from(e.target.files || []);

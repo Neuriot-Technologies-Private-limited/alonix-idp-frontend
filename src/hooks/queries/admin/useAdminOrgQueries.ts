@@ -34,17 +34,6 @@ export const useAdminStats = () => {
   });
 };
 
-export const useSiemStatus = () => {
-  const isCompanyAdmin = useIsCompanyAdmin();
-  return useQuery({
-    queryKey: ['siem-status'],
-    queryFn: adminService.getSiemStatus,
-    enabled: isCompanyAdmin,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
-  });
-};
-
 export const useOrgAiSettings = (opts?: { enabled?: boolean }) => {
   const orgId = useOrgId();
   const isCompanyAdmin = useIsCompanyAdmin();
