@@ -2,10 +2,7 @@
  * i18n initialisation — import this ONCE in src/main.tsx before rendering.
  *
  * Architecture:
- *  - Base strings live in src/i18n/locales/<lng>/<ns>.json
- *  - Brand overrides live in brands/<brand>/i18n/<lng>/<ns>.json
- *  - Brand strings are merged at build time by vite.config.ts (brand plugin)
- *    into src/i18n/locales/<lng>/<ns>.json, so we only need one load path here.
+ *  - Strings live in src/i18n/locales/<lng>/<ns>.json
  *
  * Adding a new language:
  *  1. Create src/i18n/locales/<lng>/*.json

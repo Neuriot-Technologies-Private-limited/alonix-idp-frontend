@@ -1,23 +1,20 @@
 import { isEnterpriseBuild } from './deploymentProfile';
 
 /**
- * BrandConfig — the single source of truth for what a brand can customise.
+ * Product identity for 1-Glance.
  *
- * All values are resolved at build time from VITE_BRAND_* environment variables
- * injected by vite.config.ts when running `vite --mode <brand>`.
- *
- * Never hardcode brand values in components — always import from here
- * or use the `useBrand()` hook.
+ * Screens should import from here or use `useBrand()` — do not hardcode the
+ * product name, logo, or colors in components.
  */
 
 export interface BrandConfig {
-  /** Full display name, e.g. "1-Glance" */
+  /** Full display name */
   name: string;
-  /** Short abbreviation, e.g. "1G" */
+  /** Short abbreviation */
   shortName: string;
   /** Hero tagline used on landing page */
   tagline: string;
-  /** Footer copyright entity, e.g. "Alonix Intelligence Systems" */
+  /** Footer copyright entity */
   copyright: string;
 
   /** URL to the full horizontal logo (served from /brand/) */
@@ -36,7 +33,7 @@ export interface BrandConfig {
   /** Primary-container colour hex — dark mode */
   primaryContainerDark: string;
 
-  /** Support / contact email for this brand */
+  /** Support / contact email */
   supportEmail: string;
   /** Sales / enterprise contact email */
   salesEmail: string;
@@ -64,55 +61,40 @@ export interface BrandConfig {
   documentsShotUrl: string;
 }
 
-/** Read an optional VITE_ env var with a fallback. */
-function optional(key: string, fallback: string): string {
-  const val = import.meta.env[key];
-  return val ? String(val) : fallback;
-}
-
-function flag(key: string, fallback = true): boolean {
-  const val = import.meta.env[key];
-  if (!val) return fallback;
-  return String(val).toLowerCase() !== 'false' && val !== '0';
-}
-
 /**
- * The resolved brand configuration for the current build.
- * This is a module-level singleton — evaluated once at startup.
+ * 1-Glance product constants.
+ * `showLanding` follows the SaaS vs enterprise deployment profile.
+ * Public pricing stays off for 1-Glance in both profiles.
  */
 export const brandConfig: BrandConfig = {
-  name: optional('VITE_BRAND_NAME', '1-Glance'),
-  shortName: optional('VITE_BRAND_SHORT_NAME', '1G'),
-  tagline: optional(
-    'VITE_BRAND_TAGLINE',
-    'The Digital Curator for Your Document Intelligence Platform'
-  ),
-  copyright: optional('VITE_BRAND_COPYRIGHT', 'Alonix Intelligence Systems'),
+  name: '1-Glance',
+  shortName: '1G',
+  tagline: 'The Digital Curator for Your Document Intelligence Platform',
+  copyright: 'Alonix Intelligence Systems',
 
-  // Assets are served from /brand/ — copied there by vite.config.ts at build time
-  logoUrl: optional('VITE_BRAND_LOGO_URL', '/brand/logo.png'),
-  logoIconUrl: optional('VITE_BRAND_LOGO_ICON_URL', '/brand/logo-icon.png'),
-  faviconUrl: optional('VITE_BRAND_FAVICON_URL', '/brand/favicon.svg'),
+  logoUrl: '/brand/logo.png',
+  logoIconUrl: '/brand/logo-icon.png',
+  faviconUrl: '/brand/favicon.svg',
 
-  primaryLight: optional('VITE_BRAND_PRIMARY_LIGHT', '#005ac1'),
-  primaryContainerLight: optional('VITE_BRAND_PRIMARY_CONTAINER_LIGHT', '#d8e2ff'),
-  primaryDark: optional('VITE_BRAND_PRIMARY_DARK', '#ADC6FF'),
-  primaryContainerDark: optional('VITE_BRAND_PRIMARY_CONTAINER_DARK', '#1E2B4B'),
+  primaryLight: '#005ac1',
+  primaryContainerLight: '#d8e2ff',
+  primaryDark: '#ADC6FF',
+  primaryContainerDark: '#1E2B4B',
 
-  supportEmail: optional('VITE_BRAND_SUPPORT_EMAIL', 'support@1glance.ai'),
-  salesEmail: optional('VITE_BRAND_SALES_EMAIL', 'sales@1glance.ai'),
-  websiteUrl: optional('VITE_BRAND_WEBSITE_URL', 'https://1glance.ai'),
-  privacyUrl: optional('VITE_BRAND_PRIVACY_URL', 'https://1glance.ai/privacy'),
-  termsUrl: optional('VITE_BRAND_TERMS_URL', 'https://1glance.ai/terms'),
+  supportEmail: 'support@1glance.ai',
+  salesEmail: 'sales@1glance.ai',
+  websiteUrl: 'https://1glance.ai',
+  privacyUrl: 'https://1glance.ai/privacy',
+  termsUrl: 'https://1glance.ai/terms',
 
-  showPricing: isEnterpriseBuild() ? false : flag('VITE_BRAND_SHOW_PRICING', true),
-  showLanding: isEnterpriseBuild() ? false : flag('VITE_BRAND_SHOW_LANDING', true),
+  showPricing: false,
+  showLanding: !isEnterpriseBuild(),
 
-  dashboardShotUrl: optional('VITE_BRAND_DASHBOARD_SHOT', '/brand/product-dashboard.png'),
-  chatShotUrl: optional('VITE_BRAND_CHAT_SHOT', '/brand/product-chat.png'),
-  groupsShotUrl: optional('VITE_BRAND_GROUPS_SHOT', '/brand/product-groups.png'),
-  usersShotUrl: optional('VITE_BRAND_USERS_SHOT', '/brand/product-users.png'),
-  documentsShotUrl: optional('VITE_BRAND_DOCUMENTS_SHOT', '/brand/product-documents.png'),
+  dashboardShotUrl: '/brand/product-dashboard.png',
+  chatShotUrl: '/brand/product-chat.png',
+  groupsShotUrl: '/brand/product-groups.png',
+  usersShotUrl: '/brand/product-users.png',
+  documentsShotUrl: '/brand/product-documents.png',
 };
 
 /** Landing pricing, /pricing, org subscription panel, and /settings/billing. */

@@ -8,32 +8,10 @@ const ROOT = __dirname;
 const DOCS_BUILD_DIR = path.resolve(ROOT, 'alonix-docs', 'build');
 const PUBLIC_BRAND_DIR = path.resolve(ROOT, 'public', 'brand');
 const THEME_DEST = path.resolve(ROOT, 'src', 'brand', 'theme.css');
-const BASELINE_ASSETS = path.resolve(ROOT, 'brands', '1glance', 'assets');
-const BASELINE_THEME = path.resolve(ROOT, 'brands', '1glance', 'theme.css');
+const PRODUCT_NAME = '1-Glance';
+const PRODUCT_FAVICON_URL = '/brand/favicon.svg';
 
 export type BrandFavicon = { url: string; mimeType: string };
-
-function copyAssets(src: string, dest: string) {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const file of fs.readdirSync(src)) {
-    if (file === '.DS_Store') continue;
-    fs.copyFileSync(path.join(src, file), path.join(dest, file));
-  }
-}
-
-/** Drop baseline favicon.* when the active brand ships its own favicon file(s). */
-function pruneStaleBrandFavicons(publicBrandDir: string, brandAssetsDir: string) {
-  const brandFavicons = fs
-    .readdirSync(brandAssetsDir)
-    .filter((f) => f.startsWith('favicon.'));
-  if (brandFavicons.length === 0) return;
-
-  for (const file of fs.readdirSync(publicBrandDir)) {
-    if (file.startsWith('favicon.') && !brandFavicons.includes(file)) {
-      fs.unlinkSync(path.join(publicBrandDir, file));
-    }
-  }
-}
 
 const FAVICON_EXT_PRIORITY = ['.png', '.ico', '.webp', '.svg'];
 
@@ -45,36 +23,6 @@ function pickFaviconFile(files: string[]): string | undefined {
   return files.find((f) => f.startsWith('favicon.'));
 }
 
-/** Copy brand assets + theme into public/ and src/ for the active Vite mode. */
-export function syncBrandAssets(mode: string): void {
-  const brandDir = path.resolve(ROOT, 'brands', mode);
-  const assetsDir = path.join(brandDir, 'assets');
-  const themeSrc = path.join(brandDir, 'theme.css');
-
-  if (fs.existsSync(PUBLIC_BRAND_DIR)) {
-    fs.rmSync(PUBLIC_BRAND_DIR, { recursive: true, force: true });
-  }
-
-  if (fs.existsSync(BASELINE_ASSETS)) {
-    copyAssets(BASELINE_ASSETS, PUBLIC_BRAND_DIR);
-  }
-
-  if (mode !== '1glance' && fs.existsSync(assetsDir)) {
-    copyAssets(assetsDir, PUBLIC_BRAND_DIR);
-    pruneStaleBrandFavicons(PUBLIC_BRAND_DIR, assetsDir);
-  }
-
-  if (fs.existsSync(BASELINE_THEME)) {
-    fs.mkdirSync(path.dirname(THEME_DEST), { recursive: true });
-    fs.copyFileSync(BASELINE_THEME, THEME_DEST);
-  }
-
-  if (mode !== '1glance' && fs.existsSync(themeSrc)) {
-    fs.mkdirSync(path.dirname(THEME_DEST), { recursive: true });
-    fs.copyFileSync(themeSrc, THEME_DEST);
-  }
-}
-
 function faviconMimeType(filename: string): string {
   const ext = path.extname(filename).slice(1).toLowerCase();
   if (ext === 'svg') return 'image/svg+xml';
@@ -84,12 +32,34 @@ function faviconMimeType(filename: string): string {
   return 'image/png';
 }
 
+/** Fail the build if committed 1-Glance assets are missing. */
+export function assertProductAssets(
+  publicBrandDir = PUBLIC_BRAND_DIR,
+  themeDest = THEME_DEST
+): void {
+  if (!fs.existsSync(publicBrandDir)) {
+    throw new Error('Missing public/brand/ — 1-Glance logos and favicon must be committed there.');
+  }
+  const required = ['logo.png', 'logo-icon.png'];
+  for (const file of required) {
+    if (!fs.existsSync(path.join(publicBrandDir, file))) {
+      throw new Error(`Missing public/brand/${file}`);
+    }
+  }
+  const favicons = fs.readdirSync(publicBrandDir).filter((f) => f.startsWith('favicon.'));
+  if (favicons.length === 0) {
+    throw new Error('Missing favicon.* in public/brand/');
+  }
+  if (!fs.existsSync(themeDest)) {
+    throw new Error('Missing src/brand/theme.css');
+  }
+}
+
 /**
- * Resolve favicon from brand.env (VITE_BRAND_FAVICON_URL) when the file exists
- * in public/brand/, otherwise first favicon.* in that folder.
+ * Resolve favicon from public/brand/. Prefers VITE_BRAND_FAVICON_URL when that file exists.
  */
 export function resolveBrandFavicon(
-  brandEnv: Record<string, string>,
+  brandEnv: Record<string, string> = { VITE_BRAND_FAVICON_URL: PRODUCT_FAVICON_URL },
   publicBrandDir = PUBLIC_BRAND_DIR
 ): BrandFavicon {
   const configured = brandEnv.VITE_BRAND_FAVICON_URL?.trim();
@@ -108,25 +78,25 @@ export function resolveBrandFavicon(
     }
   }
 
-  return { url: '/brand/favicon.svg', mimeType: 'image/svg+xml' };
+  throw new Error('Missing favicon in public/brand/');
 }
 
-function brandPlugin(mode: string, brandEnvRaw: Record<string, string>): Plugin {
+function productHtmlPlugin(): Plugin {
   return {
-    name: 'vite-plugin-brand',
+    name: 'vite-plugin-product-html',
     buildStart() {
-      syncBrandAssets(mode);
+      assertProductAssets();
     },
     configureServer() {
-      syncBrandAssets(mode);
+      assertProductAssets();
     },
     transformIndexHtml(html) {
-      const fav = resolveBrandFavicon(brandEnvRaw);
-      const brandName = brandEnvRaw.VITE_BRAND_NAME || '1-Glance';
+      const fav = resolveBrandFavicon();
       return html
         .replace(/%BRAND_FAVICON_URL%/g, fav.url)
         .replace(/%BRAND_FAVICON_TYPE%/g, fav.mimeType)
-        .replace(/%VITE_BRAND_NAME%/g, brandName);
+        .replace(/%VITE_BRAND_NAME%/g, PRODUCT_NAME)
+        .replace(/%PRODUCT_NAME%/g, PRODUCT_NAME);
     },
   };
 }
@@ -151,16 +121,8 @@ function parseEnvFile(filePath: string): Record<string, string> {
 }
 
 /**
- * Load brand.env for the given mode and merge into the Vite env.
- * Standard Vite .env files (`.env`, `.env.<mode>`) still apply as normal.
- */
-function loadBrandEnv(mode: string, root: string): Record<string, string> {
-  return parseEnvFile(path.join(root, 'brands', mode, 'brand.env'));
-}
-
-/**
  * Load profiles/<profile>.env (saas | enterprise).
- * Merged after brand.env; npm scripts set VITE_DEPLOYMENT_PROFILE before Vite starts.
+ * npm scripts set VITE_DEPLOYMENT_PROFILE before Vite starts.
  */
 export function loadProfileEnv(profile: string, root: string): Record<string, string> {
   const normalized = profile === 'enterprise' ? 'enterprise' : 'saas';
@@ -280,7 +242,6 @@ function resolveDocsMode(): 'static' | 'proxy' {
 export default defineConfig(({ mode }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root, '');
-  const brandEnv = loadBrandEnv(mode, root);
 
   const deploymentProfile =
     process.env.VITE_DEPLOYMENT_PROFILE?.trim() ||
@@ -292,11 +253,8 @@ export default defineConfig(({ mode }) => {
     VITE_DEPLOYMENT_PROFILE: profileEnv.VITE_DEPLOYMENT_PROFILE || deploymentProfile,
   };
 
-  syncBrandAssets(mode);
-  const favicon = resolveBrandFavicon(brandEnv);
-  const brandEnvResolved = { ...brandEnv, VITE_BRAND_FAVICON_URL: favicon.url };
+  assertProductAssets();
   const buildEnvResolved: Record<string, string> = {
-    ...brandEnvResolved,
     ...profileEnvResolved,
   };
 
@@ -333,7 +291,7 @@ export default defineConfig(({ mode }) => {
 
   const plugins = [
     react(),
-    brandPlugin(mode, brandEnv),
+    productHtmlPlugin(),
     ...(docsMode === 'static' ? [docsStaticPlugin(DOCS_BUILD_DIR)] : []),
   ].flat();
 

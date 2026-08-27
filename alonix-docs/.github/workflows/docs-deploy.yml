@@ -1,20 +1,13 @@
-# Docs deploy is handled by the frontend Firebase workflow.
-# See: ../alonix-idp-frontend/.github/workflows/firebase-hosting.yml
+# Docs ship inside the frontend dist/ on AWS (nginx /docs/).
+# Production deploy: alonix-idp-frontend/.github/workflows/deploy-aws.yml
 #
-# Pipeline: security → build-docs → deploy (merge + Firebase) → deploy-docs (verify) → notify-slack
-#
-# Required GitHub settings on the frontend repository:
-#   vars.ALONIX_DOCS_REPOSITORY  — e.g. your-org/alonix-docs
-#   vars.PUBLIC_APP_URL            — e.g. https://app.yourdomain.com
-#   secrets.DOCS_REPO_TOKEN        — optional PAT if docs repo is private
-#
-# This workflow only runs a standalone docs build (e.g. monorepo path filters).
+# This workflow only runs a standalone docs build (e.g. path-filter checks).
 
-name: Build Alonix Docs (standalone)
+name: Build 1-Glance Docs (standalone)
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ alonix-1-glance]
     paths:
       - '**'
   workflow_dispatch:

@@ -138,7 +138,7 @@ npm run build
 npm run serve   # preview build locally
 ```
 
-Deploy contents of `build/` to static hosting. See `.github/workflows/docs-deploy.yml` for CI example.
+Production: docs are merged into the frontend `dist/docs/` and copied to the AWS nginx root (`npm run build:dist` in `alonix-idp-frontend`).
 
 ## Expected Results
 

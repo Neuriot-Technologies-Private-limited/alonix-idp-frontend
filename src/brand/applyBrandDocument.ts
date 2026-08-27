@@ -25,7 +25,7 @@ export function applyBrandDocument(): void {
     document.head.appendChild(link);
   }
   link.type = type;
-  // Bust aggressive favicon caching when switching brands locally.
+  // Bust aggressive favicon caching.
   const cacheKey = encodeURIComponent(brandConfig.shortName);
   link.href = href.includes('?') ? `${href}&v=${cacheKey}` : `${href}?v=${cacheKey}`;
 }

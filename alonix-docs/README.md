@@ -1,6 +1,6 @@
-# Help Center (brand-configurable)
+# Help Center
 
-Complete **end-user documentation** for the document intelligence platform, plus a **developer API reference** and interactive playground. Brand name, logo, and colors come from `../brands/<slug>/` (set `DOCUSAURUS_BRAND`, default `findoutai`).
+Complete **end-user documentation** for 1-Glance, plus a **developer API reference** and interactive playground. Product name, logo, and colors come from `../public/brand` (synced by `npm run sync:brand`).
 
 ## What's inside
 
@@ -154,32 +154,32 @@ npm run start
 # Docs pages:  http://localhost:3000/docs/...
 ```
 
-### Production (Firebase — same domain as app)
+### Production (AWS nginx — same domain as app)
 
-Docs ship at **`https://<your-app-domain>/docs/`** via the frontend Firebase workflow.
+Docs ship at **`https://<your-app-domain>/docs/`** inside the frontend `dist/` folder.
 
 **GitHub configuration (frontend repo):**
 
 | Setting | Example | Purpose |
 |---------|---------|---------|
-| `vars.PUBLIC_APP_URL` | `https://app.yourdomain.com` | Canonical URL for Docusaurus `url` + smoke tests. **Required** unless `FIREBASE_HOSTING_SITE` secret is set (CI falls back to `https://<site>.web.app`). |
+| `vars.PUBLIC_APP_URL` | `https://app.yourdomain.com` | Canonical URL for Docusaurus |
+| `vars.DEPLOY_DIST_PATH` | `/var/www/1glance` | nginx root on the EC2 instance |
 
-Docs live in **`alonix-idp-frontend/alonix-docs/`** on the same `develop` branch — no separate docs repo required.
+Docs live in **`alonix-idp-frontend/alonix-docs/`** on the `alonix-1-glance` branch.
 
-**CI pipeline** (`alonix-idp-frontend/.github/workflows/firebase-hosting.yml`):
+**CI pipeline** (`alonix-idp-frontend/.github/workflows/deploy-aws.yml`):
 
 1. `security` — gitleaks, tests, audit  
-2. `deploy` — build docs + app, merge into `dist/docs/`, Firebase deploy  
-3. `deploy-docs` — smoke test `/docs/`, `/docs/api-playground/`, `/docs/openapi.yaml`  
-4. `notify-slack`
+2. `build` — app + docs merged into `dist/`  
+3. `deploy` — rsync `dist/` to the AWS instance  
 
 ### Local build before push (matches CI)
 
 From `alonix-idp-frontend/`:
 
 ```bash
-export VITE_API_BASE_URL=https://your-api.example.com/api
-npm run build:firebase
+export PUBLIC_APP_URL=https://app.yourdomain.com
+npm run build:dist
 ```
 
 This builds the app, builds docs at `/docs/`, and merges into `dist/docs/`.

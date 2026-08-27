@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * Path helper for Docusaurus standalone (/) vs Firebase subpath (/docs/) deploys.
+ * Path helper for Docusaurus standalone (/) vs nginx /docs/ subpath deploys.
  * Used by generate-api-docs.js and docusaurus.config.ts (via duplicate logic).
  */
 

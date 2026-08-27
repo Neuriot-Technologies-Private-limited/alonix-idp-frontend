@@ -22,7 +22,6 @@ if [ ! -d node_modules ]; then
   npm ci
 fi
 
-BRAND="${DOCUSAURUS_BRAND:-1glance}"
 # Lightning Studio example:
 #   DOCUSAURUS_SITE_URL=https://5173-<studio-id>.cloudspaces.litng.ai
 SITE_URL="${DOCUSAURUS_SITE_URL:-${PUBLIC_APP_URL:-http://localhost:5173}}"
@@ -33,12 +32,11 @@ if [[ "${SITE_URL}" == *"localhost"* ]] && [[ -n "${LIGHTNING_CLOUD_URL:-}" || -
   echo "      DOCUSAURUS_SITE_URL=https://5173-xxxx.cloudspaces.litng.ai npm run build:docs:dev"
 fi
 
-echo "==> Building docs (brand=${BRAND}, baseUrl=/docs/, siteUrl=${SITE_URL})..."
-DOCUSAURUS_BRAND="${BRAND}" \
+echo "==> Building docs (baseUrl=/docs/, siteUrl=${SITE_URL})..."
 DOCUSAURUS_BASE_URL=/docs/ \
 DOCUSAURUS_SITE_URL="${SITE_URL}" \
 DOCUSAURUS_API_MODE="${DOCUSAURUS_API_MODE:-mock}" \
-npm run build:1glance
+npm run build:ci
 
 # Fail fast if the build accidentally used baseUrl=/
 if ! grep -qE '["'"'"']/docs/assets/' build/index.html 2>/dev/null; then

@@ -23,7 +23,7 @@ The {{brandName}} IDP frontend is a **React 19 + Vite + TypeScript** SPA in `alo
 ```bash
 cd alonix-idp-frontend
 npm install
-npm run dev:findoutai    # or dev:1glance
+npm run dev
 ```
 
 Default URL: `http://localhost:5173`
@@ -61,8 +61,8 @@ See [Authentication](../authentication) for Bearer token usage in non-browser cl
 
 | Profile | Command | Notes |
 |---------|---------|-------|
-| SaaS | `npm run build:findoutai` | Billing enabled |
-| Enterprise | `npm run build:findoutai:enterprise` | `VITE_DEPLOYMENT_PROFILE=enterprise` |
+| SaaS | `npm run build` | Billing UI follows product flags |
+| Enterprise | `npm run build:enterprise` | `VITE_DEPLOYMENT_PROFILE=enterprise` |
 
 ## Related docs
 

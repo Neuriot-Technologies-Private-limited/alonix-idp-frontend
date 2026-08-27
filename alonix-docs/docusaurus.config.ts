@@ -10,7 +10,7 @@ const {isSubpathDeploy, sitePath} = require('./scripts/site-paths') as {
   sitePath: (path: string) => string;
 };
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const {applyBrandTokens, resolveBrandSlug, loadBrandEnv, toBrandConfig} =
+const {applyBrandTokens, toBrandConfig} =
   require('./scripts/brand-env') as typeof import('./scripts/brand-env');
 
 const apiMode = process.env.DOCUSAURUS_API_MODE ?? 'mock';
@@ -20,9 +20,8 @@ const sandboxUrl =
 
 /**
  * Docusaurus `url` must be an origin only (no path). Paths belong in `baseUrl`
- * (e.g. /docs/). CI sometimes passes a host with trailing slash or a duplicated
- * `.web.app` suffix — normalize so builds fail clearly instead of with a cryptic
- * "sub-path" validation error.
+ * (e.g. /docs/). CI sometimes passes a host with a trailing slash — normalize
+ * so builds fail clearly instead of with a cryptic "sub-path" validation error.
  */
 function normalizeSiteUrl(raw: string): string {
   const trimmed = raw.trim();
@@ -60,10 +59,8 @@ function loadBrand() {
       typeof toBrandConfig
     >;
   }
-  const slug = resolveBrandSlug();
-  const env = loadBrandEnv(slug);
   const brandStaticDir = path.join(__dirname, 'static', 'brand');
-  return toBrandConfig(slug, env, brandStaticDir);
+  return toBrandConfig(brandStaticDir);
 }
 
 const brand = loadBrand();

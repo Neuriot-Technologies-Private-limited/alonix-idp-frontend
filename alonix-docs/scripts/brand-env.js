@@ -1,44 +1,26 @@
 /**
- * Shared brand.env parser — mirrors alonix-idp-frontend/vite.config.ts conventions.
+ * 1-Glance product identity for the Help Center.
+ * Assets come from ../public/brand (committed frontend product files).
  */
 const fs = require('fs');
 const path = require('path');
 
 const FRONTEND_ROOT = path.resolve(__dirname, '..', '..');
-const BASELINE_BRAND = '1glance';
 
-function parseEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return {};
-  const result = {};
-  for (const line of fs.readFileSync(filePath, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
-    if (eqIdx === -1) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-    result[key] = value;
-  }
-  return result;
-}
-
-function resolveBrandSlug() {
-  return (
-    process.env.DOCUSAURUS_BRAND?.trim() ||
-    process.env.VITE_BRAND_MODE?.trim() ||
-    'findoutai'
-  );
-}
-
-function loadBrandEnv(slug) {
-  const brandPath = path.join(FRONTEND_ROOT, 'brands', slug, 'brand.env');
-  if (!fs.existsSync(brandPath)) {
-    throw new Error(
-      `Brand not found: brands/${slug}/brand.env — set DOCUSAURUS_BRAND or add the brand folder.`
-    );
-  }
-  return parseEnvFile(brandPath);
-}
+const PRODUCT = {
+  slug: '1glance',
+  name: '1-Glance',
+  shortName: '1G',
+  tagline: 'The Digital Curator for Your Document Intelligence Platform',
+  copyright: 'Alonix Intelligence Systems',
+  supportEmail: 'support@1glance.ai',
+  salesEmail: 'sales@1glance.ai',
+  websiteUrl: 'https://1glance.ai',
+  privacyUrl: 'https://1glance.ai/privacy',
+  termsUrl: 'https://1glance.ai/terms',
+  primaryLight: '#005ac1',
+  primaryDark: '#ADC6FF',
+};
 
 function pickFaviconFile(files) {
   const priority = ['.png', '.ico', '.webp', '.svg'];
@@ -50,7 +32,9 @@ function pickFaviconFile(files) {
 }
 
 function copyDir(src, dest) {
-  if (!fs.existsSync(src)) return;
+  if (!fs.existsSync(src)) {
+    throw new Error(`Missing product assets at ${src}`);
+  }
   fs.mkdirSync(dest, {recursive: true});
   for (const file of fs.readdirSync(src)) {
     if (file === '.DS_Store') continue;
@@ -58,19 +42,12 @@ function copyDir(src, dest) {
   }
 }
 
-function syncBrandAssets(slug, destDir) {
+function syncBrandAssets(destDir) {
+  const src = path.join(FRONTEND_ROOT, 'public', 'brand');
   if (fs.existsSync(destDir)) {
     fs.rmSync(destDir, {recursive: true, force: true});
   }
-  fs.mkdirSync(destDir, {recursive: true});
-
-  const baselineAssets = path.join(FRONTEND_ROOT, 'brands', BASELINE_BRAND, 'assets');
-  copyDir(baselineAssets, destDir);
-
-  if (slug !== BASELINE_BRAND) {
-    const brandAssets = path.join(FRONTEND_ROOT, 'brands', slug, 'assets');
-    copyDir(brandAssets, destDir);
-  }
+  copyDir(src, destDir);
 }
 
 function resolveLogoPath(brandStaticDir) {
@@ -78,13 +55,14 @@ function resolveLogoPath(brandStaticDir) {
   for (const file of candidates) {
     if (fs.existsSync(path.join(brandStaticDir, file))) return `brand/${file}`;
   }
-  return 'img/logo.svg';
+  throw new Error(`Missing logo in ${brandStaticDir}`);
 }
 
 function resolveFaviconPath(brandStaticDir) {
   const files = fs.existsSync(brandStaticDir) ? fs.readdirSync(brandStaticDir) : [];
   const favicon = pickFaviconFile(files);
-  return favicon ? `brand/${favicon}` : 'img/logo.svg';
+  if (!favicon) throw new Error(`Missing favicon in ${brandStaticDir}`);
+  return `brand/${favicon}`;
 }
 
 function hexToRgb(hex) {
@@ -152,28 +130,13 @@ function buildThemeCss(brand) {
 `;
 }
 
-function toBrandConfig(slug, env, brandStaticDir) {
-  const optional = (key, fallback) => env[key] || fallback;
+function toBrandConfig(brandStaticDir) {
   return {
-    slug,
-    name: optional('VITE_BRAND_NAME', 'FindoutAI'),
-    shortName: optional('VITE_BRAND_SHORT_NAME', 'FA'),
-    tagline: optional(
-      'VITE_BRAND_TAGLINE',
-      'AI-Powered Document Intelligence for Every Enterprise'
-    ),
-    copyright: optional('VITE_BRAND_COPYRIGHT', 'FindoutAI Technologies Inc.'),
-    supportEmail: optional('VITE_BRAND_SUPPORT_EMAIL', 'support@findoutai.com'),
-    salesEmail: optional('VITE_BRAND_SALES_EMAIL', 'sales@findoutai.com'),
-    websiteUrl: optional('VITE_BRAND_WEBSITE_URL', 'https://findoutai.com'),
-    privacyUrl: optional('VITE_BRAND_PRIVACY_URL', 'https://findoutai.com/privacy'),
-    termsUrl: optional('VITE_BRAND_TERMS_URL', 'https://findoutai.com/terms'),
-    primaryLight: optional('VITE_BRAND_PRIMARY_LIGHT', '#7C3AED'),
-    primaryDark: optional('VITE_BRAND_PRIMARY_DARK', '#C4B5FD'),
+    ...PRODUCT,
     logoPath: resolveLogoPath(brandStaticDir),
     faviconPath: resolveFaviconPath(brandStaticDir),
-    helpCenterTitle: `${optional('VITE_BRAND_NAME', 'FindoutAI')} Help Center`,
-    navbarTitle: `${optional('VITE_BRAND_SHORT_NAME', 'FA')} Help`,
+    helpCenterTitle: `${PRODUCT.name} Help Center`,
+    navbarTitle: `${PRODUCT.shortName} Help`,
   };
 }
 
@@ -188,10 +151,7 @@ function applyBrandTokens(text, brand) {
 
 module.exports = {
   FRONTEND_ROOT,
-  BASELINE_BRAND,
-  parseEnvFile,
-  resolveBrandSlug,
-  loadBrandEnv,
+  PRODUCT,
   syncBrandAssets,
   buildThemeCss,
   toBrandConfig,

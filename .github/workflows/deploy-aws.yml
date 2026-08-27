@@ -1,0 +1,141 @@
+name: Deploy dist to AWS
+
+on:
+  push:
+    branches:
+      - alonix-1-glance
+  workflow_dispatch:
+    inputs:
+      target:
+        description: GitHub Environment to deploy
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+
+concurrency:
+  group: deploy-aws-${{ github.event.inputs.target || 'staging' }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        env:
+          GITLEAKS_VERSION: 8.24.2
+        run: |
+          set -euo pipefail
+          GITLEAKS_DIR="${RUNNER_TEMP}/gitleaks"
+          mkdir -p "$GITLEAKS_DIR"
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$GITLEAKS_DIR" gitleaks
+          chmod +x "${GITLEAKS_DIR}/gitleaks"
+          echo "${GITLEAKS_DIR}" >> "$GITHUB_PATH"
+
+      - name: Scan for secrets (Gitleaks)
+        run: |
+          gitleaks version
+          gitleaks detect --source . --config .gitleaks.toml --verbose
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ESLint (src)
+        run: npm run lint
+      - run: npm run test:run
+      - name: npm audit (fail on high+)
+        run: npm audit --omit=dev --audit-level=high
+
+  build:
+    name: Build dist
+    needs: security
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target || 'staging' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify alonix-docs is present
+        run: |
+          test -f alonix-docs/package.json || {
+            echo "alonix-docs/ is missing from this commit."
+            exit 1
+          }
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Build app + docs into dist/
+        env:
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+        run: |
+          chmod +x scripts/build-dist.sh
+          bash scripts/build-dist.sh
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1glance-dist
+          path: dist
+          retention-days: 14
+
+  deploy:
+    name: Copy dist to AWS instance
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target || 'staging' }}
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: 1glance-dist
+          path: dist
+
+      - name: Copy dist to AWS instance
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DIST_PATH: ${{ vars.DEPLOY_DIST_PATH }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          touch ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          PORT="${SSH_PORT:-22}"
+          if [ -n "${DEPLOY_KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -T 15 -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          fi
+          SSH_OPTS="-i ${HOME}/.ssh/deploy_key -o ConnectTimeout=30 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${HOME}/.ssh/known_hosts -p ${PORT}"
+          DEST="${DIST_PATH:-/var/www/1glance}"
+          ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" "mkdir -p '${DEST}'"
+          rsync -az --delete -e "ssh ${SSH_OPTS}" dist/ "${SSH_USER}@${SSH_HOST}:${DEST}/"
+          echo "Published dist/ to ${SSH_USER}@${SSH_HOST}:${DEST}"
+          ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
+            "if command -v nginx >/dev/null && nginx -t; then sudo -n nginx -s reload || sudo -n systemctl reload nginx || true; fi"

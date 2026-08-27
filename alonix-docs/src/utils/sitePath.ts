@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 /**
- * Site path helper — standalone dev (/) vs Firebase subpath (/docs/).
+ * Site path helper — standalone dev (/) vs nginx /docs/ subpath.
  * Keep logic in sync with scripts/site-paths.js (Node/build-time only).
  */
 export function isSubpathDeploy(baseUrl = '/'): boolean {

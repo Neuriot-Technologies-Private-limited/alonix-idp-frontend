@@ -1,11 +1,7 @@
 /**
- * 1-Glance Brand Theme
- *
- * This file is auto-copied to src/brand/theme.css by the Vite brand plugin
- * when running `vite --mode 1glance`.
+ * 1-Glance theme tokens.
  *
  * Override only the tokens that differ from the base index.css.
- * All other tokens fall through to the defaults.
  */
 
 :root {

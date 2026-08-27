@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Merge a Docusaurus build (baseUrl /docs/) into the Vite app dist for Firebase Hosting.
+# Merge a Docusaurus build (baseUrl /docs/) into the Vite app dist for nginx.
 set -euo pipefail
 
 DOCS_BUILD="${1:?Usage: merge-docs-into-dist.sh <docs-build-dir> [dist-dir]}"

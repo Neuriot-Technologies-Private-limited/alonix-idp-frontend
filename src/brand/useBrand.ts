@@ -1,15 +1,7 @@
 /**
- * useBrand — React hook that returns the current BrandConfig.
+ * useBrand — returns 1-Glance product identity.
  *
- * Since brand is resolved at build time, this is effectively a constant.
- * Wrapping it in a hook keeps it:
- * - Mockable in unit tests
- * - Easy to upgrade to runtime config later (e.g. fetched from API)
- * - Consistent with React conventions throughout the codebase
- *
- * Usage:
- *   const brand = useBrand();
- *   <img src={brand.logoUrl} alt={brand.name} />
+ * Values are module constants (not a white-label switcher).
  */
 
 import { brandConfig, type BrandConfig } from './brandConfig';
