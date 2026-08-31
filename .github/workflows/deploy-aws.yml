@@ -141,3 +141,60 @@ jobs:
           echo "Published dist/ to ${SSH_USER}@${SSH_HOST}:${DEST}"
           ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
             "if command -v nginx >/dev/null && nginx -t; then sudo -n nginx -s reload || sudo -n systemctl reload nginx || true; fi"
+
+  notify-slack:
+    needs: [security, build, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ github.event.inputs.target || 'staging' }}
+    env:
+      PROJECT_NAME: 1-Glance Frontend (AWS)
+      JOB_RESULT: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || contains(needs.*.result, 'skipped') && 'skipped' || 'success' }}
+    steps:
+      - name: Build Slack message
+        id: slack
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "send=false" >> "$GITHUB_OUTPUT"
+            echo "SLACK_WEBHOOK_URL not set — add it as a staging (or repo) secret."
+            exit 0
+          fi
+          echo "send=true" >> "$GITHUB_OUTPUT"
+          SHA_SHORT="${GITHUB_SHA:0:7}"
+          case "${JOB_RESULT}" in
+            success)   STATUS="✅ SUCCESS" ;;
+            cancelled) STATUS="🚫 CANCELLED" ;;
+            skipped)   STATUS="⏭️ SKIPPED" ;;
+            *)         STATUS="❌ FAILED" ;;
+          esac
+          if [ -n "${COMMIT_MESSAGE:-}" ]; then
+            COMMIT_LINE="$(printf '%s' "$COMMIT_MESSAGE" | head -1 | cut -c1-100)"
+          else
+            COMMIT_LINE="(manual run — no commit message)"
+          fi
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          TEXT="$(printf '%s\n*Project:* %s\n*Repo:* `%s`\n*Branch:* `%s`\n*Commit:* `%s` — %s\n*Triggered by:* %s\n*Security:* %s | *Build:* %s | *Deploy:* %s\n<%s|View workflow run>' \
+            "$STATUS" "$PROJECT_NAME" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$SHA_SHORT" "$COMMIT_LINE" "$GITHUB_ACTOR" "$SECURITY_RESULT" "$BUILD_RESULT" "$DEPLOY_RESULT" "$RUN_URL")"
+          jq -n --arg text "$TEXT" '{text: $text}' > slack-payload.json
+
+      - name: Notify Slack
+        if: steps.slack.outputs.send == 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 30 --retry 2 --retry-delay 2 \
+            -X POST \
+            -H 'Content-type: application/json' \
+            --data @"slack-payload.json" \
+            "$SLACK_WEBHOOK_URL"
+          echo "Slack notification sent."
