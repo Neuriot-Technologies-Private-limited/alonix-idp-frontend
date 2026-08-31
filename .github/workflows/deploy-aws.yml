@@ -1,4 +1,6 @@
-name: Deploy dist to AWS
+name: Deploy alonix-1-glance frontend dist to AWS
+# Push to alonix-1-glance → GitHub Environment "staging".
+# Manual run can choose staging or production.
 
 on:
   push:
