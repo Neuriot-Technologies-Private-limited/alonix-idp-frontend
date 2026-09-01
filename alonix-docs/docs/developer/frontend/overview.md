@@ -61,8 +61,8 @@ See [Authentication](../authentication) for Bearer token usage in non-browser cl
 
 | Profile | Command | Notes |
 |---------|---------|-------|
-| SaaS | `npm run build` | Billing UI follows product flags |
-| Enterprise | `npm run build:enterprise` | `VITE_DEPLOYMENT_PROFILE=enterprise` |
+| Enterprise (default) | `npm run build` | `VITE_DEPLOYMENT_PROFILE=enterprise` |
+| SaaS | `npm run build:saas` | `VITE_DEPLOYMENT_PROFILE=saas` |
 
 ## Related docs
 

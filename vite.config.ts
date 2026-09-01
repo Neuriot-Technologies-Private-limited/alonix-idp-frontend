@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 import sirv from 'sirv';
+import { resolveDeploymentProfileFromEnv } from './src/brand/resolveDeploymentProfile';
 
 const ROOT = __dirname;
 const DOCS_BUILD_DIR = path.resolve(ROOT, 'alonix-docs', 'build');
@@ -125,7 +126,7 @@ function parseEnvFile(filePath: string): Record<string, string> {
  * npm scripts set VITE_DEPLOYMENT_PROFILE before Vite starts.
  */
 export function loadProfileEnv(profile: string, root: string): Record<string, string> {
-  const normalized = profile === 'enterprise' ? 'enterprise' : 'saas';
+  const normalized = profile === 'saas' ? 'saas' : 'enterprise';
   return parseEnvFile(path.join(root, 'profiles', `${normalized}.env`));
 }
 
@@ -243,10 +244,7 @@ export default defineConfig(({ mode }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root, '');
 
-  const deploymentProfile =
-    process.env.VITE_DEPLOYMENT_PROFILE?.trim() ||
-    env.VITE_DEPLOYMENT_PROFILE?.trim() ||
-    'saas';
+  const deploymentProfile = resolveDeploymentProfileFromEnv(env, process.env);
   const profileEnv = loadProfileEnv(deploymentProfile, root);
   const profileEnvResolved: Record<string, string> = {
     ...profileEnv,

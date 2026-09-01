@@ -54,14 +54,14 @@ Related repos:
 
 ## Deployment profiles
 
-SaaS vs enterprise is a **delivery** flag, not a product skin:
+SaaS vs enterprise is a **delivery** flag, not a product skin. Set it in `.env` on **both** apps so they stay aligned:
 
-| Profile | Frontend | Effect |
-|---------|----------|--------|
-| **saas** (default) | `npm run dev` / `npm run build` | Public landing on; public pricing off for 1-Glance |
-| **enterprise** | `npm run dev:enterprise` / `npm run build:enterprise` | Hides public landing, signup, and billing UI |
+| Profile | Env value | Effect |
+|---------|-----------|--------|
+| **enterprise** (default) | `VITE_DEPLOYMENT_PROFILE=enterprise` | Hides public landing, signup, and billing UI |
+| **saas** | `VITE_DEPLOYMENT_PROFILE=saas` | Public landing on; public pricing off for 1-Glance |
 
-Pair enterprise frontend builds with backend `DEPLOYMENT_PROFILE=enterprise`.
+Backend must use the same value as `DEPLOYMENT_PROFILE` in `alonix-idp-node-backend/.env`. `npm run dev:saas` / `build:saas` only apply when `.env` does not already set `VITE_DEPLOYMENT_PROFILE`.
 
 ---
 
@@ -77,6 +77,7 @@ cp .env.example .env
 
 | Variable | Dev | Production |
 |----------|-----|------------|
+| `VITE_DEPLOYMENT_PROFILE` | `saas` or `enterprise` — must match backend `DEPLOYMENT_PROFILE` | Same. GitHub Environment var `VITE_DEPLOYMENT_PROFILE` (default enterprise if unset) |
 | `VITE_API_BASE_URL` | Optional — omit to use `/api` via Vite proxy → `localhost:5005` | **Omit on AWS** (nginx proxies `/api`). Set only if the API is on another host |
 | `VITE_DEV_PROXY_TARGET` | Optional — override proxy target (ngrok, remote backend) | — |
 | `VITE_SOCKET_URL` | Optional — defaults to API origin | Set if Socket.IO host differs |
@@ -131,8 +132,8 @@ npm run dev:mock
 
 ```bash
 npm install
-npm run dev              # SaaS profile
-npm run dev:enterprise   # enterprise profile
+# Profile comes from .env (VITE_DEPLOYMENT_PROFILE). Must match backend DEPLOYMENT_PROFILE.
+npm run dev
 ```
 
 Vite dev server: **http://localhost:5173**
@@ -173,10 +174,12 @@ Or keep `mock` mode and pick **Sandbox backend** in the playground server dropdo
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Dev server (1-Glance, SaaS profile) |
-| `npm run dev:enterprise` | 1-Glance + enterprise deployment profile |
-| `npm run build` | Typecheck + Vite production build |
-| `npm run build:enterprise` | Enterprise production build |
+| `npm run dev` | Dev server (profile from `.env`; default enterprise) |
+| `npm run dev:saas` | SaaS only if `.env` does not already set `VITE_DEPLOYMENT_PROFILE` |
+| `npm run dev:enterprise` | Enterprise only if `.env` does not already set `VITE_DEPLOYMENT_PROFILE` |
+| `npm run build` | Typecheck + Vite production build (same env rule) |
+| `npm run build:saas` | SaaS only if `.env` does not already set `VITE_DEPLOYMENT_PROFILE` |
+| `npm run build:enterprise` | Enterprise only if `.env` does not already set `VITE_DEPLOYMENT_PROFILE` |
 | `npm run build:dist` | App + Help Center merged into `dist/` (what AWS nginx serves) |
 | `npm run preview` | Preview production `dist/` locally |
 | `npm run lint` | ESLint |
@@ -300,7 +303,8 @@ Repo-level Actions secrets are a fallback for both. Prefer **environment** secre
 
 | Variable | Purpose |
 |----------|---------|
-| `PUBLIC_APP_URL` | Canonical origin for Help Center links (e.g. `https://staging.yourdomain.com`) |
+| `PUBLIC_APP_URL` | Canonical origin for Help Center links (e.g. `https://dev.1glance.ai`) |
+| `VITE_DEPLOYMENT_PROFILE` | `saas` or `enterprise` — must match backend `DEPLOYMENT_PROFILE` in `ENV_FILE`. Defaults to enterprise if unset |
 | `DEPLOY_DIST_PATH` | nginx root on the instance (default `/var/www/1glance`) |
 
 Repeat the same names on `production` with production host/URL/path.

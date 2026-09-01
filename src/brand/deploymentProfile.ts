@@ -1,16 +1,20 @@
 /**
  * Build-time deployment profile (SaaS vs enterprise).
- * Set via VITE_DEPLOYMENT_PROFILE in vite / npm scripts.
+ * Source of truth: VITE_DEPLOYMENT_PROFILE in `.env` (must match backend DEPLOYMENT_PROFILE).
  */
 
-export type DeploymentProfile = 'saas' | 'enterprise';
+import {
+  normalizeDeploymentProfile,
+  type DeploymentProfile,
+} from './resolveDeploymentProfile';
 
-function normalize(raw: unknown): DeploymentProfile {
-  const v = String(raw || 'saas').trim().toLowerCase();
-  return v === 'enterprise' ? 'enterprise' : 'saas';
-}
+export type { DeploymentProfile };
+export {
+  normalizeDeploymentProfile,
+  resolveDeploymentProfileFromEnv,
+} from './resolveDeploymentProfile';
 
-export const deploymentProfile: DeploymentProfile = normalize(
+export const deploymentProfile: DeploymentProfile = normalizeDeploymentProfile(
   import.meta.env.VITE_DEPLOYMENT_PROFILE
 );
 

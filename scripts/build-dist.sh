@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build the production static bundle: Vite app + Help Center at dist/docs/.
 # Same-origin AWS: leave VITE_API_BASE_URL unset so the SPA calls /api on nginx.
+# Profile: VITE_DEPLOYMENT_PROFILE from the environment / .env (saas | enterprise).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
