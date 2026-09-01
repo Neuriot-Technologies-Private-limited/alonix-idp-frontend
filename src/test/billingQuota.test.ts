@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { AxiosError } from 'axios';
 import {
   QUOTA_ERROR_CODES,
@@ -93,25 +93,59 @@ describe('isQuotaError', () => {
 });
 
 describe('quotaErrorMessage', () => {
-  it('appends upgrade hint for standard quota errors', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('appends upgrade hint for standard quota errors on saas', async () => {
+    vi.stubEnv('VITE_DEPLOYMENT_PROFILE', 'saas');
+    vi.resetModules();
+    const { quotaErrorMessage: message } = await import('../utils/billingQuota');
     const err = makeAxiosError(402, {
       error: 'STORAGE_QUOTA_REACHED',
       message: 'Storage limit reached.',
     });
-    const msg = quotaErrorMessage(err);
+    const msg = message(err);
     expect(msg).toContain('Storage limit reached.');
     expect(msg).toContain('Subscription to upgrade your plan.');
   });
 
-  it('appends billing update hint for SUBSCRIPTION_PAST_DUE', () => {
+  it('appends billing update hint for SUBSCRIPTION_PAST_DUE on saas', async () => {
+    vi.stubEnv('VITE_DEPLOYMENT_PROFILE', 'saas');
+    vi.resetModules();
+    const { quotaErrorMessage: message } = await import('../utils/billingQuota');
     const err = makeAxiosError(402, {
       error: 'SUBSCRIPTION_PAST_DUE',
       message: 'Your subscription is past due.',
     });
-    const msg = quotaErrorMessage(err);
+    const msg = message(err);
     expect(msg).toContain('Your subscription is past due.');
     expect(msg).toContain('Subscription to update billing.');
     expect(msg).not.toContain('upgrade your plan');
+  });
+
+  it('omits upgrade and billing hints on enterprise', async () => {
+    vi.stubEnv('VITE_DEPLOYMENT_PROFILE', 'enterprise');
+    vi.resetModules();
+    const { quotaErrorMessage: message } = await import('../utils/billingQuota');
+    const storage = message(
+      makeAxiosError(402, {
+        error: 'STORAGE_QUOTA_REACHED',
+        message: 'Storage limit reached.',
+      })
+    );
+    expect(storage).toBe('Storage limit reached.');
+    expect(storage).not.toContain('upgrade your plan');
+
+    const pastDue = message(
+      makeAxiosError(402, {
+        error: 'SUBSCRIPTION_PAST_DUE',
+        message: 'Your subscription is past due.',
+      })
+    );
+    expect(pastDue).toBe('Your subscription is past due.');
+    expect(pastDue).not.toContain('update billing');
   });
 
   it('uses provided fallback message when quota message is absent', () => {

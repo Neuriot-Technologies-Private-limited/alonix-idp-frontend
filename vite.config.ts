@@ -244,7 +244,15 @@ export default defineConfig(({ mode }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root, '');
 
-  const deploymentProfile = resolveDeploymentProfileFromEnv(env, process.env);
+  // Vitest should not inherit local/CI .env enterprise default — most unit tests
+  // are written for SaaS billing/signup. Tests that care stub VITE_DEPLOYMENT_PROFILE.
+  const deploymentProfile =
+    mode === 'test'
+      ? resolveDeploymentProfileFromEnv(
+          { VITE_DEPLOYMENT_PROFILE: process.env.VITE_DEPLOYMENT_PROFILE || 'saas' },
+          process.env
+        )
+      : resolveDeploymentProfileFromEnv(env, process.env);
   const profileEnv = loadProfileEnv(deploymentProfile, root);
   const profileEnvResolved: Record<string, string> = {
     ...profileEnv,
