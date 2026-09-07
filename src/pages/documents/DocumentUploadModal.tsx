@@ -20,6 +20,10 @@ export interface DocumentUploadModalProps {
   uploadSensitivityLevel: string;
   onUploadSensitivityChange: (level: string) => void;
   uploadSensitivityOptions: { value: string; label: string; hint: string }[];
+  attachClaimId: boolean;
+  onAttachClaimIdChange: (checked: boolean) => void;
+  claimId: string;
+  onClaimIdChange: (value: string) => void;
   onUpload: () => void;
 }
 
@@ -35,6 +39,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   uploadSensitivityLevel,
   onUploadSensitivityChange,
   uploadSensitivityOptions,
+  attachClaimId,
+  onAttachClaimIdChange,
+  claimId,
+  onClaimIdChange,
   onUpload,
 }) => {
   const { t } = useTranslation('documents');
@@ -72,7 +80,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           </button>
           <button
             type="button"
-            disabled={selectedFiles.length === 0 || (orgWideUpload && !targetGroupId)}
+            disabled={
+              selectedFiles.length === 0 ||
+              (orgWideUpload && !targetGroupId) ||
+              (attachClaimId && !claimId.trim())
+            }
             onClick={onUpload}
             className={cn(
               'flex-1 min-h-[44px] min-w-0 rounded-xl bg-primary px-3 text-[10px] font-black uppercase tracking-widest text-primary-foreground shadow-md shadow-primary/15 sm:min-h-[48px] sm:px-4 sm:text-[11px]',
@@ -170,6 +182,43 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                   {t('upload.noSensitivityTiers')}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={attachClaimId}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    onAttachClaimIdChange(checked);
+                    if (!checked) onClaimIdChange('');
+                  }}
+                  className="h-3.5 w-3.5 rounded border-border/35 bg-surface-highest/60 text-primary accent-primary focus:ring-primary/30"
+                  aria-label={t('upload.claimIdCheckbox')}
+                />
+                <span className="text-[10px] font-bold text-muted-foreground/70">
+                  {t('upload.claimIdCheckbox')}
+                </span>
+              </label>
+              {attachClaimId ? (
+                <div className="space-y-1">
+                  <label htmlFor="upload-modal-claim-id" className="text-[10px] font-bold text-muted-foreground/70">
+                    {t('upload.claimIdLabel')}
+                  </label>
+                  <input
+                    id="upload-modal-claim-id"
+                    type="text"
+                    value={claimId}
+                    onChange={(e) => onClaimIdChange(e.target.value)}
+                    placeholder={t('upload.claimIdPlaceholder')}
+                    maxLength={128}
+                    autoComplete="off"
+                    className="w-full rounded-xl border border-border/30 bg-surface-lowest/80 px-3 py-2.5 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-primary/40"
+                  />
+                  <p className="text-[10px] leading-snug text-muted-foreground/50">{t('upload.claimIdHint')}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

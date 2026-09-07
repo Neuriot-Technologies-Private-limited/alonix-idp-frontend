@@ -44,6 +44,8 @@ export function useDocumentUpload(opts: {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [targetGroupId, setTargetGroupId] = useState('');
   const [uploadSensitivityLevel, setUploadSensitivityLevel] = useState<string>('INTERNAL_USE');
+  const [attachClaimId, setAttachClaimId] = useState(false);
+  const [claimId, setClaimId] = useState('');
 
   const uploadGroupChoices = React.useMemo((): GroupContext[] => {
     if (isCompanyAdmin) {
@@ -125,10 +127,21 @@ export function useDocumentUpload(opts: {
       });
       return;
     }
+    const trimmedClaimId = attachClaimId ? claimId.trim() : '';
+    if (attachClaimId && !trimmedClaimId) {
+      void appAlert({
+        title: 'Claim ID required',
+        description: 'Enter a claim ID or uncheck the option.',
+        variant: 'warning',
+      });
+      return;
+    }
     setIsUploadModalOpen(false);
     onUploadStarted?.();
     const filesToUpload = [...selectedFiles];
     setSelectedFiles([]);
+    setAttachClaimId(false);
+    setClaimId('');
     if (isCompanyAdmin) setTargetGroupId('');
 
     void (async () => {
@@ -160,6 +173,7 @@ export function useDocumentUpload(opts: {
             groupId: gid || null,
             orgId: orgId ?? user?.orgId ?? null,
             sensitivityLevel: uploadSensitivityLevel,
+            ...(trimmedClaimId ? { claimId: trimmedClaimId } : {}),
           });
           updateJob(jobId, { status: 'done', finishedAt: Date.now() });
           const newId = uploadBody?.id ? String(uploadBody.id) : '';
@@ -174,6 +188,7 @@ export function useDocumentUpload(opts: {
                 groupName: uploadGroupName,
                 uploader: uploaderLabel,
                 sensitivityLevel: uploadSensitivityLevel,
+                ...(trimmedClaimId ? { claimId: trimmedClaimId } : {}),
               },
               orgId
             );
@@ -201,6 +216,10 @@ export function useDocumentUpload(opts: {
     setUploadSensitivityLevel,
     uploadGroupChoices,
     uploadSensitivityOptions,
+    attachClaimId,
+    setAttachClaimId,
+    claimId,
+    setClaimId,
     runUpload,
   };
 }

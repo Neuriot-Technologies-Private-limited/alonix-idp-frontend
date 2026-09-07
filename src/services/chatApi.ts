@@ -82,16 +82,20 @@ export type UploadDocumentOptions = {
   orgId?: string | null;
   /** Document sensitivity tier (validated against membership and group policy). */
   sensitivityLevel?: string | null;
+  /** Optional claim identifier stored on the document and sent to Python as claim_id. */
+  claimId?: string | null;
 };
 
 export async function uploadDocument(file: File, options: UploadDocumentOptions) {
-  const { userId, groupId, orgId, sensitivityLevel } = options;
+  const { userId, groupId, orgId, sensitivityLevel, claimId } = options;
   const fd = new FormData();
   fd.append('file', file);
   fd.append('userId', userId);
   if (groupId) fd.append('groupId', groupId);
   if (orgId) fd.append('orgId', orgId);
   fd.append('sensitivityLevel', (sensitivityLevel && String(sensitivityLevel).trim()) || 'INTERNAL_USE');
+  const trimmedClaimId = String(claimId || '').trim();
+  if (trimmedClaimId) fd.append('claim_id', trimmedClaimId);
   const base = documentsBase(groupId);
   return apiClient.post<{
     id?: string;

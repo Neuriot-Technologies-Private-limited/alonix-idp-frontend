@@ -154,7 +154,11 @@ export const DocumentsPage: React.FC = () => {
 
       <DocumentUploadModal
         isOpen={upload.isUploadModalOpen}
-        onClose={() => upload.setIsUploadModalOpen(false)}
+        onClose={() => {
+          upload.setIsUploadModalOpen(false);
+          upload.setAttachClaimId(false);
+          upload.setClaimId('');
+        }}
         orgWideUpload={list.isCompanyAdmin}
         groups={upload.uploadGroupChoices}
         targetGroupId={upload.targetGroupId}
@@ -164,6 +168,10 @@ export const DocumentsPage: React.FC = () => {
         uploadSensitivityLevel={upload.uploadSensitivityLevel}
         onUploadSensitivityChange={upload.setUploadSensitivityLevel}
         uploadSensitivityOptions={upload.uploadSensitivityOptions}
+        attachClaimId={upload.attachClaimId}
+        onAttachClaimIdChange={upload.setAttachClaimId}
+        claimId={upload.claimId}
+        onClaimIdChange={upload.setClaimId}
         onUpload={upload.runUpload}
       />
     </div>

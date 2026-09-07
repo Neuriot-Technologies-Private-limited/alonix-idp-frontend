@@ -29,6 +29,7 @@ export interface DocumentRow {
   type?: string;
   size?: string;
   sensitivityLevel?: string;
+  claimId?: string;
   uploadedAt?: string;
   pipeline?: DocumentPipelineStages;
   [key: string]: unknown;
