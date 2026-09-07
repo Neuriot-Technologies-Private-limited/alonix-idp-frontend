@@ -2,6 +2,7 @@ import React from 'react';
 import { SendHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../../brand/useBrand';
+import { ClaimIdCombobox } from './ClaimIdCombobox';
 
 type ChatComposerProps = {
   value: string;
@@ -11,6 +12,10 @@ type ChatComposerProps = {
   inputRef?: React.RefObject<HTMLInputElement | null>;
   onChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
+  claimIds?: string[];
+  selectedClaimId?: string | null;
+  onClaimIdChange?: (claimId: string | null) => void;
+  claimIdsLoading?: boolean;
 };
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({
@@ -21,6 +26,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   inputRef,
   onChange,
   onSubmit,
+  claimIds = [],
+  selectedClaimId = null,
+  onClaimIdChange,
+  claimIdsLoading = false,
 }) => {
   const { t } = useTranslation('chat');
   const brand = useBrand();
@@ -30,9 +39,17 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         <p className="mx-auto max-w-7xl text-[11px] text-destructive font-medium">{submitDisabledReason}</p>
       )}
       <form
-        className="mx-auto flex w-full max-w-7xl items-center gap-3 rounded-2xl border border-border/80 bg-surface-highest/20 px-4 py-1.5 shadow-inner shadow-glass transition focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 sm:px-5"
+        className="mx-auto flex w-full max-w-7xl items-center gap-2 rounded-2xl border border-border/80 bg-surface-highest/20 px-2 py-1.5 shadow-inner shadow-glass transition focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 sm:gap-3 sm:px-3"
         onSubmit={onSubmit}
       >
+        <ClaimIdCombobox
+          claimIds={claimIds}
+          value={selectedClaimId}
+          onChange={onClaimIdChange ?? (() => {})}
+          disabled={isResponseLoading || submitDisabled}
+          loading={claimIdsLoading}
+        />
+        <span className="h-6 w-px shrink-0 bg-border/50" aria-hidden />
         <input
           ref={inputRef}
           type="text"
@@ -60,4 +77,3 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     </div>
   );
 };
-

@@ -52,16 +52,24 @@ export async function askQuestion(
   collectionName: string,
   groupId: string,
   sessionId: string,
-  fileKey: string | null
+  fileKey: string | null,
+  claimId?: string | null
 ) {
   const base = chatsBase(groupId);
+  const trimmedClaimId = String(claimId || '').trim();
   return apiClient.post<AskResponseDto>(`${base}/qa/ask`, {
     query,
     collectionName,
     sessionId,
     fileKey,
     ...(groupId ? { groupId } : {}),
+    claim_id: trimmedClaimId || null,
   });
+}
+
+export async function getGroupClaimIds(groupId?: string | null) {
+  const base = documentsBase(groupId);
+  return apiClient.get<{ claimIds: string[] }>(`${base}/claim-ids`);
 }
 
 export async function deleteChat(sessionId: string, groupId?: string | null) {

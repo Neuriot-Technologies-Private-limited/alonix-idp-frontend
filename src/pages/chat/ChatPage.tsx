@@ -28,6 +28,8 @@ const ChatPage: React.FC = () => {
     resetChatSurface,
     sessions,
     composer,
+    claimIds,
+    isClaimIdsLoading,
   } = useChatPage();
 
   if (!user || !context) {
@@ -130,6 +132,10 @@ const ChatPage: React.FC = () => {
           inputRef={composer.inputRef}
           onChange={composer.setText}
           onSubmit={composer.submitHandler}
+          claimIds={claimIds}
+          selectedClaimId={composer.selectedClaimId}
+          onClaimIdChange={composer.setSelectedClaimId}
+          claimIdsLoading={isClaimIdsLoading}
         />
 
         <ChatToast toast={toast} />

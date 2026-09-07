@@ -25,5 +25,12 @@
   "failedToLoadDocument": "Failed to load document.",
   "composerPlaceholder": "Ask anything about your documents…",
   "sendButton": "Send",
+  "claimIdPlaceholder": "Claim ID",
+  "claimIdAll": "All claims",
+  "claimIdFilterPlaceholder": "Type to filter…",
+  "claimIdEmpty": "No claim IDs in this group",
+  "claimIdNoMatch": "No matching claim IDs",
+  "claimIdLoading": "Loading…",
+  "claimIdClear": "Clear claim ID",
   "mistakesDisclaimer": "{{brandName}} can make mistakes. Verify critical information."
 }

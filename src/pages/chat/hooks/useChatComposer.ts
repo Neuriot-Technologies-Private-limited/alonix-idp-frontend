@@ -33,6 +33,7 @@ export function useChatComposer({
   showToast,
 }: UseChatComposerOptions) {
   const [text, setText] = useState('');
+  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [isResponseLoading, setIsResponseLoading] = useState(false);
   const [errorText, setErrorText] = useState('');
   const [pendingQuery, setPendingQuery] = useState<PendingChatQuery | null>(null);
@@ -79,7 +80,8 @@ export function useChatComposer({
           collectionName,
           activeGroupId,
           sessionId,
-          null
+          null,
+          selectedClaimId
         );
         const apiResponse = response.data;
         const stillOnRequestSession = activeSessionRef.current === requestSessionId;
@@ -124,6 +126,7 @@ export function useChatComposer({
       isResponseLoading,
       onAnswerSuccess,
       qaBlocked,
+      selectedClaimId,
       setConversationPairs,
       setCurrentSession,
       showToast,
@@ -148,6 +151,8 @@ export function useChatComposer({
   return {
     text,
     setText,
+    selectedClaimId,
+    setSelectedClaimId,
     isResponseLoading,
     errorText,
     setErrorText,

@@ -68,6 +68,14 @@ describe('useChatComposer pending question', () => {
     expect(result.current.pendingQuery).toBeNull();
     expect(result.current.isResponseLoading).toBe(false);
     expect(result.current.text).toBe('');
+    expect(askQuestion).toHaveBeenCalledWith(
+      'What is the insured name?',
+      'claims',
+      'g1',
+      'sess-1',
+      null,
+      null
+    );
   });
 
   it('restores the question in the composer when the request fails', async () => {
@@ -85,5 +93,21 @@ describe('useChatComposer pending question', () => {
     expect(result.current.pendingQuery).toBeNull();
     expect(result.current.text).toBe('Retry me');
     expect(showToast).toHaveBeenCalled();
+  });
+
+  it('sends the selected claim id with the question', async () => {
+    askQuestion.mockResolvedValueOnce({ data: { answer: 'ok', query_id: 'q1' } });
+    const { result } = setup();
+
+    act(() => {
+      result.current.setSelectedClaimId('CLM-9');
+      result.current.setText('scope me');
+    });
+
+    await act(async () => {
+      await result.current.submitHandler({ preventDefault() {} } as FormEvent);
+    });
+
+    expect(askQuestion).toHaveBeenCalledWith('scope me', 'claims', 'g1', 'sess-1', null, 'CLM-9');
   });
 });

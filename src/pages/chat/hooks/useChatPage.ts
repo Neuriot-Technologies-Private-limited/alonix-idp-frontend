@@ -9,6 +9,7 @@ import { useChatComposer } from './useChatComposer';
 import { useChatSessions } from './useChatSessions';
 import { useChatSourceNavigation } from './useChatSourceNavigation';
 import { useChatToast } from './useChatToast';
+import { useGroupClaimIds } from './useGroupClaimIds';
 
 export function useChatPage() {
   const { atCap, capMessage, blocksUsage } = useOrgQuota();
@@ -53,6 +54,19 @@ export function useChatPage() {
     },
     showToast,
   });
+
+  const { claimIds, isClaimIdsLoading } = useGroupClaimIds(activeGroupId);
+  const setSelectedClaimId = composer.setSelectedClaimId;
+  const selectedClaimId = composer.selectedClaimId;
+
+  useEffect(() => {
+    setSelectedClaimId(null);
+  }, [activeGroupId, setSelectedClaimId]);
+
+  useEffect(() => {
+    if (isClaimIdsLoading || !selectedClaimId) return;
+    if (!claimIds.includes(selectedClaimId)) setSelectedClaimId(null);
+  }, [claimIds, isClaimIdsLoading, selectedClaimId, setSelectedClaimId]);
 
   useEffect(() => {
     composerClearRef.current = () => {
@@ -113,5 +127,7 @@ export function useChatPage() {
     resetChatSurface,
     sessions,
     composer,
+    claimIds,
+    isClaimIdsLoading,
   };
 }

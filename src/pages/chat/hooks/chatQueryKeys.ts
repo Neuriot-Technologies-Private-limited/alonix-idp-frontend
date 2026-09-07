@@ -4,4 +4,5 @@ export const chatQueryKeys = {
   sessions: (groupId: string) => ['chat-sessions', groupId] as const,
   history: (groupId: string, sessionId: string) =>
     ['chat-history', groupId, sessionId] as const,
+  claimIds: (groupId: string) => ['chat-claim-ids', groupId] as const,
 };
