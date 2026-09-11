@@ -39,5 +39,11 @@ describe('adminService pipeline helpers', () => {
       expect(doc.uploader).toBe('Unknown');
       expect(doc.sensitivityLevel).toBe('INTERNAL_USE');
     });
+
+    it('keeps a trimmed claimId from camelCase or snake_case', () => {
+      expect(normalizePipelineDocument({ claimId: '  CLM-9  ' }).claimId).toBe('CLM-9');
+      expect(normalizePipelineDocument({ claim_id: 'CLM-14' }).claimId).toBe('CLM-14');
+      expect(normalizePipelineDocument({ claimId: '   ' }).claimId).toBeUndefined();
+    });
   });
 });

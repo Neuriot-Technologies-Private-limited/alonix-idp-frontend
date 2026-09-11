@@ -48,9 +48,6 @@ export function useChatPage() {
     onAnswerSuccess: () => {
       if (!userEmail) return;
       sessions.invalidateChatSessions();
-      if (sessions.currentSession) {
-        sessions.invalidateChatHistory(sessions.currentSession);
-      }
     },
     showToast,
   });

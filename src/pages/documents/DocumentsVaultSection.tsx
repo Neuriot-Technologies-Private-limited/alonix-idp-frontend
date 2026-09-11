@@ -267,6 +267,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                       size={docItem.size ?? ''}
                       density="table"
                       sensitivityLevel={docItem.sensitivityLevel}
+                      claimId={docItem.claimId}
                       canOpenFile={Boolean(docItem?.id)}
                       isOpening={openDocBusyId === String(docItem?.id)}
                       onFileNameClick={() => onOpenDocument(docItem)}
@@ -347,6 +348,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                       size={docItem.size ?? ''}
                       density="card"
                       sensitivityLevel={docItem.sensitivityLevel}
+                      claimId={docItem.claimId}
                       canOpenFile={Boolean(docItem?.id)}
                       isOpening={openDocBusyId === String(docItem?.id)}
                       onFileNameClick={() => onOpenDocument(docItem)}

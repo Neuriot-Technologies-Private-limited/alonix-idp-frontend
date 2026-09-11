@@ -1,10 +1,12 @@
 import React from 'react';
+import { ClaimChip } from './ClaimChip';
 
 interface ChatThinkingIndicatorProps {
   label: string;
   question?: string | null;
   questionLabel?: string;
   answerLabel?: string;
+  claimId?: string | null;
 }
 
 export const ChatThinkingIndicator: React.FC<ChatThinkingIndicatorProps> = ({
@@ -12,6 +14,7 @@ export const ChatThinkingIndicator: React.FC<ChatThinkingIndicatorProps> = ({
   question,
   questionLabel,
   answerLabel,
+  claimId,
 }) => (
   <div
     className="mb-7 h-auto rounded-2xl border border-border/10 bg-surface-highest/10 shadow-xl shadow-glass backdrop-blur-sm sm:mb-8"
@@ -19,8 +22,11 @@ export const ChatThinkingIndicator: React.FC<ChatThinkingIndicatorProps> = ({
   >
     {question ? (
       <div className="border-b border-border/10 bg-gradient-to-r from-surface-highest/20 to-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-          {questionLabel}
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            {questionLabel}
+          </div>
+          {claimId ? <ClaimChip claimId={claimId} /> : null}
         </div>
         <div className="text-[15px] font-medium leading-relaxed text-foreground">{question}</div>
       </div>

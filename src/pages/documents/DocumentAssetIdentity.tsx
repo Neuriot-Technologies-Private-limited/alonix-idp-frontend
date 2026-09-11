@@ -4,6 +4,7 @@ import { cn } from '../../utils/cn';
 import { FileIcon } from './DocumentPrimitives';
 import { truncateFileName } from '../../utils/truncateFileName';
 import { DocumentSensitivityBadge } from './DocumentSensitivityBadge';
+import { ClaimChip } from '../chat/components/ClaimChip';
 import { normalizeDocumentTypeLabel } from '../../utils/documentFileType';
 
 export interface DocumentAssetIdentityProps {
@@ -14,6 +15,8 @@ export interface DocumentAssetIdentityProps {
   density?: 'table' | 'card';
   /** Data classification for the asset (from pipeline). */
   sensitivityLevel?: string | null;
+  /** Optional claim identifier from the document record; omitted when unset. */
+  claimId?: string | null;
   onFileNameClick?: () => void;
   canOpenFile?: boolean;
   isOpening?: boolean;
@@ -25,6 +28,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
   size,
   density = 'table',
   sensitivityLevel,
+  claimId,
   onFileNameClick,
   canOpenFile = false,
   isOpening = false,
@@ -32,6 +36,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
   const isCard = density === 'card';
   const badgeDensity = isCard ? 'comfortable' : 'compact';
   const typeLabel = normalizeDocumentTypeLabel(type, fileName);
+  const trimmedClaimId = String(claimId || '').trim();
   return (
     <div className="flex items-center gap-3">
       <div
@@ -72,6 +77,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
             </p>
           )}
           <DocumentSensitivityBadge level={sensitivityLevel} density={badgeDensity} />
+          {trimmedClaimId ? <ClaimChip claimId={trimmedClaimId} density={badgeDensity} /> : null}
         </div>
         <p
           className={cn(

@@ -20,15 +20,17 @@ export interface PendingChatQuery {
 export interface ConversationPair {
   /** Stable React key — from API `query_id` when available. */
   pairId: string;
-  user: { text: string };
+  user: { text: string; claimId?: string | null };
   ai: {
     text: string;
     sources: NormSource[];
     sourcesMap: Record<string, NormSource>;
     rawAnswer: string;
     responseKind?: 'answer' | 'clarification';
-    /** Live clarification turns only — not restored from history. */
+    /** Option labels from a clarification turn (live ask or history). */
     clarificationOptions?: string[];
+    /** Claim IDs attributed to this answer (composer, API, or preview). */
+    claimIds?: string[];
   };
 }
 

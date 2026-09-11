@@ -8,6 +8,7 @@ const CHAT_SANITIZE_CONFIG: Config = {
     'data-source-page',
     'data-source-filepath',
     'data-source-confidence',
+    'data-claim-id',
     'title-set',
   ],
   RETURN_TRUSTED_TYPE: false,

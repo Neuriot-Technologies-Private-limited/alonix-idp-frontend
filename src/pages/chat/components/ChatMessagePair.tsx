@@ -2,7 +2,9 @@ import React from 'react';
 import { cn } from '../../../utils/cn';
 import type { ConversationPair, NormSource } from '../types/chatConversation';
 import { parseHtmlWithSources } from '../utils/chatSources';
+import { highlightClaimIdsInHtml, normalizeClaimIds } from '../utils/claimChips';
 import { clarificationOptionLetter } from '../utils/clarificationOptionLetter';
+import { ClaimChip } from './ClaimChip';
 
 interface ChatMessagePairProps {
   pair: ConversationPair;
@@ -14,6 +16,7 @@ interface ChatMessagePairProps {
   onClarificationOptionSelect?: (option: string) => void;
   onClarificationCustomInput?: () => void;
   clarificationOptionsDisabled?: boolean;
+  onClaimIdClick?: (claimId: string) => void;
 }
 
 function ClarificationOptionRow({
@@ -82,15 +85,15 @@ export const ChatMessagePair = React.memo(function ChatMessagePair({
   onClarificationOptionSelect,
   onClarificationCustomInput,
   clarificationOptionsDisabled = false,
+  onClaimIdClick,
 }: ChatMessagePairProps) {
   const { user: uq, ai } = pair;
   const isClarification = ai.responseKind === 'clarification';
   const options = ai.clarificationOptions ?? [];
-  const showOptions = isClarification && options.length > 0;
-  const html =
-    ai.sourcesMap && Object.keys(ai.sourcesMap).length > 0 && ai.rawAnswer
-      ? parseHtmlWithSources(ai.text, ai.sourcesMap)
-      : ai.text;
+  const showOptions = isClarification;
+  const claimIds = normalizeClaimIds([uq.claimId, ...(ai.claimIds ?? [])]);
+  const sourcedHtml = parseHtmlWithSources(ai.text, ai.sourcesMap || {});
+  const html = highlightClaimIdsInHtml(sourcedHtml, claimIds);
 
   return (
     <div
@@ -100,25 +103,43 @@ export const ChatMessagePair = React.memo(function ChatMessagePair({
       )}
     >
       <div className="border-b border-border/10 bg-gradient-to-r from-surface-highest/20 to-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-          {questionLabel}
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            {questionLabel}
+          </div>
+          {uq.claimId ? <ClaimChip claimId={uq.claimId} onClick={onClaimIdClick} /> : null}
         </div>
         <div className="text-[15px] font-medium leading-relaxed text-foreground">{uq.text}</div>
       </div>
       <div className="bg-surface-highest/10 px-5 py-5 sm:px-7 sm:py-6">
         <div
           className={cn(
-            'mb-2 text-[11px] font-semibold uppercase tracking-[0.16em]',
+            'mb-2 flex flex-wrap items-center gap-2',
             isClarification ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
           )}
         >
-          {isClarification ? clarificationLabel : answerLabel}
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
+            {isClarification ? clarificationLabel : answerLabel}
+          </span>
+          {!isClarification
+            ? (ai.claimIds ?? []).map((id) => (
+                <ClaimChip key={id} claimId={id} onClick={onClaimIdClick} />
+              ))
+            : null}
         </div>
         <div
           className="mt-1 space-y-1 overflow-visible break-words whitespace-pre-wrap pb-1 text-[15px] leading-[1.65] text-muted-foreground/80 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary/40 [&_a]:underline-offset-2 [&_code]:rounded-md [&_code]:bg-surface-highest/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border/40 [&_pre]:bg-surface-highest/5 [&_pre]:p-4 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_th]:border [&_th]:border-border/60 [&_th]:bg-surface-highest/10 [&_th]:px-3 [&_th]:py-2 [&_tr:nth-child(even)]:bg-surface-highest/5"
           // Sanitized HTML from mdToHtml / parseHtmlWithSources
           dangerouslySetInnerHTML={{ __html: html }}
           onClick={async (e) => {
+            const claimPill = (e.target as HTMLElement).closest('[data-claim-id]');
+            if (claimPill) {
+              e.preventDefault();
+              e.stopPropagation();
+              const claimId = claimPill.getAttribute('data-claim-id') || '';
+              if (claimId) onClaimIdClick?.(claimId);
+              return;
+            }
             const pill = (e.target as HTMLElement).closest('[data-source-key]');
             if (!pill) return;
             e.preventDefault();

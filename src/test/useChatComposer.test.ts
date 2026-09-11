@@ -110,4 +110,33 @@ describe('useChatComposer pending question', () => {
 
     expect(askQuestion).toHaveBeenCalledWith('scope me', 'claims', 'g1', 'sess-1', null, 'CLM-9');
   });
+
+  it('maps clarification options from the ask response onto the conversation pair', async () => {
+    askQuestion.mockResolvedValueOnce({
+      data: {
+        answer: 'Multiple claims matched your query. Which claim are you referring to?',
+        query_id: 'q2',
+        responseKind: 'clarification',
+        status: 'clarification_needed',
+        options: ['Claim B20ME076 (E. R. Marlowe, Evelyn R. Marlowe)'],
+      },
+    });
+    const { result, setConversationPairs } = setup();
+
+    act(() => {
+      result.current.setText('What are the Coverage A limits?');
+    });
+
+    await act(async () => {
+      await result.current.submitHandler({ preventDefault() {} } as FormEvent);
+    });
+
+    expect(setConversationPairs).toHaveBeenCalled();
+    const updater = setConversationPairs.mock.calls[0][0];
+    const next = typeof updater === 'function' ? updater([]) : updater;
+    expect(next[0].ai.responseKind).toBe('clarification');
+    expect(next[0].ai.clarificationOptions).toEqual([
+      'Claim B20ME076 (E. R. Marlowe, Evelyn R. Marlowe)',
+    ]);
+  });
 });

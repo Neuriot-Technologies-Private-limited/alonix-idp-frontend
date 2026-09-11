@@ -84,6 +84,17 @@ export function useChatComposer({
           selectedClaimId
         );
         const apiResponse = response.data;
+        console.info('[qa] ask response', {
+          claim_id_sent: selectedClaimId || null,
+          claim_ids: apiResponse?.claim_ids ?? null,
+          claimIds: apiResponse?.claimIds ?? null,
+          response_kind: apiResponse?.response_kind ?? apiResponse?.responseKind ?? null,
+          status: apiResponse?.status ?? null,
+          options: apiResponse?.options ?? null,
+          clarification_options: apiResponse?.clarification_options ?? null,
+          keys: Object.keys(apiResponse || {}),
+          answer_preview: String(apiResponse?.answer || '').slice(0, 240),
+        });
         const stillOnRequestSession = activeSessionRef.current === requestSessionId;
         if (!stillOnRequestSession) {
           onAnswerSuccess();
@@ -102,7 +113,11 @@ export function useChatComposer({
             responseKind === 'clarification' ? null : apiResponse.sources,
             responseKind,
             clarificationOptions,
-            apiResponse.query_id
+            apiResponse.query_id,
+            {
+              userClaimId: selectedClaimId,
+              claimIds: apiResponse.claim_ids ?? apiResponse.claimIds,
+            }
           ),
         ]);
         onAnswerSuccess();

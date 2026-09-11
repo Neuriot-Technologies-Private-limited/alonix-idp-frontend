@@ -334,8 +334,12 @@ export function normalizePipelineDocument(d: Record<string, unknown>): DocumentR
       : 'INTERNAL_USE';
   const type = normalizeDocumentTypeLabel(d.type != null ? String(d.type) : null, fileName);
   const id = String(d.id ?? d._id ?? '');
+  const { claimId: rawClaimCamel, claim_id: rawClaimSnake, ...rest } = d;
+  const rawClaim = rawClaimCamel ?? rawClaimSnake;
+  const claimId =
+    rawClaim != null && String(rawClaim).trim() !== '' ? String(rawClaim).trim() : undefined;
   return {
-    ...d,
+    ...rest,
     id,
     ...(fileName ? { fileName } : {}),
     type,
@@ -346,6 +350,7 @@ export function normalizePipelineDocument(d: Record<string, unknown>): DocumentR
     connectorId,
     ingestSource,
     sensitivityLevel,
+    ...(claimId ? { claimId } : {}),
     ...(uploadedAt != null ? { uploadedAt } : {}),
   };
 }

@@ -95,7 +95,7 @@ export function normalizeSourcesPayload(rawSources: unknown): {
       const normalized = normalizeSource((rawSources as Record<string, unknown>)[key]);
       sources.push(normalized);
       sourcesMap[key] = normalized;
-      const numMatch = key.match(/Source\s+(\d+)/i);
+      const numMatch = key.match(/Source\s+(\d+)/i) || (/^\d+$/.test(key) ? [key, key] : null);
       if (numMatch?.[1]) {
         sourcesMap[`[Source ${numMatch[1]}]`] = normalized;
         sourcesMap[`Source ${numMatch[1]}`] = normalized;
@@ -107,20 +107,45 @@ export function normalizeSourcesPayload(rawSources: unknown): {
   return { sources, sourcesMap };
 }
 
-export function parseHtmlWithSources(html: string, sourcesMap: Record<string, NormSource>): string {
-  const sourceGroupPattern = /\[(?:Source\s+\d+\s*(?:,\s*)?)+\]/gi;
+const SOURCE_CITE_PATTERN =
+  /\[\s*(?:Source\s+\d+\s*(?:,\s*)?)+\s*\]|\(\s*(?:Source\s+\d+\s*(?:,\s*)?)+\s*\)/gi;
+
+function citationNumbers(raw: string): string[] {
+  return [...raw.matchAll(/Source\s+(\d+)/gi)].map((m) => m[1]);
+}
+
+export function parseHtmlWithSources(html: string, sourcesMap: Record<string, NormSource> = {}): string {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = sanitizeChatHtml(html);
-  const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
-  const textNodes: Text[] = [];
-  let current: Node | null;
-  while ((current = walker.nextNode())) {
-    if (current.nodeType === Node.TEXT_NODE) textNodes.push(current as Text);
-  }
 
-  textNodes.forEach((node) => {
+  const lookupSource = (num: string): NormSource | undefined =>
+    sourcesMap[`[Source ${num}]`] || sourcesMap[`Source ${num}`] || sourcesMap[num];
+
+  const makePill = (num: string): HTMLElement => {
+    const sourceKey = `[Source ${num}]`;
+    const source = lookupSource(num);
+    const pill = document.createElement('span');
+    pill.className = SOURCE_PILL_CLASS;
+    pill.setAttribute('data-source-key', sourceKey);
+    pill.setAttribute('data-source-title', source?.title || `Source ${num}`);
+    pill.setAttribute('data-source-page', source?.page != null ? String(source.page) : '');
+    pill.setAttribute('data-source-filepath', source?.file_path ?? '');
+    pill.setAttribute('data-source-confidence', String(source?.confidence ?? ''));
+    pill.textContent = '↗';
+    return pill;
+  };
+
+  const appendPills = (fragment: DocumentFragment, nums: string[]) => {
+    nums.forEach((num, i) => {
+      fragment.appendChild(makePill(num));
+      if (i < nums.length - 1) fragment.appendChild(document.createTextNode(' '));
+    });
+  };
+
+  const replaceCitationsInTextNode = (node: Text) => {
+    if (node.parentElement?.closest('[data-source-key]')) return;
     const txt = node.textContent || '';
-    const matches = [...txt.matchAll(sourceGroupPattern)];
+    const matches = [...txt.matchAll(SOURCE_CITE_PATTERN)];
     if (matches.length === 0) return;
 
     const fragment = document.createDocumentFragment();
@@ -130,36 +155,57 @@ export function parseHtmlWithSources(html: string, sourcesMap: Record<string, No
       if (match.index > lastIndex) {
         fragment.appendChild(document.createTextNode(txt.substring(lastIndex, match.index)));
       }
-      const nums = [...match[0].matchAll(/Source\s+(\d+)/gi)].map((m) => m[1]);
-      if (nums.length > 0) {
-        nums.forEach((num, i) => {
-          const sourceKey = `[Source ${num}]`;
-          const source =
-            sourcesMap[sourceKey] || sourcesMap[`Source ${num}`] || sourcesMap[num];
-          if (source) {
-            const pill = document.createElement('span');
-            pill.className = SOURCE_PILL_CLASS;
-            pill.setAttribute('data-source-key', sourceKey);
-            pill.setAttribute('data-source-title', source.title || sourceKey);
-            pill.setAttribute('data-source-page', source.page != null ? String(source.page) : '');
-            pill.setAttribute('data-source-filepath', source.file_path ?? '');
-            pill.setAttribute('data-source-confidence', String(source.confidence ?? ''));
-            pill.textContent = '↗';
-            fragment.appendChild(pill);
-            if (i < nums.length - 1) fragment.appendChild(document.createTextNode(' '));
-          } else {
-            fragment.appendChild(document.createTextNode(sourceKey));
-          }
-        });
-      } else {
-        fragment.appendChild(document.createTextNode(match[0]));
-      }
+      const nums = citationNumbers(match[0]);
+      if (nums.length > 0) appendPills(fragment, nums);
+      else fragment.appendChild(document.createTextNode(match[0]));
       lastIndex = match.index + match[0].length;
     });
     if (lastIndex < txt.length) {
       fragment.appendChild(document.createTextNode(txt.substring(lastIndex)));
     }
     node.parentNode?.replaceChild(fragment, node);
+  };
+
+  const collectTextNodes = (): Text[] => {
+    const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
+    let current: Node | null;
+    while ((current = walker.nextNode())) {
+      if (current.nodeType === Node.TEXT_NODE) textNodes.push(current as Text);
+    }
+    return textNodes;
+  };
+
+  collectTextNodes().forEach(replaceCitationsInTextNode);
+
+  tempDiv.querySelectorAll('a').forEach((anchor) => {
+    const existingPill = anchor.querySelector('[data-source-key]');
+    if (existingPill) {
+      anchor.replaceWith(existingPill);
+      return;
+    }
+    const label = (anchor.textContent || '').trim();
+    const nums = citationNumbers(label);
+    if (nums.length === 0) return;
+    if (!/^\[?\(?\s*Source\s+\d+/i.test(label)) return;
+    const fragment = document.createDocumentFragment();
+    appendPills(fragment, nums);
+    anchor.replaceWith(fragment);
   });
+
+  tempDiv.querySelectorAll('[data-source-key]').forEach((pill) => {
+    let sibling = pill.nextSibling;
+    while (sibling && sibling.nodeType === Node.TEXT_NODE && !String(sibling.textContent || '').trim()) {
+      sibling = sibling.nextSibling;
+    }
+    if (
+      sibling &&
+      sibling.nodeType === Node.ELEMENT_NODE &&
+      (sibling as Element).getAttribute('data-source-key') === pill.getAttribute('data-source-key')
+    ) {
+      sibling.parentNode?.removeChild(sibling);
+    }
+  });
+
   return sanitizeChatHtml(tempDiv.innerHTML);
 }

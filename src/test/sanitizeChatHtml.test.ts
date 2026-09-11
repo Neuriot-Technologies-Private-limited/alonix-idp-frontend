@@ -16,6 +16,13 @@ describe('sanitizeChatHtml', () => {
     expect(clean).toContain('data-source-key');
     expect(clean).toContain('[Source 1]');
   });
+
+  it('preserves claim chip data attributes', () => {
+    const html = '<span class="pill" data-claim-id="CLM-2026-001"># CLM-2026-001</span>';
+    const clean = sanitizeChatHtml(html);
+    expect(clean).toContain('data-claim-id');
+    expect(clean).toContain('CLM-2026-001');
+  });
 });
 
 describe('sanitizeEmailHtml', () => {

@@ -214,8 +214,8 @@ export interface AskResponseDto {
   answer?: string;
   response_kind?: ChatResponseKind;
   responseKind?: ChatResponseKind;
-  options?: string[];
-  clarification_options?: string[];
+  options?: unknown[] | string[] | null;
+  clarification_options?: unknown[] | string[] | null;
   clarification_question?: string;
   original_query?: string;
   rewritten_query?: string;
@@ -223,6 +223,8 @@ export interface AskResponseDto {
   status?: string;
   message?: string;
   sources?: unknown[] | Record<string, unknown>;
+  claim_ids?: string[] | null;
+  claimIds?: string[] | null;
   classification?: unknown;
   is_valid?: boolean;
   source_files?: unknown;

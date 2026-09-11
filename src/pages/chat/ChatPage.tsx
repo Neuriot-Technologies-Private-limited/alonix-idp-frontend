@@ -9,6 +9,7 @@ import { ChatToast } from './components/ChatToast';
 import { ChatMessagePair } from './components/ChatMessagePair';
 import { ChatThinkingIndicator } from './components/ChatThinkingIndicator';
 import { useChatPage } from './hooks/useChatPage';
+import { CLAIM_PILL_CLASS } from './utils/claimChips';
 
 const ChatPage: React.FC = () => {
   const {
@@ -42,7 +43,7 @@ const ChatPage: React.FC = () => {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-row overflow-hidden -mx-4 w-[calc(100%+2rem)] max-w-none bg-gradient-to-br from-background via-surface-highest/10 to-background text-foreground lg:-mx-5 lg:w-[calc(100%+2.5rem)]">
-      <span className={cn('hidden', sourcePillClass)} aria-hidden />
+      <span className={cn('hidden', sourcePillClass, CLAIM_PILL_CLASS)} aria-hidden />
 
       <ChatSidebar
         hidden={sidebarHidden}
@@ -90,9 +91,7 @@ const ChatPage: React.FC = () => {
           {sessions.conversationPairs.map((pair, idx) => {
             const isLastPair = idx === sessions.conversationPairs.length - 1;
             const isInteractiveClarification =
-              isLastPair &&
-              pair.ai.responseKind === 'clarification' &&
-              (pair.ai.clarificationOptions?.length ?? 0) > 0;
+              isLastPair && pair.ai.responseKind === 'clarification';
             return (
               <ChatMessagePair
                 key={pair.pairId}
@@ -109,6 +108,7 @@ const ChatPage: React.FC = () => {
                 onClarificationCustomInput={
                   isInteractiveClarification ? composer.focusComposer : undefined
                 }
+                onClaimIdClick={composer.setSelectedClaimId}
               />
             );
           })}
@@ -120,6 +120,7 @@ const ChatPage: React.FC = () => {
               questionLabel={t('question')}
               answerLabel={t('answer')}
               label={t('thinking')}
+              claimId={composer.selectedClaimId}
             />
           ) : null}
         </main>
