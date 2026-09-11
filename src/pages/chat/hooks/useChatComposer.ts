@@ -7,6 +7,7 @@ import {
   extractClarificationOptions,
   resolveResponseKind,
 } from '../utils/clarificationOptions';
+import { claimIdFromClarificationOption, pinnedClaimIdFromAskResponse } from '../utils/sessionClaimId';
 import type { ConversationPair, PendingChatQuery } from '../types/chatConversation';
 
 interface UseChatComposerOptions {
@@ -54,7 +55,7 @@ export function useChatComposer({
   }, []);
 
   const submitQuery = useCallback(
-    async (queryText: string) => {
+    async (queryText: string, claimIdOverride?: string | null) => {
       const trimmed = queryText.trim();
       if (!trimmed || isResponseLoading) return;
       if (qaBlocked) {
@@ -63,6 +64,7 @@ export function useChatComposer({
         showToast(msg, 'error');
         return;
       }
+      const claimForRequest = claimIdOverride !== undefined ? claimIdOverride : selectedClaimId;
       setIsResponseLoading(true);
       setErrorText('');
       let sessionId = currentSession;
@@ -81,11 +83,12 @@ export function useChatComposer({
           activeGroupId,
           sessionId,
           null,
-          selectedClaimId
+          claimForRequest
         );
         const apiResponse = response.data;
         console.info('[qa] ask response', {
-          claim_id_sent: selectedClaimId || null,
+          claim_id_sent: claimForRequest || null,
+          claim_id: apiResponse?.claim_id ?? null,
           claim_ids: apiResponse?.claim_ids ?? null,
           claimIds: apiResponse?.claimIds ?? null,
           response_kind: apiResponse?.response_kind ?? apiResponse?.responseKind ?? null,
@@ -103,6 +106,9 @@ export function useChatComposer({
         if (apiResponse.session_id && apiResponse.session_id !== requestSessionId) {
           setCurrentSession(apiResponse.session_id);
         }
+        const pinnedClaimId = pinnedClaimIdFromAskResponse(apiResponse);
+        if (pinnedClaimId) setSelectedClaimId(pinnedClaimId);
+        else if (claimIdOverride !== undefined) setSelectedClaimId(claimIdOverride);
         const responseKind = resolveResponseKind(apiResponse);
         const clarificationOptions = extractClarificationOptions(apiResponse);
         setConversationPairs((prev) => [
@@ -115,7 +121,7 @@ export function useChatComposer({
             clarificationOptions,
             apiResponse.query_id,
             {
-              userClaimId: selectedClaimId,
+              userClaimId: claimForRequest,
               claimIds: apiResponse.claim_ids ?? apiResponse.claimIds,
             }
           ),
@@ -158,9 +164,11 @@ export function useChatComposer({
 
   const submitClarificationOption = useCallback(
     async (optionText: string) => {
-      await submitQuery(optionText);
+      const parsed = claimIdFromClarificationOption(optionText);
+      if (parsed) setSelectedClaimId(parsed);
+      await submitQuery(optionText, parsed ?? selectedClaimId);
     },
-    [submitQuery]
+    [selectedClaimId, submitQuery]
   );
 
   return {

@@ -54,21 +54,16 @@ export function useChatPage() {
 
   const { claimIds, isClaimIdsLoading } = useGroupClaimIds(activeGroupId);
   const setSelectedClaimId = composer.setSelectedClaimId;
-  const selectedClaimId = composer.selectedClaimId;
 
   useEffect(() => {
     setSelectedClaimId(null);
   }, [activeGroupId, setSelectedClaimId]);
 
   useEffect(() => {
-    if (isClaimIdsLoading || !selectedClaimId) return;
-    if (!claimIds.includes(selectedClaimId)) setSelectedClaimId(null);
-  }, [claimIds, isClaimIdsLoading, selectedClaimId, setSelectedClaimId]);
-
-  useEffect(() => {
     composerClearRef.current = () => {
       composer.setText('');
       composer.clearComposerError();
+      composer.setSelectedClaimId(null);
     };
   }, [composer]);
 
@@ -76,7 +71,17 @@ export function useChatPage() {
     sessions.createNewChat();
     composer.setText('');
     composer.clearComposerError();
+    composer.setSelectedClaimId(null);
   }, [composer, sessions]);
+
+  const selectSession = useCallback(
+    (sessionId: string) => {
+      sessions.selectChatSession(sessionId, composer.setErrorText);
+      const row = sessions.chatDataState.find((s) => s.session_id === sessionId);
+      composer.setSelectedClaimId(String(row?.claim_id || '').trim() || null);
+    },
+    [composer, sessions]
+  );
 
   const { handleSourceClick } = useChatSourceNavigation(
     activeGroupId,
@@ -122,6 +127,7 @@ export function useChatPage() {
     handleSourceClick,
     chatHeaderSubtitle,
     resetChatSurface,
+    selectSession,
     sessions,
     composer,
     claimIds,

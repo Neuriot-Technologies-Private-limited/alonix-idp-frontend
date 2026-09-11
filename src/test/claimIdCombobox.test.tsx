@@ -49,4 +49,13 @@ describe('ClaimIdCombobox', () => {
     await user.click(screen.getByRole('option', { name: 'claimIdAll' }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
+
+  it('keeps a session claim visible even if it is not in the group list', async () => {
+    render(
+      <ClaimIdCombobox claimIds={['CLM-100']} value="B20ME076" onChange={() => {}} />
+    );
+    expect(screen.getByRole('combobox', { name: 'claimIdPlaceholder' })).toHaveTextContent(
+      'B20ME076'
+    );
+  });
 });

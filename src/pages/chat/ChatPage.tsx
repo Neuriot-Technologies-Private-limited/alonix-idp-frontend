@@ -27,6 +27,7 @@ const ChatPage: React.FC = () => {
     handleSourceClick,
     chatHeaderSubtitle,
     resetChatSurface,
+    selectSession,
     sessions,
     composer,
     claimIds,
@@ -55,7 +56,7 @@ const ChatPage: React.FC = () => {
         currentSession={sessions.currentSession}
         downloadingSessionId={sessions.downloadingSessionId}
         onNewChat={resetChatSurface}
-        onSelectSession={(id) => void sessions.selectChatSession(id, composer.setErrorText)}
+        onSelectSession={selectSession}
         onDownloadSession={(id, title) =>
           void sessions.handleDownloadChatSession(id, title, composer.setErrorText)
         }

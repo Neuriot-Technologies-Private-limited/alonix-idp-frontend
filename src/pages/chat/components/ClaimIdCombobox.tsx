@@ -44,9 +44,11 @@ export const ClaimIdCombobox: React.FC<ClaimIdComboboxProps> = ({
   const needle = filter.trim().toLowerCase();
 
   const options = useMemo(() => {
-    const ids = claimIds.filter((id) => id && (!needle || id.toLowerCase().includes(needle)));
-    return [{ value: NONE, label: t('claimIdAll') }, ...ids.map((id) => ({ value: id, label: id }))];
-  }, [claimIds, needle, t]);
+    const ids = [...claimIds];
+    if (selected && !ids.includes(selected)) ids.unshift(selected);
+    const filtered = ids.filter((id) => id && (!needle || id.toLowerCase().includes(needle)));
+    return [{ value: NONE, label: t('claimIdAll') }, ...filtered.map((id) => ({ value: id, label: id }))];
+  }, [claimIds, needle, selected, t]);
 
   const displayLabel = selected || t('claimIdPlaceholder');
 

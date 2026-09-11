@@ -111,6 +111,51 @@ describe('useChatComposer pending question', () => {
     expect(askQuestion).toHaveBeenCalledWith('scope me', 'claims', 'g1', 'sess-1', null, 'CLM-9');
   });
 
+  it('sends a parsed claim id when a clarification option is chosen', async () => {
+    askQuestion.mockResolvedValueOnce({
+      data: { answer: 'Coverage A is $385,000.', query_id: 'q3', claim_id: 'B20ME076' },
+    });
+    const { result } = setup();
+
+    await act(async () => {
+      await result.current.submitClarificationOption(
+        'Claim B20ME076 (E. R. Marlowe, Evelyn R. Marlowe)'
+      );
+    });
+
+    expect(askQuestion).toHaveBeenCalledWith(
+      'Claim B20ME076 (E. R. Marlowe, Evelyn R. Marlowe)',
+      'claims',
+      'g1',
+      'sess-1',
+      null,
+      'B20ME076'
+    );
+    expect(result.current.selectedClaimId).toBe('B20ME076');
+  });
+
+  it('pins a claim id returned by the ask response', async () => {
+    askQuestion.mockResolvedValueOnce({
+      data: {
+        answer: 'ok',
+        query_id: 'q4',
+        claim_id: 'B20ME076',
+        claim_ids: ['B20ME076'],
+      },
+    });
+    const { result } = setup();
+
+    act(() => {
+      result.current.setText('What are the limits?');
+    });
+
+    await act(async () => {
+      await result.current.submitHandler({ preventDefault() {} } as FormEvent);
+    });
+
+    expect(result.current.selectedClaimId).toBe('B20ME076');
+  });
+
   it('maps clarification options from the ask response onto the conversation pair', async () => {
     askQuestion.mockResolvedValueOnce({
       data: {
@@ -119,6 +164,7 @@ describe('useChatComposer pending question', () => {
         responseKind: 'clarification',
         status: 'clarification_needed',
         options: ['Claim B20ME076 (E. R. Marlowe, Evelyn R. Marlowe)'],
+        claim_id: 'B20ME076',
       },
     });
     const { result, setConversationPairs } = setup();
@@ -138,5 +184,6 @@ describe('useChatComposer pending question', () => {
     expect(next[0].ai.clarificationOptions).toEqual([
       'Claim B20ME076 (E. R. Marlowe, Evelyn R. Marlowe)',
     ]);
+    expect(result.current.selectedClaimId).toBe('B20ME076');
   });
 });

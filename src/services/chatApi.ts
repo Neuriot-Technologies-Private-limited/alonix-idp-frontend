@@ -203,6 +203,7 @@ export interface ChatSessionDto {
   session_id: string;
   title: string;
   last_updated: string;
+  claim_id?: string | null;
 }
 
 export type ChatResponseKind = 'answer' | 'clarification';
@@ -225,6 +226,7 @@ export interface AskResponseDto {
   sources?: unknown[] | Record<string, unknown>;
   claim_ids?: string[] | null;
   claimIds?: string[] | null;
+  claim_id?: string | null;
   classification?: unknown;
   is_valid?: boolean;
   source_files?: unknown;
