@@ -8,16 +8,19 @@ function optionLabel(item: unknown): string {
   return String(item).trim();
 }
 
+function asRecord(value: object): Record<string, unknown> {
+  return value as Record<string, unknown>;
+}
+
 /** Extract clarification chip labels from API / history payloads. */
-export function extractClarificationOptions(apiResponse: Record<string, unknown>): string[] {
+export function extractClarificationOptions(apiResponse: object): string[] {
+  const rec = asRecord(apiResponse);
   const nested =
-    apiResponse.data && typeof apiResponse.data === 'object'
-      ? (apiResponse.data as Record<string, unknown>)
-      : null;
+    rec.data && typeof rec.data === 'object' ? asRecord(rec.data) : null;
   const raw =
-    apiResponse.options ??
-    apiResponse.clarification_options ??
-    apiResponse.clarificationOptions ??
+    rec.options ??
+    rec.clarification_options ??
+    rec.clarificationOptions ??
     nested?.options ??
     nested?.clarification_options ??
     nested?.clarificationOptions ??
@@ -26,11 +29,10 @@ export function extractClarificationOptions(apiResponse: Record<string, unknown>
   return list.map(optionLabel).filter((o) => o.length > 0);
 }
 
-export function resolveResponseKind(
-  apiResponse: Record<string, unknown>
-): 'answer' | 'clarification' {
-  const kind = apiResponse.response_kind ?? apiResponse.responseKind;
-  if (kind === 'clarification' || apiResponse.status === 'clarification_needed') {
+export function resolveResponseKind(apiResponse: object): 'answer' | 'clarification' {
+  const rec = asRecord(apiResponse);
+  const kind = rec.response_kind ?? rec.responseKind;
+  if (kind === 'clarification' || rec.status === 'clarification_needed') {
     return 'clarification';
   }
   return 'answer';

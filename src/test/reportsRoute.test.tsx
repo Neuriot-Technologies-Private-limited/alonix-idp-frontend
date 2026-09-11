@@ -9,6 +9,15 @@ vi.mock('../hooks/useRbac');
 vi.mock('../components/reports/ReportExportMenu', () => ({
   ReportExportMenu: () => <div data-testid="report-export-menu">Export Menu</div>,
 }));
+vi.mock('../components/reports/ActivitySeriesChart', () => ({
+  ActivitySeriesChart: () => <div data-testid="activity-series-chart" />,
+}));
+vi.mock('../components/reports/PipelineMetricsChart', () => ({
+  PipelineMetricsChart: () => <div data-testid="pipeline-metrics-chart" />,
+}));
+vi.mock('../components/reports/TopUsersChart', () => ({
+  TopUsersChart: () => <div data-testid="top-users-chart" />,
+}));
 vi.mock('../hooks/useOrgQuota', () => ({
   useOrgQuota: () => ({
     saasBilling: false,
