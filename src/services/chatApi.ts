@@ -131,6 +131,17 @@ export async function deleteDocument(documentId: string, groupId?: string | null
   );
 }
 
+export type BulkDeleteDocumentsResult = {
+  deleted: string[];
+  failed: Array<{ id: string; status?: number; error?: string; blocking?: unknown }>;
+};
+
+/** Bulk delete by MongoDB `_id` list (max 50 per request on the server). */
+export async function bulkDeleteDocuments(ids: string[], groupId?: string | null) {
+  const base = documentsBase(groupId);
+  return apiClient.post<BulkDeleteDocumentsResult>(`${base}/bulk-delete`, { ids });
+}
+
 export async function triggerIngest(
   documentId: string,
   body: { collectionName: string },

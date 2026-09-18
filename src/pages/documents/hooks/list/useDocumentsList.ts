@@ -241,6 +241,17 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     return p.classification.status !== 'processing' && p.classification.status !== 'done';
   }).length;
 
+  /** Manageable selected docs that are not mid-pipeline (server blocks PENDING/PROCESSING). */
+  const bulkDeleteCount = selectedDocs.filter((d: DocumentRow) => {
+    if (isConnectorPendingDocumentId(d.id)) return false;
+    const p = mergePipeline(d.pipeline);
+    return (
+      p.ingestion.status !== 'processing' &&
+      p.extraction.status !== 'processing' &&
+      p.classification.status !== 'processing'
+    );
+  }).length;
+
   const allPageSelected =
     manageableOnPage.length > 0 && manageableOnPage.every((d: DocumentRow) => selectedIds.has(d.id));
   const somePageSelected = manageableOnPage.some((d: DocumentRow) => selectedIds.has(d.id));
@@ -387,6 +398,7 @@ export function useDocumentsList(documents: DocumentRow[] | undefined, isLoading
     bulkIngestCount,
     bulkExtractCount,
     bulkClassifyCount,
+    bulkDeleteCount,
     user,
     context,
     groups,

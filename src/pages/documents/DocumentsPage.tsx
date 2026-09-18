@@ -63,6 +63,16 @@ export const DocumentsPage: React.FC = () => {
     });
   };
 
+  const handleBulkDeleteDocuments = () => {
+    void actions.handleBulkDeleteDocuments(list.selectedIds, documents, (ids) => {
+      list.setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+    });
+  };
+
   return (
     <div className="w-full min-w-0 space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-[max(5rem,env(safe-area-inset-bottom))]">
       <DocumentsPageHeader
@@ -102,10 +112,13 @@ export const DocumentsPage: React.FC = () => {
         bulkIngestCount={list.bulkIngestCount}
         bulkExtractCount={list.bulkExtractCount}
         bulkClassifyCount={list.bulkClassifyCount}
+        bulkDeleteCount={list.bulkDeleteCount}
+        bulkDeleteBusy={actions.bulkDeleteBusy}
         ingestQuotaBlocked={ingestQuotaBlocked}
         onBulkIngest={() => void pipeline.runBulkPipeline('ingest', list.selectedIds)}
         onBulkExtract={() => void pipeline.runBulkPipeline('extract', list.selectedIds)}
         onBulkClassify={() => void pipeline.runBulkPipeline('classify', list.selectedIds)}
+        onBulkDelete={handleBulkDeleteDocuments}
         onSelectAllFiltered={list.selectAllFiltered}
         onClearSelection={list.clearSelection}
         headerCheckboxRef={list.headerCheckboxRef}

@@ -23,10 +23,13 @@ type DocumentsVaultSectionProps = {
   bulkIngestCount: number;
   bulkExtractCount: number;
   bulkClassifyCount: number;
+  bulkDeleteCount: number;
+  bulkDeleteBusy: boolean;
   ingestQuotaBlocked: boolean;
   onBulkIngest: () => void;
   onBulkExtract: () => void;
   onBulkClassify: () => void;
+  onBulkDelete: () => void;
   onSelectAllFiltered: () => void;
   onClearSelection: () => void;
   headerCheckboxRef: React.RefObject<HTMLInputElement | null>;
@@ -60,10 +63,13 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
   bulkIngestCount,
   bulkExtractCount,
   bulkClassifyCount,
+  bulkDeleteCount,
+  bulkDeleteBusy,
   ingestQuotaBlocked,
   onBulkIngest,
   onBulkExtract,
   onBulkClassify,
+  onBulkDelete,
   onSelectAllFiltered,
   onClearSelection,
   headerCheckboxRef,
@@ -124,11 +130,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                     ? `Run ingest on ${bulkIngestCount} document(s)`
                     : 'No selected documents need ingest'
               }
-              disabled={bulkBusyActive || bulkIngestCount === 0 || ingestQuotaBlocked}
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkIngestCount === 0 || ingestQuotaBlocked}
               onClick={onBulkIngest}
               className={cn(
                 'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                bulkBusyActive || bulkIngestCount === 0
+                bulkBusyActive || bulkDeleteBusy || bulkIngestCount === 0
                   ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
                   : 'bg-success/10 text-success border-success/20 hover:bg-success/20'
               )}
@@ -139,11 +145,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
             <button
               type="button"
               title={bulkExtractCount ? `Run extract on ${bulkExtractCount} document(s)` : 'No selected documents need extract'}
-              disabled={bulkBusyActive || bulkExtractCount === 0}
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkExtractCount === 0}
               onClick={onBulkExtract}
               className={cn(
                 'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                bulkBusyActive || bulkExtractCount === 0
+                bulkBusyActive || bulkDeleteBusy || bulkExtractCount === 0
                   ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
                   : 'bg-violet/10 text-violet border-violet/20 hover:bg-violet/20'
               )}
@@ -154,17 +160,36 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
             <button
               type="button"
               title={bulkClassifyCount ? `Run classify on ${bulkClassifyCount} document(s)` : 'No selected documents need classify'}
-              disabled={bulkBusyActive || bulkClassifyCount === 0}
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkClassifyCount === 0}
               onClick={onBulkClassify}
               className={cn(
                 'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                bulkBusyActive || bulkClassifyCount === 0
+                bulkBusyActive || bulkDeleteBusy || bulkClassifyCount === 0
                   ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
                   : 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20'
               )}
             >
               {bulkBusy === 'classify' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Bulk classify{bulkClassifyCount ? ` (${bulkClassifyCount})` : ''}
+            </button>
+            <button
+              type="button"
+              title={
+                bulkDeleteCount
+                  ? `Delete ${bulkDeleteCount} selected document(s)`
+                  : 'No selected documents can be deleted right now'
+              }
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkDeleteCount === 0}
+              onClick={onBulkDelete}
+              className={cn(
+                'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
+                bulkBusyActive || bulkDeleteBusy || bulkDeleteCount === 0
+                  ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
+                  : 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20'
+              )}
+            >
+              {bulkDeleteBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Bulk delete{bulkDeleteCount ? ` (${bulkDeleteCount})` : ''}
             </button>
             {filtered.length > paginatedDocuments.length && (
               <button
