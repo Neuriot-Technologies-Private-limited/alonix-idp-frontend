@@ -7,7 +7,7 @@ import {
   List as ListIcon,
   UserPlus,
 } from 'lucide-react';
-import { useGroupHealth } from '../../hooks/queries/admin';
+import { useGroupHealth, useIndustryDomains } from '../../hooks/queries/admin';
 import type { GroupHealth } from '../../services/adminService';
 import { useUsers } from '../../services/userService';
 import { useRbac } from '../../hooks/useRbac';
@@ -24,6 +24,8 @@ export const GroupManagement: React.FC = () => {
   const { t } = useTranslation('groups');
   const { orgRole, isGroupAdminFor } = useRbac();
   const { data: groups, isLoading } = useGroupHealth();
+  // Prefetch industry domains into React Query cache before create modal opens.
+  useIndustryDomains();
   const { data: allUsers = [] } = useUsers();
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = React.useState('');

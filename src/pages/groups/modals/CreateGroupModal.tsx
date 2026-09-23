@@ -2,8 +2,10 @@ import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, Loader2, Shield, AlertTriangle } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
+import { ThemedSelect } from '../../../components/ui/ThemedSelect';
 import { adminService, type GroupHealth } from '../../../services/adminService';
 import { useAuthStore } from '../../../stores/authStore';
+import { useIndustryDomains } from '../../../hooks/queries/admin/useIndustryDomains';
 import {
   PII_HANDLING_POLICIES,
   DEFAULT_PII_HANDLING_POLICY,
@@ -24,21 +26,44 @@ export interface CreateGroupModalProps {
 export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onCreated }) => {
   const queryClient = useQueryClient();
   const orgId = useAuthStore((s) => s.context?.orgId ?? s.user?.orgId);
+  const {
+    data: domains = [],
+    isLoading: domainsLoading,
+    isError: domainsError,
+    error: domainsQueryError,
+  } = useIndustryDomains();
+  const [industryDomain, setIndustryDomain] = React.useState('');
   const [name, setName] = React.useState('');
   const [piiPolicy, setPiiPolicy] = React.useState<PiiHandlingPolicy>(DEFAULT_PII_HANDLING_POLICY);
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
     if (isOpen) {
+      setIndustryDomain('');
       setName('');
       setPiiPolicy(DEFAULT_PII_HANDLING_POLICY);
       setError('');
     }
   }, [isOpen]);
 
+  React.useEffect(() => {
+    if (!isOpen || !domainsError) return;
+    const message =
+      (domainsQueryError as { message?: string } | undefined)?.message ||
+      'Could not load industry domains.';
+    setError(message);
+  }, [isOpen, domainsError, domainsQueryError]);
+
   const mutation = useMutation({
-    mutationFn: ({ n, policy }: { n: string; policy: PiiHandlingPolicy }) =>
-      adminService.createGroup(n, policy),
+    mutationFn: ({
+      n,
+      policy,
+      domain,
+    }: {
+      n: string;
+      policy: PiiHandlingPolicy;
+      domain: string;
+    }) => adminService.createGroup(n, policy, domain),
   });
 
   const handleClose = () => {
@@ -46,7 +71,15 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
     onClose();
   };
 
+  const selectedDomain = domains.find((d) => d.key === industryDomain);
+  const selectDisabled = domainsLoading && domains.length === 0;
+  const submitDisabled = mutation.isPending || domainsError;
+
   const submit = async () => {
+    if (!industryDomain.trim()) {
+      setError('Select an industry domain.');
+      return;
+    }
     const trimmed = name.trim();
     if (!trimmed) {
       setError('Enter a group name.');
@@ -58,7 +91,11 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
     }
     setError('');
     try {
-      const res = await mutation.mutateAsync({ n: trimmed, policy: piiPolicy });
+      const res = await mutation.mutateAsync({
+        n: trimmed,
+        policy: piiPolicy,
+        domain: industryDomain,
+      });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -98,7 +135,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={mutation.isPending}
+            disabled={submitDisabled}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-[11px] font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
           >
             {mutation.isPending ? (
@@ -114,6 +151,42 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
       }
     >
       <div className="space-y-5">
+        {/* Industry domain */}
+        <div className="space-y-2">
+          <label
+            htmlFor="create-group-industry-domain"
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50"
+          >
+            Industry domain
+          </label>
+          {domains.length === 0 ? (
+            <div className="flex min-h-[3rem] items-center rounded-2xl border-2 border-border/45 bg-surface-highest/5 px-4 py-3.5 text-[13px] font-medium text-muted-foreground dark:border-border/50">
+              {selectDisabled ? 'Loading domains…' : 'No domains available'}
+            </div>
+          ) : (
+            <ThemedSelect
+              id="create-group-industry-domain"
+              value={industryDomain}
+              onChange={(value) => {
+                setIndustryDomain(value);
+                if (error) setError('');
+              }}
+              options={domains.map((domain) => ({
+                value: domain.key,
+                label: domain.label,
+                description: domain.description,
+              }))}
+              placeholder="Select a domain"
+              disabled={selectDisabled || domainsError}
+              aria-label="Industry domain"
+              triggerClassName="min-h-[3rem] rounded-2xl border-border/45 bg-surface-highest/5 px-4 py-3.5 text-[13px] dark:border-border/50"
+            />
+          )}
+          {selectedDomain?.description ? (
+            <p className="text-[10px] text-muted-foreground/40">{selectedDomain.description}</p>
+          ) : null}
+        </div>
+
         {/* Group name */}
         <div className="space-y-2">
           <label htmlFor="create-group-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">

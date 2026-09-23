@@ -8,6 +8,7 @@ export {
 } from './useAdminOrgQueries';
 
 export { useGroupHealth, useGroupDetail } from './useAdminGroupQueries';
+export { useIndustryDomains } from './useIndustryDomains';
 
 export {
   useActivitySeries,

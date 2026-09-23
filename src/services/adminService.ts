@@ -243,8 +243,15 @@ export interface UpdateOrgSharePointSettingsInput {
   clientSecret?: string;
 }
 
+export type IndustryDomain = {
+  key: string;
+  label: string;
+  description: string;
+  sortOrder: number;
+};
+
 export type CreateGroupResult =
-  | { ok: true; group: { id: string; name: string; users: number; docs: number; status: string; statusLabel: string; piiHandlingPolicy?: PiiHandlingPolicy | null } }
+  | { ok: true; group: { id: string; name: string; users: number; docs: number; status: string; statusLabel: string; piiHandlingPolicy?: PiiHandlingPolicy | null; industryDomain?: string } }
   | { ok: false; error: string };
 
 const PIPELINE_STAGE_IDLE = { status: 'idle', startTime: null, endTime: null };
@@ -678,18 +685,31 @@ export const adminService = {
     };
   },
 
-  createGroup: async (name: string, piiHandlingPolicy: PiiHandlingPolicy): Promise<CreateGroupResult> => {
+  listIndustryDomains: async (): Promise<IndustryDomain[]> => {
+    const { data } = await apiClient.get<{ domains?: IndustryDomain[] }>('/industry-domains');
+    const domains = Array.isArray(data.domains) ? data.domains : [];
+    return [...domains].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  },
+
+  createGroup: async (
+    name: string,
+    piiHandlingPolicy: PiiHandlingPolicy,
+    industryDomain: string
+  ): Promise<CreateGroupResult> => {
     const orgId = requireOrgId();
     const trimmed = name.trim();
+    const domainKey = industryDomain.trim();
+    if (!domainKey) return { ok: false, error: 'Select an industry domain.' };
     if (!trimmed) return { ok: false, error: 'Enter a group name.' };
     if (!piiHandlingPolicy) return { ok: false, error: 'Select a PII handling policy.' };
     try {
       const { data } = await apiClient.post<{ group: Record<string, unknown> }>(
         `/admin/orgs/${encodeURIComponent(orgId)}/groups`,
         {
-        groupName: trimmed,
-        piiHandlingPolicy,
-      }
+          groupName: trimmed,
+          piiHandlingPolicy,
+          industryDomain: domainKey,
+        }
       );
       const created = data.group;
       const gidRaw = created._id as { toString?: () => string } | string | undefined;
@@ -705,6 +725,9 @@ export const adminService = {
           status: 'Healthy',
           statusLabel: 'Healthy',
           piiHandlingPolicy: (created.piiHandlingPolicy as PiiHandlingPolicy) ?? piiHandlingPolicy,
+          ...(created.industryDomain != null
+            ? { industryDomain: String(created.industryDomain) }
+            : { industryDomain: domainKey }),
         },
       };
     } catch (e: unknown) {
