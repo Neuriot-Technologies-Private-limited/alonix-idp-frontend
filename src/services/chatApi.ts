@@ -151,6 +151,20 @@ export async function triggerIngest(
   return apiClient.post<{ status?: string; jobId?: string }>(`${base}/${encodeURIComponent(documentId)}/ingest`, body);
 }
 
+export type BatchIngestResultItem = {
+  id?: string;
+  jobId?: string;
+  status?: string;
+};
+
+/** Queue many documents in one request (server max 50 ids). Counts as one pipeline rate-limit hit. */
+export async function triggerBatchIngest(documentIds: string[], groupId?: string | null) {
+  const base = documentsBase(groupId);
+  return apiClient.post<{ message?: string; results?: BatchIngestResultItem[] }>(`${base}/batch/ingest`, {
+    documentIds,
+  });
+}
+
 export async function triggerExtract(documentId: string, groupId?: string | null, format: string = 'json') {
   const base = documentsBase(groupId);
   return apiClient.post(`${base}/${encodeURIComponent(documentId)}/extract`, { format });

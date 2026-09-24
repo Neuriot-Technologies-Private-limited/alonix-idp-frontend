@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   triggerIngest,
+  triggerBatchIngest,
   triggerExtract,
   triggerClassify,
 } from '../../../../services/chatApi';
@@ -22,8 +23,14 @@ import {
   parseConnectorPendingDocumentId,
 } from '../../../../utils/connectorIngestOptimistic';
 import { useAlert } from '../../../../components/alert';
-import { mergePipeline } from '../../../../services/adminService';
 import type { DocumentRow } from '../../types/documentRow';
+import {
+  BATCH_INGEST_CHUNK,
+  chunkList,
+  collectBatchIngestFailures,
+  groupTargetsByGroup,
+  selectBulkPipelineTargets,
+} from './bulkIngestBatch';
 
 type PipelineAction = 'ingest' | 'extract' | 'classify';
 
@@ -109,45 +116,63 @@ export function useDocumentPipeline(
     const stage = pipelineActionToStage(action);
     const failures: string[] = [];
     const failedIds: string[] = [];
+    let started = 0;
     try {
-      for (const id of selectedIds) {
-        const docItem = documents?.find((d: DocumentRow) => d.id === id);
-        if (!docItem?.pipeline || !docCanManage(docItem)) continue;
-        if (action === 'ingest' && isConnectorPendingDocumentId(id)) continue;
-        const p = mergePipeline(docItem.pipeline);
-        if (action === 'ingest' && (p.ingestion.status === 'processing' || p.ingestion.status === 'done'))
-          continue;
-        if (action === 'extract' && (p.extraction.status === 'processing' || p.extraction.status === 'done'))
-          continue;
-        if (action === 'classify' && (p.classification.status === 'processing' || p.classification.status === 'done'))
-          continue;
-        const docRow = documents?.find((d: DocumentRow) => d.id === id);
-        const gid = docRow?.groupId ? String(docRow.groupId) : undefined;
-        const collectionName = (docRow?.group && String(docRow.group)) || gid || id;
-        optimisticSetPipelineStage(queryClient, id, stage);
-        try {
-          if (action === 'ingest') {
-            await triggerIngest(id, { collectionName }, gid || null);
-          } else if (action === 'extract') {
-            await triggerExtract(id, gid || null);
-          } else {
-            await triggerClassify(id, gid || null);
+      const targets = selectBulkPipelineTargets(documents, selectedIds, action, docCanManage);
+      if (action === 'ingest') {
+        for (const [groupKey, groupTargets] of groupTargetsByGroup(targets)) {
+          const gid = groupKey || null;
+          for (const chunk of chunkList(groupTargets, BATCH_INGEST_CHUNK)) {
+            for (const target of chunk) {
+              optimisticSetPipelineStage(queryClient, target.id, stage);
+            }
+            try {
+              const res = await triggerBatchIngest(
+                chunk.map((target) => target.id),
+                gid
+              );
+              const results = Array.isArray(res.data?.results) ? res.data.results : [];
+              const chunkFailures = collectBatchIngestFailures(chunk, results);
+              const failedInChunk = new Set(chunkFailures.map((item) => item.id));
+              started += chunk.length - failedInChunk.size;
+              for (const item of chunkFailures) {
+                markPipelineStageFailed(queryClient, item.id, stage);
+                failedIds.push(item.id);
+                failures.push(item.message);
+              }
+            } catch (err: unknown) {
+              const msg = quotaErrorMessage(err, 'Could not start ingest.');
+              for (const target of chunk) {
+                markPipelineStageFailed(queryClient, target.id, stage);
+                failedIds.push(target.id);
+                failures.push(`${target.fileName}: ${msg}`);
+              }
+            }
           }
-        } catch (err: unknown) {
-          markPipelineStageFailed(queryClient, id, stage);
-          failedIds.push(id);
-          const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
-          const msg =
-            action === 'ingest'
-              ? quotaErrorMessage(err, `Could not start ${action}.`)
-              : ax.response?.data?.detail ||
-                ax.response?.data?.error ||
-                ax.message ||
-                `Could not start ${action}.`;
-          failures.push(`${docItem.fileName || id}: ${msg}`);
+        }
+      } else {
+        for (const target of targets) {
+          optimisticSetPipelineStage(queryClient, target.id, stage);
+          try {
+            if (action === 'extract') {
+              await triggerExtract(target.id, target.groupId || null);
+            } else {
+              await triggerClassify(target.id, target.groupId || null);
+            }
+          } catch (err: unknown) {
+            markPipelineStageFailed(queryClient, target.id, stage);
+            failedIds.push(target.id);
+            const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
+            const msg =
+              ax.response?.data?.detail ||
+              ax.response?.data?.error ||
+              ax.message ||
+              `Could not start ${action}.`;
+            failures.push(`${target.fileName}: ${msg}`);
+          }
         }
       }
-      if (action === 'ingest' && selectedIds.size > failedIds.length) {
+      if (action === 'ingest' && started > 0) {
         void queryClient.invalidateQueries({
           queryKey: billingSubscriptionQueryKey(orgId),
         });
