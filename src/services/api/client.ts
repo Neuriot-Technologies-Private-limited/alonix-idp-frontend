@@ -92,6 +92,48 @@ function makeCsrfErrorFriendly(error: unknown): void {
 
 let csrfBootstrapInflight: Promise<void> | null = null;
 let unauthorizedHandling: Promise<void> | null = null;
+const LOGIN_AFTER_SESSION_END = '/login?session=expired';
+
+function isLoginPath(path: string): boolean {
+  return path === '/login' || path.startsWith('/login/');
+}
+
+/** Auth calls must not start another logout, or an expired session deadlocks the redirect. */
+function isAuthAttemptUrl(url: string): boolean {
+  return (
+    url.includes('/users/login') ||
+    url.includes('/users/verify-email') ||
+    url.includes('/users/resend-verification') ||
+    url.includes('/users/forgot-password') ||
+    url.includes('/users/reset-password') ||
+    url.includes('/users/change-password') ||
+    url.includes('/users/logout')
+  );
+}
+
+function currentPath(): string {
+  return typeof window !== 'undefined' ? window.location.pathname : '';
+}
+
+/** Clear the local session and leave the app. Server logout is best-effort. */
+async function endSessionAndGoToLogin(): Promise<void> {
+  if (!unauthorizedHandling) {
+    unauthorizedHandling = (async () => {
+      try {
+        await useAuthStore.getState().logout();
+      } catch {
+        /* logout clears local state even when the server rejects */
+      }
+      if (!isLoginPath(currentPath())) {
+        window.location.replace(LOGIN_AFTER_SESSION_END);
+      }
+    })().finally(() => {
+      unauthorizedHandling = null;
+    });
+  }
+  await unauthorizedHandling;
+}
+
 let contextBootstrapCooldownUntil = 0;
 const CONTEXT_429_COOLDOWN_MS = 60_000;
 const CONTEXT_BOOTSTRAP_MIN_INTERVAL_MS = 5_000;
@@ -217,37 +259,24 @@ apiClient.interceptors.response.use(
     // friendly message instead of the raw backend text.
     if (isCsrfError(error)) {
       makeCsrfErrorFriendly(error);
+      const reqUrl = String((error.config as { url?: string })?.url || '');
+      const { isRefreshingSession } = useAuthStore.getState();
+      // A CSRF failure we could not repair means this browser no longer has a
+      // usable session. Send the user to sign-in instead of asking them to log out by hand.
+      if (!isAuthAttemptUrl(reqUrl) && !isLoginPath(currentPath()) && !isRefreshingSession) {
+        await endSessionAndGoToLogin();
+      }
     }
 
     if (error.response?.status === 401) {
       const reqUrl = String((error.config as { url?: string })?.url || '');
-      const path = typeof window !== 'undefined' ? window.location.pathname : '';
-      const isAuthRoute =
-        reqUrl.includes('/users/login') ||
-        reqUrl.includes('/users/verify-email') ||
-        reqUrl.includes('/users/resend-verification') ||
-        reqUrl.includes('/users/forgot-password') ||
-        reqUrl.includes('/users/reset-password') ||
-        reqUrl.includes('/users/change-password');
-
-      const isOnLoginPage = path === '/login' || path.startsWith('/login?');
       const { isRefreshingSession } = useAuthStore.getState();
 
-      if (isAuthRoute || isOnLoginPage || isRefreshingSession) {
+      if (isAuthAttemptUrl(reqUrl) || isLoginPath(currentPath()) || isRefreshingSession) {
         return Promise.reject(error);
       }
 
-      if (!unauthorizedHandling) {
-        unauthorizedHandling = (async () => {
-          await useAuthStore.getState().logout();
-          if (!isOnLoginPage) {
-            window.location.href = '/login';
-          }
-        })().finally(() => {
-          unauthorizedHandling = null;
-        });
-      }
-      await unauthorizedHandling;
+      await endSessionAndGoToLogin();
     }
     return Promise.reject(error);
   }

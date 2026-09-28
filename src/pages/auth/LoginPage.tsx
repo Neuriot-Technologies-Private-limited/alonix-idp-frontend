@@ -16,6 +16,7 @@ const LoginPage: React.FC = () => {
   const brand = useBrand();
   const [searchParams] = useSearchParams();
   const orgIdFromUrl = searchParams.get('orgId') || '';
+  const sessionExpired = searchParams.get('session') === 'expired';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -135,6 +136,11 @@ const LoginPage: React.FC = () => {
           <div className="mb-6">
             <h2 className="text-2xl font-extrabold font-display mb-2 tracking-tight">{t('login.heading')}</h2>
             <p className="text-muted-foreground text-sm mb-6 leading-relaxed font-medium">{t('login.subheading')}</p>
+            {sessionExpired ? (
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-6" role="status">
+                {t('login.sessionExpired')}
+              </p>
+            ) : null}
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
