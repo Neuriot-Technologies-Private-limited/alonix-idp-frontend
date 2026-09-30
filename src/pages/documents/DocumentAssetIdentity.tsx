@@ -20,6 +20,8 @@ export interface DocumentAssetIdentityProps {
   onFileNameClick?: () => void;
   canOpenFile?: boolean;
   isOpening?: boolean;
+  /** Block opening the file, for example while this document is being deleted. */
+  openDisabled?: boolean;
 }
 
 export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
@@ -32,6 +34,7 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
   onFileNameClick,
   canOpenFile = false,
   isOpening = false,
+  openDisabled = false,
 }) => {
   const isCard = density === 'card';
   const badgeDensity = isCard ? 'comfortable' : 'compact';
@@ -54,12 +57,14 @@ export const DocumentAssetIdentity: React.FC<DocumentAssetIdentityProps> = ({
               type="button"
               onClick={onFileNameClick}
               className={cn(
-                'text-[13px] font-bold text-foreground truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm inline-flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-wait max-w-[210px]',
+                'text-[13px] font-bold text-foreground truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-sm inline-flex items-center gap-1.5 disabled:opacity-70 max-w-[210px]',
+                isOpening && 'disabled:cursor-wait',
+                openDisabled && 'disabled:cursor-not-allowed disabled:hover:text-foreground',
                 !isCard && 'group-hover/row:text-primary transition-colors cursor-pointer',
                 isCard && 'leading-snug break-words cursor-pointer max-w-full'
               )}
-              title={fileName}
-              disabled={isOpening}
+              title={openDisabled ? 'Deleting this document' : fileName}
+              disabled={isOpening || openDisabled}
             >
               {isOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" /> : null}
               <span className="truncate">{truncateFileName(fileName, 36)}</span>

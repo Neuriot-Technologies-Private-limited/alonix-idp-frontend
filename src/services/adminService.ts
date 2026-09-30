@@ -1,6 +1,6 @@
 import apiClient from './api/client';
 import { useAuthStore } from '../stores/authStore';
-import { getOrgPipelineDocuments } from './chatApi';
+import { getOrgPipelineDocuments } from './documentApi';
 import { normalizeDocumentTypeLabel } from '../utils/documentFileType';
 import type { PiiHandlingPolicy } from '../constants/piiHandlingPolicy';
 import type { DocumentPipelineStages } from '../pages/documents/types/documentRow';

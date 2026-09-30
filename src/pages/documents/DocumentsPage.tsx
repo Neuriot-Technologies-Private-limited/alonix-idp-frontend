@@ -114,6 +114,7 @@ export const DocumentsPage: React.FC = () => {
         bulkClassifyCount={list.bulkClassifyCount}
         bulkDeleteCount={list.bulkDeleteCount}
         bulkDeleteBusy={actions.bulkDeleteBusy}
+        bulkDeletingIds={actions.bulkDeletingIds}
         ingestQuotaBlocked={ingestQuotaBlocked}
         onBulkIngest={() => void pipeline.runBulkPipeline('ingest', list.selectedIds)}
         onBulkExtract={() => void pipeline.runBulkPipeline('extract', list.selectedIds)}
@@ -168,9 +169,7 @@ export const DocumentsPage: React.FC = () => {
       <DocumentUploadModal
         isOpen={upload.isUploadModalOpen}
         onClose={() => {
-          upload.setIsUploadModalOpen(false);
-          upload.setAttachClaimId(false);
-          upload.setClaimId('');
+          void upload.dismissUpload();
         }}
         orgWideUpload={list.isCompanyAdmin}
         groups={upload.uploadGroupChoices}
@@ -186,6 +185,12 @@ export const DocumentsPage: React.FC = () => {
         claimId={upload.claimId}
         onClaimIdChange={upload.setClaimId}
         onUpload={upload.runUpload}
+        dedupReview={upload.dedupReview}
+        dedupChecking={upload.dedupChecking}
+        onDedupChoice={upload.setDedupChoice}
+        onContinueDedup={() => {
+          void upload.continueDedupUpload();
+        }}
       />
     </div>
   );

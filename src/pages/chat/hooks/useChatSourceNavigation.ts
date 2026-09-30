@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { getDocumentAccessUrl, getFreshSourceUrl } from '../../../services/chatApi';
+import { getDocumentAccessUrl, getFreshSourceUrl } from '../../../services/documentApi';
 import { isAllowedExternalDocumentUrl } from '../../../utils/safeDocumentUrl';
 import type { NormSource } from '../types/chatConversation';
 

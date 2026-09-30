@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { bulkDeleteDocuments, deleteDocument, getDocumentAccessUrl } from '../../../../services/chatApi';
+import { bulkDeleteDocuments, deleteDocument, getDocumentAccessUrl } from '../../../../services/documentApi';
 import { mergePipeline } from '../../../../services/adminService';
 import { refreshPipelineDocuments } from '../../../../utils/pipelineDocumentsCache';
 import { isConnectorPendingDocumentId } from '../../../../utils/connectorIngestOptimistic';
@@ -24,11 +24,24 @@ export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
   const queryClient = useQueryClient();
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+  const [bulkDeletingIds, setBulkDeletingIds] = useState<ReadonlySet<string>>(() => new Set());
+  const bulkDeletingIdsRef = React.useRef<Set<string>>(new Set());
   const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
+
+  const lockBulkDeleting = useCallback((ids: Iterable<string>) => {
+    const next = new Set(ids);
+    bulkDeletingIdsRef.current = next;
+    setBulkDeletingIds(next);
+  }, []);
+
+  const unlockBulkDeleting = useCallback(() => {
+    bulkDeletingIdsRef.current = new Set();
+    setBulkDeletingIds(new Set());
+  }, []);
 
   const handleDeleteDocument = React.useCallback(
     async (docItem: DocumentRow, onDeleted?: (id: string) => void) => {
-      if (!docCanManage(docItem)) return;
+      if (!docCanManage(docItem) || bulkDeletingIdsRef.current.has(docItem.id)) return;
       const name = docItem.fileName || 'this document';
       const ok = await confirm({
         title: 'Remove document?',
@@ -90,6 +103,7 @@ export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
       });
       if (!ok) return;
 
+      lockBulkDeleting(idList);
       setBulkDeleteBusy(true);
       const deletedIds: string[] = [];
       const failures: string[] = [];
@@ -141,13 +155,15 @@ export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
         }
       } finally {
         setBulkDeleteBusy(false);
+        unlockBulkDeleting();
       }
     },
-    [appAlert, confirm, docCanManage, queryClient]
+    [appAlert, confirm, docCanManage, lockBulkDeleting, queryClient, unlockBulkDeleting]
   );
 
   const handleOpenDocument = React.useCallback(
     async (docItem: DocumentRow) => {
+      if (bulkDeletingIdsRef.current.has(String(docItem.id))) return;
       setOpenDocBusyId(String(docItem.id));
       try {
         const gid = docItem.groupId ? String(docItem.groupId) : undefined;
@@ -191,6 +207,7 @@ export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
   return {
     deleteBusyId,
     bulkDeleteBusy,
+    bulkDeletingIds,
     openDocBusyId,
     handleDeleteDocument,
     handleBulkDeleteDocuments,

@@ -19,7 +19,7 @@ import { cn } from '../../../utils/cn';
 import { quotaErrorMessage } from '../../../utils/billingQuota';
 import { billingSubscriptionQueryKey, useOrgQuota } from '../../../hooks/useOrgQuota';
 import { useAuthStore } from '../../../stores/authStore';
-import { triggerIngest } from '../../../services/chatApi';
+import { triggerIngest } from '../../../services/documentApi';
 import { refreshDocumentsAfterConnectorIngest } from '../../../utils/connectorIngestFeedback';
 import {
   failOptimisticConnectorDocuments,

@@ -5,7 +5,7 @@ import {
   triggerBatchIngest,
   triggerExtract,
   triggerClassify,
-} from '../../../../services/chatApi';
+} from '../../../../services/documentApi';
 import { connectSocket, getSocket } from '../../../../services/chatSocket';
 import { billingSubscriptionQueryKey } from '../../../../hooks/useOrgQuota';
 import { quotaErrorMessage } from '../../../../utils/billingQuota';

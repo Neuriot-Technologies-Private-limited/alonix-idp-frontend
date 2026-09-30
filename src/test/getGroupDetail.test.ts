@@ -18,7 +18,7 @@ vi.mock('../stores/authStore', () => ({
   },
 }));
 
-vi.mock('../services/chatApi', () => ({
+vi.mock('../services/documentApi', () => ({
   getOrgPipelineDocuments: vi.fn(async () => ({ data: { documents: [] } })),
 }));
 

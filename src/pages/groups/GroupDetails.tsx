@@ -20,7 +20,7 @@ import {
 import { useGroupDetail, useGroupHealth } from '../../hooks/queries/admin';
 import { adminService } from '../../services/adminService';
 import { useUsers, userService } from '../../services/userService';
-import { getDocumentAccessUrl } from '../../services/chatApi';
+import { getDocumentAccessUrl } from '../../services/documentApi';
 import { HealthBadge } from '../../components/ui/GroupCard';
 import { Loader } from '../../components/ui/Loader';
 import { useAlert } from '../../components/alert';

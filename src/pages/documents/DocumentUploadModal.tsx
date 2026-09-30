@@ -4,8 +4,54 @@ import { UploadCloud, Upload, Folder, File, X, Shield } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { ThemedSelect } from '../../components/ui/ThemedSelect';
 import { cn } from '../../utils/cn';
+import { formatDiscoveryUploadedAt } from '../../utils/formatDateTime';
 
 import type { AuthContextPayload } from '../../types/auth';
+import type { DedupReviewItem } from './hooks/upload/useDocumentUpload';
+
+/** Lets the filename render in <strong> after i18n interpolation. */
+const FILE_MARK = '\u0001';
+
+const PRIMARY_COPY: Record<string, string> = {
+  'Exact duplicate': 'upload.dedup.exact',
+  Duplicate: 'upload.dedup.duplicate',
+  Version: 'upload.dedup.version',
+  Subset: 'upload.dedup.subset',
+  'Related, not version': 'upload.dedup.related',
+};
+
+const ALSO_COPY: Record<string, string> = {
+  'Exact duplicate': 'upload.dedup.alsoExact',
+  Duplicate: 'upload.dedup.alsoDuplicate',
+  Version: 'upload.dedup.alsoVersion',
+  Subset: 'upload.dedup.alsoSubset',
+  'Related, not version': 'upload.dedup.alsoRelated',
+};
+
+function copyKey(relation: string | undefined, table: Record<string, string>, fallback: string) {
+  if (!relation) return fallback;
+  return table[relation] || fallback;
+}
+
+function DedupMention({ messageKey, fileName }: { messageKey: string; fileName: string }) {
+  const { t } = useTranslation('documents');
+  const rendered = t(messageKey, { fileName: FILE_MARK });
+  const at = rendered.indexOf(FILE_MARK);
+  if (at === -1) {
+    return (
+      <span>
+        {rendered} <strong className="font-semibold text-foreground">{fileName}</strong>
+      </span>
+    );
+  }
+  return (
+    <span>
+      {rendered.slice(0, at)}
+      <strong className="font-semibold text-foreground">{fileName}</strong>
+      {rendered.slice(at + FILE_MARK.length)}
+    </span>
+  );
+}
 
 export interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -25,6 +71,11 @@ export interface DocumentUploadModalProps {
   claimId: string;
   onClaimIdChange: (value: string) => void;
   onUpload: () => void;
+  /** Set when at least one file is block or choose. Null keeps the file picker. */
+  dedupReview?: DedupReviewItem[] | null;
+  dedupChecking?: boolean;
+  onDedupChoice?: (documentId: string, decision: 'upload' | 'skip') => void;
+  onContinueDedup?: () => void;
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
@@ -44,8 +95,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   claimId,
   onClaimIdChange,
   onUpload,
+  dedupReview = null,
+  dedupChecking = false,
+  onDedupChoice,
+  onContinueDedup,
 }) => {
   const { t } = useTranslation('documents');
+  const inReview = Boolean(dedupReview && dedupReview.length > 0);
 
   const selectedHint =
     uploadSensitivityOptions.find((o) => o.value === uploadSensitivityLevel)?.hint ??
@@ -66,7 +122,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={t('upload.title')}
-      subtitle={t('upload.subtitle')}
+      subtitle={inReview ? t('upload.dedup.reviewSubtitle') : t('upload.subtitle')}
       icon={<UploadCloud className="w-5 h-5 sm:w-6 sm:h-6" />}
       maxWidth="max-w-md"
       footer={
@@ -81,11 +137,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           <button
             type="button"
             disabled={
-              selectedFiles.length === 0 ||
-              (orgWideUpload && !targetGroupId) ||
-              (attachClaimId && !claimId.trim())
+              dedupChecking ||
+              (!inReview &&
+                (selectedFiles.length === 0 ||
+                  (orgWideUpload && !targetGroupId) ||
+                  (attachClaimId && !claimId.trim())))
             }
-            onClick={onUpload}
+            onClick={inReview ? onContinueDedup : onUpload}
             className={cn(
               'flex-1 min-h-[44px] min-w-0 rounded-xl bg-primary px-3 text-[10px] font-black uppercase tracking-widest text-primary-foreground shadow-md shadow-primary/15 sm:min-h-[48px] sm:px-4 sm:text-[11px]',
               'inline-flex items-center justify-center gap-2 transition-[filter,opacity] hover:brightness-105 active:brightness-95',
@@ -93,19 +151,118 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             )}
           >
             <Upload className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-            {selectedFiles.length > 0
-              ? t('upload.uploadWithCount', { count: selectedFiles.length })
-              : t('upload.uploadButton')}
+            {dedupChecking
+              ? t('upload.dedup.checking')
+              : inReview
+                ? t('upload.dedup.continueButton')
+                : selectedFiles.length > 0
+                  ? t('upload.uploadWithCount', { count: selectedFiles.length })
+                  : t('upload.uploadButton')}
           </button>
         </div>
       }
     >
       <div className="space-y-4">
+        {inReview && dedupReview ? (
+          <ul className="max-h-[min(52vh,22rem)] space-y-1.5 overflow-y-auto rounded-lg border border-border/25 bg-surface-highest/[0.04] p-1.5 pr-1 dark:border-border/35">
+            {dedupReview.map((item, index) => (
+              <li
+                key={`${item.documentId || 'pending'}-${item.file.name}-${index}`}
+                className="rounded-md border border-transparent px-2 py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <File className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-semibold text-foreground" title={item.file.name}>
+                      {item.file.name}
+                    </p>
+                    {item.action === 'upload' ? (
+                      <p className="text-[10px] leading-snug text-muted-foreground/70">
+                        {item.checkFailed ? t('upload.dedup.checkFailed') : t('upload.dedup.willUpload')}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                {item.action === 'block' ? (
+                  <div className="mt-1.5 pl-9">
+                    <p className="text-[11px] leading-snug text-foreground/90">
+                      <DedupMention
+                        messageKey={copyKey(item.matched?.relation, PRIMARY_COPY, 'upload.dedup.exact')}
+                        fileName={item.matched?.fileName || item.file.name}
+                      />
+                    </p>
+                    {item.matched?.uploadedAt ? (
+                      <p className="mt-0.5 text-[10px] text-muted-foreground/55">
+                        {t('upload.dedup.uploadedOn', {
+                          date: formatDiscoveryUploadedAt(item.matched.uploadedAt),
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {item.action === 'choose' ? (
+                  <div className="mt-1.5 space-y-1.5 pl-9">
+                    <p className="text-[11px] leading-snug text-foreground/90">
+                      <DedupMention
+                        messageKey={copyKey(item.matched?.relation, PRIMARY_COPY, 'upload.dedup.related')}
+                        fileName={item.matched?.fileName || item.file.name}
+                      />
+                    </p>
+                    {item.alsoRelated.length > 0 ? (
+                      <ul className="space-y-0.5">
+                        {item.alsoRelated.map((related) => (
+                          <li key={related.id} className="text-[10px] leading-snug text-muted-foreground/60">
+                            <DedupMention
+                              messageKey={copyKey(related.relation, ALSO_COPY, 'upload.dedup.alsoRelated')}
+                              fileName={related.fileName}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={item.decision === 'upload'}
+                        onClick={() => onDedupChoice?.(item.documentId, 'upload')}
+                        className={cn(
+                          'min-h-[32px] rounded-lg px-2.5 text-[9px] font-black uppercase tracking-widest transition-colors',
+                          item.decision === 'upload'
+                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/15'
+                            : 'border border-border/40 bg-surface-lowest/80 text-muted-foreground hover:border-border hover:text-foreground'
+                        )}
+                      >
+                        {t('upload.dedup.uploadChoice')}
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={item.decision === 'skip'}
+                        onClick={() => onDedupChoice?.(item.documentId, 'skip')}
+                        className={cn(
+                          'min-h-[32px] rounded-lg px-2.5 text-[9px] font-black uppercase tracking-widest transition-colors',
+                          item.decision === 'skip'
+                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/15'
+                            : 'border border-border/40 bg-surface-lowest/80 text-muted-foreground hover:border-border hover:text-foreground'
+                        )}
+                      >
+                        {t('upload.dedup.skipChoice')}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+        <>
         {/* Primary: drop zone — compact vertical footprint */}
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
+            if (dedupChecking) return;
             const files = Array.from(e.dataTransfer.files);
             setSelectedFiles((prev) => [...prev, ...files]);
           }}
@@ -132,6 +289,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             multiple
             accept=".pdf,.json,.xlsx,.xls,.csv,.txt,.doc,.docx,.png,.jpg,.jpeg,.tif,.tiff,.webp,application/pdf,application/json,text/csv,text/plain"
             className="absolute inset-0 cursor-pointer opacity-0"
+            disabled={dedupChecking}
             onChange={(e) => {
               const files = Array.from(e.target.files || []);
               setSelectedFiles((prev) => [...prev, ...files]);
@@ -267,6 +425,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             </ul>
           </div>
         ) : null}
+        </>
+        )}
       </div>
     </Modal>
   );

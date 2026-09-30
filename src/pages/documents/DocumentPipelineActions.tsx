@@ -19,6 +19,8 @@ export interface DocumentPipelineActionsProps {
   deleteBusyId?: string | null;
   /** When this equals docItem.id, Results button shows a spinner. */
   resultsLoadingDocId?: string | null;
+  /** Bulk delete in flight for this document — block every row action. */
+  actionsLocked?: boolean;
   variant?: 'table' | 'card';
   readOnly?: boolean;
 }
@@ -34,6 +36,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   onDeleteDocument,
   deleteBusyId,
   resultsLoadingDocId,
+  actionsLocked = false,
   variant = 'table',
   readOnly = false,
 }) => {
@@ -77,15 +80,20 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
   const classifyErrorMessage =
     classifyFailed && p?.classification?.errorMessage ? String(p.classification.errorMessage) : '';
   const ingestEnabled =
+    !actionsLocked &&
     !bulkBusyActive &&
     !docBusy &&
     !ingestRunning &&
     (!ingestDone || ingestFailed) &&
     !isConnectorPlaceholder;
   const extractEnabled =
-    !bulkBusyActive && !docBusy && !extractRunning && (!extractDone || extractFailed);
+    !actionsLocked && !bulkBusyActive && !docBusy && !extractRunning && (!extractDone || extractFailed);
   const classifyEnabled =
-    !bulkBusyActive && !docBusy && !classifyRunning && (!classifyDone || classifyFailed);
+    !actionsLocked &&
+    !bulkBusyActive &&
+    !docBusy &&
+    !classifyRunning &&
+    (!classifyDone || classifyFailed);
   const showResults =
     extractDone ||
     classifyDone ||
@@ -136,13 +144,14 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
         <div className={wrapReadOnly}>
           <button
             type="button"
-            aria-label={resultsTooltip}
-            title={resultsTooltip}
+            aria-label={actionsLocked ? 'Deleting this document' : resultsTooltip}
+            title={actionsLocked ? 'Deleting this document' : resultsTooltip}
             onClick={(e) => {
               e.stopPropagation();
+              if (actionsLocked) return;
               onOpenResults(docItem);
             }}
-            disabled={resultsLoading}
+            disabled={resultsLoading || actionsLocked}
             className="shrink-0 h-9 w-9 p-0 rounded-lg bg-primary text-primary-foreground shadow-md flex items-center justify-center border border-primary/30 transition-all touch-manipulation hover:brightness-110 active:scale-95 disabled:opacity-80"
           >
             {resultsLoading ? (
@@ -244,13 +253,14 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
       {showResults && (
         <button
           type="button"
-          aria-label={resultsTooltip}
-          title={resultsTooltip}
+          aria-label={actionsLocked ? 'Deleting this document' : resultsTooltip}
+          title={actionsLocked ? 'Deleting this document' : resultsTooltip}
           onClick={(e) => {
             e.stopPropagation();
+            if (actionsLocked) return;
             onOpenResults(docItem);
           }}
-          disabled={resultsLoading}
+          disabled={resultsLoading || actionsLocked}
           className="shrink-0 h-9 w-9 p-0 rounded-lg bg-primary text-primary-foreground shadow-md flex items-center justify-center border border-primary/30 transition-all touch-manipulation hover:brightness-110 active:scale-95 disabled:opacity-80"
         >
           {resultsLoading ? (
@@ -265,6 +275,7 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
         aria-label="Delete document"
         title="Delete — remove this document"
         disabled={
+          actionsLocked ||
           Boolean(deleteBusyId) ||
           bulkBusyActive ||
           docBusy ||
@@ -276,13 +287,13 @@ export const DocumentPipelineActions: React.FC<DocumentPipelineActionsProps> = (
         }}
         className={cn(
           'shrink-0 h-9 w-9 rounded-lg bg-surface-highest/15 flex items-center justify-center border border-border/20 touch-manipulation transition-colors',
-          onDeleteDocument
-            ? 'text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 active:scale-95'
-            : 'text-muted-foreground/20 cursor-not-allowed opacity-50',
-          deleteBusyId === docItem.id && 'opacity-90'
+          actionsLocked || !onDeleteDocument
+            ? 'text-muted-foreground/20 cursor-not-allowed opacity-50'
+            : 'text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 active:scale-95',
+          (deleteBusyId === docItem.id || actionsLocked) && 'opacity-90'
         )}
       >
-        {deleteBusyId === docItem.id ? (
+        {deleteBusyId === docItem.id || actionsLocked ? (
           <Loader2 className="w-4 h-4 animate-spin text-destructive/90" aria-hidden />
         ) : (
           <Trash2 className="w-4 h-4" aria-hidden />

@@ -19,7 +19,27 @@
     "cancelButton": "Cancel",
     "uploadButton": "Upload",
     "uploadWithCount": "Upload ({{count}})",
-    "appliesHint": "Applies to every file in this batch."
+    "appliesHint": "Applies to every file in this batch.",
+    "dedup": {
+      "checking": "Checking for duplicates…",
+      "reviewSubtitle": "Review matches before saving",
+      "willUpload": "will upload",
+      "checkFailed": "Duplicate check unavailable. The file will upload.",
+      "uploadedOn": "Uploaded {{date}}",
+      "exact": "Already in this workspace: {{fileName}}",
+      "duplicate": "This looks like a re-scan or re-save of {{fileName}}",
+      "version": "This looks like an edited version of {{fileName}}",
+      "subset": "These pages are already inside {{fileName}}",
+      "related": "Same identity as {{fileName}}, but the content is different",
+      "alsoExact": "Also identical to {{fileName}}",
+      "alsoDuplicate": "Also a re-scan of {{fileName}}",
+      "alsoVersion": "Also a version of {{fileName}}",
+      "alsoSubset": "Also shares pages with {{fileName}}",
+      "alsoRelated": "Also the same identity as {{fileName}}",
+      "uploadChoice": "Upload",
+      "skipChoice": "Skip",
+      "continueButton": "Continue"
+    }
   },
   "documents": {
     "title": "Documents",

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getGroupClaimIds } from '../../../services/chatApi';
+import { getGroupClaimIds } from '../../../services/documentApi';
 import { chatQueryKeys } from './chatQueryKeys';
 
 export function useGroupClaimIds(groupId: string) {

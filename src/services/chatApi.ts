@@ -1,7 +1,7 @@
 /**
- * Chat + document helpers aligned with alonix-idp-node-backend:
- * - `/api/chats/...` or `/api/groups/:groupId/chats/...` (group-scoped preferred)
- * - `/api/documents/...` or `/api/groups/:groupId/documents/...`
+ * Chat helpers aligned with alonix-idp-node-backend:
+ * `/api/chats/...` or `/api/groups/:groupId/chats/...` (group-scoped preferred).
+ * Document calls live in documentApi.ts.
  * Auth context refresh: `authApi.fetchAuthContext()` / `useAuthStore.syncAuthContext()`.
  */
 import apiClient from './api/client';
@@ -9,11 +9,6 @@ import apiClient from './api/client';
 function chatsBase(groupId?: string | null) {
   const g = groupId?.trim();
   return g ? `/groups/${encodeURIComponent(g)}/chats` : '/chats';
-}
-
-function documentsBase(groupId?: string | null) {
-  const g = groupId?.trim();
-  return g ? `/groups/${encodeURIComponent(g)}/documents` : '/documents';
 }
 
 /** Sessions for the authenticated user (JWT); no email in URL. */
@@ -67,11 +62,6 @@ export async function askQuestion(
   });
 }
 
-export async function getGroupClaimIds(groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.get<{ claimIds: string[] }>(`${base}/claim-ids`);
-}
-
 export async function deleteChat(sessionId: string, groupId?: string | null) {
   const base = chatsBase(groupId);
   return apiClient.delete<{ status?: boolean; msg?: string }>(`${base}/delete`, {
@@ -80,146 +70,6 @@ export async function deleteChat(sessionId: string, groupId?: string | null) {
       ...(groupId ? { groupId } : {}),
     },
   });
-}
-
-export type UploadDocumentOptions = {
-  /** Mongo user id — must match JWT user; preferred over email. */
-  userId: string;
-  groupId?: string | null;
-  /** Org scope from auth context — validated server-side against session. */
-  orgId?: string | null;
-  /** Document sensitivity tier (validated against membership and group policy). */
-  sensitivityLevel?: string | null;
-  /** Optional claim identifier stored on the document and sent to Python as claim_id. */
-  claimId?: string | null;
-};
-
-export async function uploadDocument(file: File, options: UploadDocumentOptions) {
-  const { userId, groupId, orgId, sensitivityLevel, claimId } = options;
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('userId', userId);
-  if (groupId) fd.append('groupId', groupId);
-  if (orgId) fd.append('orgId', orgId);
-  fd.append('sensitivityLevel', (sensitivityLevel && String(sensitivityLevel).trim()) || 'INTERNAL_USE');
-  const trimmedClaimId = String(claimId || '').trim();
-  if (trimmedClaimId) fd.append('claim_id', trimmedClaimId);
-  const base = documentsBase(groupId);
-  return apiClient.post<{
-    id?: string;
-    fileName?: string;
-    status?: string;
-    jobId?: string;
-    message?: string;
-  }>(
-    `${base}/upload`,
-    fd,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      // Large files can take several minutes — give a generous timeout.
-      // If exceeded, the background upload loop will catch it and mark the job as 'error'.
-      timeout: 5 * 60 * 1000,
-    }
-  );
-}
-
-/** `documentId` is the MongoDB document `_id` (24-char hex). */
-export async function deleteDocument(documentId: string, groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.delete<{ message?: string; error?: string }>(
-    `${base}/${encodeURIComponent(documentId)}`
-  );
-}
-
-export type BulkDeleteDocumentsResult = {
-  deleted: string[];
-  failed: Array<{ id: string; status?: number; error?: string; blocking?: unknown }>;
-};
-
-/** Bulk delete by MongoDB `_id` list (max 50 per request on the server). */
-export async function bulkDeleteDocuments(ids: string[], groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.post<BulkDeleteDocumentsResult>(`${base}/bulk-delete`, { ids });
-}
-
-export async function triggerIngest(
-  documentId: string,
-  body: { collectionName: string },
-  groupId?: string | null
-) {
-  const base = documentsBase(groupId);
-  return apiClient.post<{ status?: string; jobId?: string }>(`${base}/${encodeURIComponent(documentId)}/ingest`, body);
-}
-
-export type BatchIngestResultItem = {
-  id?: string;
-  jobId?: string;
-  status?: string;
-};
-
-/** Queue many documents in one request (server max 50 ids). Counts as one pipeline rate-limit hit. */
-export async function triggerBatchIngest(documentIds: string[], groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.post<{ message?: string; results?: BatchIngestResultItem[] }>(`${base}/batch/ingest`, {
-    documentIds,
-  });
-}
-
-export async function triggerExtract(documentId: string, groupId?: string | null, format: string = 'json') {
-  const base = documentsBase(groupId);
-  return apiClient.post(`${base}/${encodeURIComponent(documentId)}/extract`, { format });
-}
-
-export async function triggerClassify(documentId: string, groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.post(`${base}/${encodeURIComponent(documentId)}/classify`, {});
-}
-
-export async function getJobStatus(jobId: string, groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.get<{ status: string; errorDetails?: string }>(
-    `${base}/jobs/${encodeURIComponent(jobId)}`
-  );
-}
-
-export async function getFreshSourceUrl(
-  fileKey: string,
-  _mimeHint: string | null,
-  groupId?: string | null
-) {
-  const base = documentsBase(groupId);
-  return apiClient.post<{ url: string; fileKey?: string; expiresInSec?: number }>(`${base}/source-url`, {
-    fileKey,
-  });
-}
-
-export async function getDocumentAccessUrl(documentId: string, groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.post<{ url: string; fileKey?: string; expiresInSec?: number }>(`${base}/source-url`, {
-    documentId,
-  });
-}
-
-export async function getUserDocuments(userEmail: string, groupId?: string | null) {
-  const base = documentsBase(groupId);
-  return apiClient.get<{ documents: unknown[] }>(
-    `${base}/user/${encodeURIComponent(userEmail)}`
-  );
-}
-
-export type OrgPipelineDocumentsParams = {
-  limit?: number;
-  cursor?: string;
-  ingestSource?: 'connector';
-  connectorId?: string;
-};
-
-/** Org-wide pipeline rows for dashboard / documents (authenticated, org-scoped). */
-export async function getOrgPipelineDocuments(params?: OrgPipelineDocumentsParams) {
-  return apiClient.get<{ documents: unknown[]; nextCursor?: string | null; hasMore?: boolean }>(
-    '/documents/org',
-    { params }
-  );
 }
 
 // ---- DTOs (loose; API may vary) ----

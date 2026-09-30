@@ -1,6 +1,6 @@
 /**
  * Document human-review API (extraction & classification).
- * Paths mirror chatApi documentsBase: `/documents` or `/groups/:groupId/documents`.
+ * Paths match documentApi: `/documents` or `/groups/:groupId/documents`.
  */
 import apiClient from './api/client';
 import {
