@@ -21,6 +21,7 @@ import { useUploadStore } from '../../../../stores/uploadStore';
 import { useAlert } from '../../../../components/alert';
 import { quotaErrorMessage } from '../../../../utils/billingQuota';
 import { useAuthStore } from '../../../../stores/authStore';
+import { hasActiveSession } from '../../../../utils/session';
 import type { GroupContext } from '../../../../types/auth';
 import { optimisticAppendUploadedDocument } from '../../../../utils/pipelineDocumentsCache';
 
@@ -39,6 +40,23 @@ export type DedupReviewItem = {
   uploadStarted: boolean;
   groupId: string;
 };
+
+function userIdOf(user: { _id?: string; id?: string } | null | undefined) {
+  return String(user?._id || user?.id || '').trim();
+}
+
+/** Local profile can lose its id after reload. The cookie session still has it. */
+async function resolveUploadUserId(user: { _id?: string; id?: string } | null | undefined) {
+  const existing = userIdOf(user) || userIdOf(useAuthStore.getState().user);
+  if (existing) return existing;
+  const restored = await useAuthStore.getState().refreshSession();
+  const fresh = useAuthStore.getState().user;
+  const userId = userIdOf(fresh);
+  if (restored && userId && hasActiveSession(fresh, useAuthStore.getState().context)) {
+    return userId;
+  }
+  return '';
+}
 
 function samePending(a: DedupReviewItem, b: { file: File; documentId: string }) {
   return a.file === b.file && a.documentId === b.documentId;
@@ -306,15 +324,6 @@ export function useDocumentUpload(opts: {
       });
       return;
     }
-    const userId = String(user?._id || user?.id || '').trim();
-    if (!userId) {
-      void appAlert({
-        title: 'Session issue',
-        description: 'Missing user id. Please sign in again.',
-        variant: 'danger',
-      });
-      return;
-    }
     const trimmedClaimId = attachClaimId ? claimId.trim() : '';
     if (attachClaimId && !trimmedClaimId) {
       void appAlert({
@@ -332,6 +341,17 @@ export function useDocumentUpload(opts: {
     const sensitivity = uploadSensitivityLevel;
 
     return (async () => {
+      const userId = await resolveUploadUserId(user);
+      if (!userId) {
+        inflightRef.current = false;
+        setDedupChecking(false);
+        void appAlert({
+          title: 'Session expired',
+          description: 'Please sign in again to upload documents.',
+          variant: 'danger',
+        });
+        return;
+      }
       try {
         const checks = await Promise.all(
           filesToCheck.map(async (file) => {
@@ -389,23 +409,33 @@ export function useDocumentUpload(opts: {
     const items = pendingRef.current;
     if (!items.length) return Promise.resolve();
     const gid = items[0]?.groupId || (isCompanyAdmin ? targetGroupId : targetGroupId || '');
-    const userId = String(user?._id || user?.id || '').trim();
     const trimmedClaimId = attachClaimId ? claimId.trim() : '';
     const sensitivity = uploadSensitivityLevel;
-    const stamped = items.map((item) => {
-      const willUpload =
-        item.action === 'upload' || (item.action === 'choose' && item.decision === 'upload');
-      return { ...item, uploadStarted: willUpload };
-    });
-    const toUpload = stamped.filter((item) => item.uploadStarted);
-    const toCancel = stamped.filter((item) => !item.uploadStarted);
-    pendingRef.current = toUpload;
-    if (toUpload.length) onUploadStarted?.();
-    releaseUploadForm();
-    return Promise.all([
-      cancelUnsaved(toCancel),
-      persistUploads(toUpload, { gid, userId, sensitivity, claimId: trimmedClaimId }),
-    ]);
+    return (async () => {
+      const userId = await resolveUploadUserId(user);
+      if (!userId) {
+        void appAlert({
+          title: 'Session expired',
+          description: 'Please sign in again to upload documents.',
+          variant: 'danger',
+        });
+        return;
+      }
+      const stamped = items.map((item) => {
+        const willUpload =
+          item.action === 'upload' || (item.action === 'choose' && item.decision === 'upload');
+        return { ...item, uploadStarted: willUpload };
+      });
+      const toUpload = stamped.filter((item) => item.uploadStarted);
+      const toCancel = stamped.filter((item) => !item.uploadStarted);
+      pendingRef.current = toUpload;
+      if (toUpload.length) onUploadStarted?.();
+      releaseUploadForm();
+      await Promise.all([
+        cancelUnsaved(toCancel),
+        persistUploads(toUpload, { gid, userId, sensitivity, claimId: trimmedClaimId }),
+      ]);
+    })();
   };
 
   const dismissUpload = () => {

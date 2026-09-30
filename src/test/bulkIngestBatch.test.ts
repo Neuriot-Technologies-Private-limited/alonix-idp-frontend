@@ -43,6 +43,8 @@ describe('bulk ingest batching', () => {
 
   it('treats PENDING as queued and maps other batch statuses', () => {
     expect(batchIngestItemError('PENDING')).toBeNull();
+    expect(batchIngestItemError('ALREADY_DONE')).toBeNull();
+    expect(batchIngestItemError('ALREADY_PROCESSING')).toBeNull();
     expect(batchIngestItemError('NOT_FOUND')).toBe('Document not found.');
     expect(batchIngestItemError(undefined)).toBe('Could not start ingest.');
   });

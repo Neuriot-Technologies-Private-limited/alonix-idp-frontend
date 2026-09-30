@@ -1,6 +1,16 @@
 import apiClient from './api/client';
 import type { UserDetails, AuthContextPayload } from '../types/auth';
 
+/** Put the authenticated id back on a rehydrated profile that only kept email. */
+export function applySessionUserId(
+  user: UserDetails,
+  userId: string | null | undefined
+): UserDetails {
+  const id = String(userId || user.id || user._id || '').trim();
+  if (!id) return user;
+  return { ...user, id, _id: id };
+}
+
 function mapApiUser(u: Record<string, unknown>): UserDetails {
   const email = String(u.email ?? '').trim();
   const username = String((u.username as string) || email || '').trim();
@@ -49,14 +59,22 @@ export const authApi = {
     }
   },
 
-  /** Rehydrate after reload: requires persisted user; refreshes context from server. */
+  /** Rehydrate after reload: requires persisted user; refreshes context and user id from server. */
   async fetchSession(
     persistedUser: UserDetails | null
   ): Promise<{ user: UserDetails; context: AuthContextPayload } | null> {
     if (!persistedUser?.email) return null;
-    const context = await this.fetchAuthContext();
-    if (!context) return null;
-    return { user: persistedUser, context };
+    try {
+      const { data } = await apiClient.get('/users/me/context');
+      if (!data?.context) return null;
+      const userId = typeof data.userId === 'string' ? data.userId : '';
+      return {
+        user: applySessionUserId(persistedUser, userId),
+        context: data.context as AuthContextPayload,
+      };
+    } catch {
+      return null;
+    }
   },
 
   async onboardCompany(payload: {

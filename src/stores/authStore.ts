@@ -162,16 +162,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       name: 'alonix-auth-storage-v2',
       partialize: (state) => ({
         sessionEmail: state.user?.email ?? null,
+        sessionUserId: state.user?.id || state.user?._id || null,
       }),
       merge: (persisted, current) => {
-        const p = persisted as { sessionEmail?: string | null };
+        const p = persisted as { sessionEmail?: string | null; sessionUserId?: string | null };
         const email = p?.sessionEmail;
         if (!email) {
           return { ...current, isInitialized: true, isRefreshingSession: false };
         }
+        const sessionUserId = String(p?.sessionUserId || '').trim();
         return {
           ...current,
-          user: { email, username: email },
+          user: {
+            email,
+            username: email,
+            ...(sessionUserId ? { id: sessionUserId, _id: sessionUserId } : {}),
+          },
           context: null,
           isInitialized: false,
           isRefreshingSession: true,

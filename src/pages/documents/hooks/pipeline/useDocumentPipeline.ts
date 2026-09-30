@@ -14,6 +14,7 @@ import {
   markPipelineStageFailed,
   optimisticSetPipelineStage,
   pipelineActionToStage,
+  revertPipelineStage,
   type JobUpdatePayload,
 } from '../../../../utils/pipelineDocumentsCache';
 import { refreshDocumentsAfterConnectorIngest } from '../../../../utils/connectorIngestFeedback';
@@ -29,7 +30,9 @@ import {
   chunkList,
   collectBatchIngestFailures,
   groupTargetsByGroup,
+  pipelineRestartBlockStatus,
   selectBulkPipelineTargets,
+  skippedBatchStageStatus,
 } from './bulkIngestBatch';
 
 type PipelineAction = 'ingest' | 'extract' | 'classify';
@@ -91,6 +94,11 @@ export function useDocumentPipeline(
         });
       }
     } catch (err: unknown) {
+      const blocked = pipelineRestartBlockStatus(err);
+      if (blocked) {
+        revertPipelineStage(queryClient, docId, stage, blocked);
+        return;
+      }
       markPipelineStageFailed(queryClient, docId, stage);
       const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };
       const msg =
@@ -134,7 +142,14 @@ export function useDocumentPipeline(
               const results = Array.isArray(res.data?.results) ? res.data.results : [];
               const chunkFailures = collectBatchIngestFailures(chunk, results);
               const failedInChunk = new Set(chunkFailures.map((item) => item.id));
-              started += chunk.length - failedInChunk.size;
+              let skipped = 0;
+              for (const item of results) {
+                const skippedStatus = skippedBatchStageStatus(item.status);
+                if (!skippedStatus || !item.id) continue;
+                skipped += 1;
+                revertPipelineStage(queryClient, String(item.id), stage, skippedStatus);
+              }
+              started += chunk.length - failedInChunk.size - skipped;
               for (const item of chunkFailures) {
                 markPipelineStageFailed(queryClient, item.id, stage);
                 failedIds.push(item.id);
@@ -160,6 +175,11 @@ export function useDocumentPipeline(
               await triggerClassify(target.id, target.groupId || null);
             }
           } catch (err: unknown) {
+            const blocked = pipelineRestartBlockStatus(err);
+            if (blocked) {
+              revertPipelineStage(queryClient, target.id, stage, blocked);
+              continue;
+            }
             markPipelineStageFailed(queryClient, target.id, stage);
             failedIds.push(target.id);
             const ax = err as { response?: { data?: { error?: string; detail?: string } }; message?: string };

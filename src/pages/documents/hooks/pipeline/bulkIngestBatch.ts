@@ -47,10 +47,25 @@ export function groupTargetsByGroup(targets: BulkPipelineTarget[]): Map<string, 
   return byGroup;
 }
 
-/** Null when the batch item was queued. Otherwise a user-facing reason. */
+/** Finished or in-progress documents are skipped by the server and are not failures. */
+export function skippedBatchStageStatus(
+  status: string | undefined
+): 'done' | 'processing' | null {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'ALREADY_DONE') return 'done';
+  if (normalized === 'ALREADY_PROCESSING') return 'processing';
+  return null;
+}
+
+export function pipelineRestartBlockStatus(err: unknown): 'done' | 'processing' | null {
+  const data = (err as { response?: { data?: { code?: string; status?: string } } })?.response?.data;
+  return skippedBatchStageStatus(data?.code || data?.status);
+}
+
+/** Null when the batch item was queued or skipped. Otherwise a user-facing reason. */
 export function batchIngestItemError(status: string | undefined): string | null {
   const normalized = String(status || '').toUpperCase();
-  if (normalized === 'PENDING') return null;
+  if (normalized === 'PENDING' || skippedBatchStageStatus(normalized)) return null;
   return BATCH_ITEM_ERRORS[normalized] || 'Could not start ingest.';
 }
 
