@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import type { DedupReviewItem } from '../pages/documents/dedupReview';
 
-export type UploadJobStatus = 'uploading' | 'done' | 'error';
+export type UploadJobStatus = 'checking' | 'uploading' | 'review' | 'done' | 'error' | 'skipped';
 
 export interface UploadJob {
   /** Unique ID for this upload job (crypto.randomUUID or Date.now string) */
@@ -13,8 +14,10 @@ export interface UploadJob {
   error?: string;
   /** Wall-clock timestamp when the job was created */
   startedAt: number;
-  /** Wall-clock timestamp when the job finished (done or error) */
+  /** Wall-clock timestamp when the job finished (done, error, or skipped) */
   finishedAt?: number;
+  /** Set while the user still has to accept or skip a duplicate match. */
+  reviewItem?: DedupReviewItem;
 }
 
 interface UploadStore {
@@ -25,7 +28,7 @@ interface UploadStore {
   updateJob: (id: string, patch: Partial<UploadJob>) => void;
   /** Remove a single job by id */
   removeJob: (id: string) => void;
-  /** Remove all jobs whose status is 'done' or 'error' */
+  /** Remove jobs that already finished (done, error, or skipped). */
   clearFinished: () => void;
 }
 
@@ -45,6 +48,8 @@ export const useUploadStore = create<UploadStore>((set) => ({
 
   clearFinished: () =>
     set((state) => ({
-      jobs: state.jobs.filter((j) => j.status === 'uploading'),
+      jobs: state.jobs.filter(
+        (j) => j.status === 'checking' || j.status === 'uploading' || j.status === 'review'
+      ),
     })),
 }));

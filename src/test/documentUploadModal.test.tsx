@@ -84,6 +84,15 @@ function reviewItem(overrides: Partial<DedupReviewItem> = {}): DedupReviewItem {
     saved: false,
     uploadStarted: false,
     groupId: 'g1',
+    uploadContext: {
+      userId: 'user-1',
+      groupId: 'g1',
+      orgId: 'org-1',
+      sensitivity: 'INTERNAL_USE',
+      claimId: '',
+      groupName: 'Sales',
+      uploaderLabel: 'Ada',
+    },
     ...overrides,
   };
 }

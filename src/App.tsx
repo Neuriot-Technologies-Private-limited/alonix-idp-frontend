@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './services/queryClient';
 import { ThemeProvider } from './core/theme/ThemeProvider';
 import { AlertProvider } from './components/alert';
+import { DedupReviewHost } from './components/ui/DedupReviewHost';
 import { UploadToastPanel } from './components/ui/UploadToastPanel';
 import { useAuthStore } from './stores/authStore';
 import AppLayout from './layout/AppLayout';
@@ -141,8 +142,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AlertProvider>
-          {/* Global upload progress panel — persists across all routes */}
+          {/* Global upload progress and duplicate review — persist across routes */}
           <UploadToastPanel />
+          <DedupReviewHost />
         <Router>
           <ScrollToTop />
           <Suspense fallback={<AuthBootstrapSpinner />}>

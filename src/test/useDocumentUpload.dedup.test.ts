@@ -2,20 +2,20 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DedupCheckResult } from '../services/documentApi';
 
-const { addJob, updateJob, checkDocumentDedup, cancelDocumentDedup, uploadDocument } = vi.hoisted(
-  () => ({
-    addJob: vi.fn(),
-    updateJob: vi.fn(),
-    checkDocumentDedup: vi.fn(),
-    cancelDocumentDedup: vi.fn(),
-    uploadDocument: vi.fn(),
-  })
-);
-
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: null }),
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+const { checkDocumentDedup, cancelDocumentDedup, uploadDocument } = vi.hoisted(() => ({
+  checkDocumentDedup: vi.fn(),
+  cancelDocumentDedup: vi.fn(),
+  uploadDocument: vi.fn(),
 }));
+
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>();
+  return {
+    ...actual,
+    useQuery: () => ({ data: null }),
+    useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  };
+});
 
 vi.mock('../hooks/queries/admin', () => ({
   useGroupHealth: () => ({ data: [] }),
@@ -25,10 +25,6 @@ vi.mock('../services/documentApi', () => ({
   checkDocumentDedup: (...args: unknown[]) => checkDocumentDedup(...args),
   cancelDocumentDedup: (...args: unknown[]) => cancelDocumentDedup(...args),
   uploadDocument: (...args: unknown[]) => uploadDocument(...args),
-}));
-
-vi.mock('../stores/uploadStore', () => ({
-  useUploadStore: () => ({ addJob, updateJob }),
 }));
 
 vi.mock('../components/alert', () => ({
@@ -44,6 +40,7 @@ vi.mock('../utils/pipelineDocumentsCache', () => ({
 }));
 
 import { useDocumentUpload } from '../pages/documents/hooks/upload/useDocumentUpload';
+import { useUploadStore } from '../stores/uploadStore';
 
 function checkResult(overrides: Partial<DedupCheckResult> = {}) {
   const data: DedupCheckResult = {
@@ -83,8 +80,7 @@ async function selectFiles(result: ReturnType<typeof setup>['result'], files: Fi
 
 describe('useDocumentUpload pre-upload dedup', () => {
   beforeEach(() => {
-    addJob.mockReset();
-    updateJob.mockReset();
+    useUploadStore.setState({ jobs: [] });
     checkDocumentDedup.mockReset();
     cancelDocumentDedup.mockReset();
     uploadDocument.mockReset();
@@ -122,7 +118,7 @@ describe('useDocumentUpload pre-upload dedup', () => {
     expect(result.current.isUploadModalOpen).toBe(false);
     expect(result.current.dedupReview).toBeNull();
     expect(result.current.selectedFiles).toHaveLength(0);
-    expect(addJob).toHaveBeenCalledTimes(2);
+    expect(useUploadStore.getState().jobs.map((job) => job.status)).toEqual(['done', 'done']);
   });
 
   it('does not upload a blocked file and cancels it on dismiss', async () => {
@@ -148,11 +144,11 @@ describe('useDocumentUpload pre-upload dedup', () => {
     });
 
     expect(uploadDocument).not.toHaveBeenCalled();
-    expect(addJob).not.toHaveBeenCalled();
-    expect(result.current.isUploadModalOpen).toBe(true);
+    expect(result.current.isUploadModalOpen).toBe(false);
+    expect(result.current.selectedFiles).toHaveLength(0);
     expect(result.current.dedupReview).toHaveLength(1);
     expect(result.current.dedupReview?.[0].action).toBe('block');
-    expect(result.current.selectedFiles).toHaveLength(1);
+    expect(useUploadStore.getState().jobs.map((job) => job.status)).toEqual(['review']);
     expect(cancelDocumentDedup).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -238,7 +234,6 @@ describe('useDocumentUpload pre-upload dedup', () => {
     });
 
     expect(uploadDocument).not.toHaveBeenCalled();
-    expect(addJob).not.toHaveBeenCalled();
     expect(cancelDocumentDedup).toHaveBeenCalledTimes(1);
     expect(cancelDocumentDedup).toHaveBeenCalledWith({
       documentId: 'id-skip',
@@ -285,22 +280,26 @@ describe('useDocumentUpload pre-upload dedup', () => {
     await act(async () => {
       await result.current.runUpload();
     });
-    expect(uploadDocument).not.toHaveBeenCalled();
+    expect(uploadDocument).toHaveBeenCalledTimes(1);
+    expect(uploadDocument).toHaveBeenCalledWith(
+      willUpload,
+      expect.objectContaining({ documentId: 'id-new' })
+    );
 
     await act(async () => {
       await result.current.dismissUpload();
     });
 
-    expect(uploadDocument).not.toHaveBeenCalled();
-    expect(cancelDocumentDedup).toHaveBeenCalledTimes(3);
+    expect(uploadDocument).toHaveBeenCalledTimes(1);
+    expect(cancelDocumentDedup).toHaveBeenCalledTimes(2);
     const cancelled = cancelDocumentDedup.mock.calls.map((call) => call[0].documentId).sort();
-    expect(cancelled).toEqual(['id-dup', 'id-new', 'id-related']);
+    expect(cancelled).toEqual(['id-dup', 'id-related']);
     expect(cancelDocumentDedup).toHaveBeenCalledWith(
       expect.objectContaining({ documentId: 'id-related', hitlTaskId: 'task-r' })
     );
   });
 
-  it('cancels unsaved ids if the page unmounts during review', async () => {
+  it('keeps a duplicate review when the documents page unmounts', async () => {
     const file = new File(['v'], 'v2.pdf', { type: 'application/pdf' });
     checkDocumentDedup.mockResolvedValue(
       checkResult({
@@ -323,9 +322,59 @@ describe('useDocumentUpload pre-upload dedup', () => {
     unmount();
 
     expect(uploadDocument).not.toHaveBeenCalled();
-    expect(cancelDocumentDedup).toHaveBeenCalledWith(
-      expect.objectContaining({ documentId: 'id-unmount' })
+    expect(cancelDocumentDedup).not.toHaveBeenCalled();
+    expect(useUploadStore.getState().jobs.map((job) => job.status)).toEqual(['review']);
+  });
+
+  it('uploads a clean file while another file is still being checked', async () => {
+    const fast = new File(['n'], 'new.pdf', { type: 'application/pdf' });
+    const slow = new File(['d'], 'dup.pdf', { type: 'application/pdf' });
+    let releaseSlow: (value: ReturnType<typeof checkResult>) => void = () => {};
+    const slowCheck = new Promise<ReturnType<typeof checkResult>>((resolve) => {
+      releaseSlow = resolve;
+    });
+    checkDocumentDedup.mockImplementation(async (file: File) => {
+      if (file.name === 'dup.pdf') return slowCheck;
+      return checkResult({ documentId: 'id-new', action: 'upload' });
+    });
+    const { result } = setup();
+    await selectFiles(result, [fast, slow]);
+
+    let pending: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pending = Promise.resolve(result.current.runUpload());
+    });
+    await vi.waitFor(() => {
+      expect(uploadDocument).toHaveBeenCalledTimes(1);
+    });
+
+    expect(uploadDocument).toHaveBeenCalledTimes(1);
+    expect(uploadDocument).toHaveBeenCalledWith(
+      fast,
+      expect.objectContaining({ documentId: 'id-new' })
     );
+    expect(result.current.isUploadModalOpen).toBe(false);
+
+    await act(async () => {
+      releaseSlow(
+        checkResult({
+          action: 'block',
+          documentId: 'id-dup',
+          label: 'Exact duplicate',
+          matched: {
+            id: 'existing-1',
+            fileName: 'invoice.pdf',
+            uploadedAt: '2026-09-01T00:00:00.000Z',
+            relation: 'Exact duplicate',
+          },
+        })
+      );
+      await pending;
+    });
+
+    expect(uploadDocument).toHaveBeenCalledTimes(1);
+    expect(result.current.dedupReview).toHaveLength(1);
+    expect(result.current.dedupReview?.[0].documentId).toBe('id-dup');
   });
 
   it('uploads when every check failed open and does not show a review step', async () => {

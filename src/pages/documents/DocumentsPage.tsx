@@ -168,9 +168,7 @@ export const DocumentsPage: React.FC = () => {
 
       <DocumentUploadModal
         isOpen={upload.isUploadModalOpen}
-        onClose={() => {
-          void upload.dismissUpload();
-        }}
+        onClose={upload.closeUploadForm}
         orgWideUpload={list.isCompanyAdmin}
         groups={upload.uploadGroupChoices}
         targetGroupId={upload.targetGroupId}
@@ -185,12 +183,6 @@ export const DocumentsPage: React.FC = () => {
         claimId={upload.claimId}
         onClaimIdChange={upload.setClaimId}
         onUpload={upload.runUpload}
-        dedupReview={upload.dedupReview}
-        dedupChecking={upload.dedupChecking}
-        onDedupChoice={upload.setDedupChoice}
-        onContinueDedup={() => {
-          void upload.continueDedupUpload();
-        }}
       />
     </div>
   );

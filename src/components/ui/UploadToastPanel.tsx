@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { CheckCircle2, XCircle, Loader2, X, UploadCloud, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Loader2, X, UploadCloud, ChevronDown, ChevronUp } from 'lucide-react';
 import { useUploadStore } from '../../stores/uploadStore';
 import type { UploadJob } from '../../stores/uploadStore';
 import { cn } from '../../utils/cn';
@@ -17,9 +17,9 @@ interface JobRowProps {
 const JobRow: React.FC<JobRowProps> = ({ job, onDismiss }) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-dismiss 'done' jobs after AUTO_DISMISS_MS
+  // Auto-dismiss finished jobs that need no decision.
   useEffect(() => {
-    if (job.status === 'done') {
+    if (job.status === 'done' || job.status === 'skipped') {
       timerRef.current = setTimeout(() => onDismiss(job.id), AUTO_DISMISS_MS);
     }
     return () => {
@@ -37,17 +37,22 @@ const JobRow: React.FC<JobRowProps> = ({ job, onDismiss }) => {
     <div
       className={cn(
         'flex items-start gap-3 px-3 py-2.5 rounded-xl border transition-all group/job',
-        job.status === 'uploading' && 'border-primary/20 bg-primary/5',
+        (job.status === 'checking' || job.status === 'uploading') && 'border-primary/20 bg-primary/5',
+        job.status === 'review' && 'border-amber-500/30 bg-amber-500/10',
         job.status === 'done' && 'border-emerald-500/20 bg-emerald-500/5',
+        job.status === 'skipped' && 'border-border/30 bg-surface-highest/10',
         job.status === 'error' && 'border-rose-500/20 bg-rose-500/5'
       )}
     >
       {/* Status icon */}
       <div className="mt-0.5 shrink-0">
-        {job.status === 'uploading' && (
+        {(job.status === 'checking' || job.status === 'uploading') && (
           <Loader2 className="w-4 h-4 text-primary animate-spin" />
         )}
-        {job.status === 'done' && (
+        {job.status === 'review' && (
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+        )}
+        {(job.status === 'done' || job.status === 'skipped') && (
           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
         )}
         {job.status === 'error' && (
@@ -65,11 +70,20 @@ const JobRow: React.FC<JobRowProps> = ({ job, onDismiss }) => {
         </p>
         <p className="text-[9px] font-black uppercase tracking-wider mt-0.5 text-muted-foreground/50 tabular-nums">
           {displaySize}
+          {job.status === 'checking' && (
+            <span className="ml-1.5 text-primary/70">· checking…</span>
+          )}
           {job.status === 'uploading' && (
             <span className="ml-1.5 text-primary/70">· uploading…</span>
           )}
+          {job.status === 'review' && (
+            <span className="ml-1.5 text-amber-600/80">· duplicate found</span>
+          )}
           {job.status === 'done' && (
             <span className="ml-1.5 text-emerald-500/80">· uploaded</span>
+          )}
+          {job.status === 'skipped' && (
+            <span className="ml-1.5 text-muted-foreground/70">· skipped</span>
           )}
           {job.status === 'error' && (
             <span className="ml-1.5 text-rose-500/80">· failed</span>
@@ -83,7 +97,7 @@ const JobRow: React.FC<JobRowProps> = ({ job, onDismiss }) => {
       </div>
 
       {/* Dismiss button */}
-      {job.status !== 'uploading' && (
+      {job.status !== 'checking' && job.status !== 'uploading' && job.status !== 'review' && (
         <button
           type="button"
           aria-label="Dismiss"
@@ -110,18 +124,25 @@ export const UploadToastPanel: React.FC = () => {
 
   if (jobs.length === 0) return null;
 
+  const checking = jobs.filter((j) => j.status === 'checking').length;
   const uploading = jobs.filter((j) => j.status === 'uploading').length;
+  const review = jobs.filter((j) => j.status === 'review').length;
   const done = jobs.filter((j) => j.status === 'done').length;
   const failed = jobs.filter((j) => j.status === 'error').length;
+  const busy = checking + uploading + review;
 
   const panelTitle =
-    uploading > 0
-      ? `Uploading ${uploading} file${uploading > 1 ? 's' : ''}…`
-      : done > 0 && failed === 0
-        ? `${done} file${done > 1 ? 's' : ''} uploaded`
-        : failed > 0
-          ? `${failed} upload${failed > 1 ? 's' : ''} failed`
-          : 'Uploads';
+    checking > 0
+      ? `Checking ${checking} file${checking > 1 ? 's' : ''}…`
+      : uploading > 0
+        ? `Uploading ${uploading} file${uploading > 1 ? 's' : ''}…`
+        : review > 0
+          ? `${review} duplicate${review > 1 ? 's' : ''} found`
+          : done > 0 && failed === 0
+            ? `${done} file${done > 1 ? 's' : ''} uploaded`
+            : failed > 0
+              ? `${failed} upload${failed > 1 ? 's' : ''} failed`
+              : 'Uploads';
 
   return (
     <div
@@ -143,7 +164,7 @@ export const UploadToastPanel: React.FC = () => {
         </p>
         <div className="flex items-center gap-1">
           {/* Clear finished */}
-          {(done > 0 || failed > 0) && uploading === 0 && (
+          {(done > 0 || failed > 0) && busy === 0 && (
             <button
               type="button"
               onClick={clearFinished}
