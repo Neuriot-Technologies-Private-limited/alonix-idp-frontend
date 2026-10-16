@@ -9,7 +9,6 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  MoreVertical,
   Shield,
   TrendingUp,
   Trash2,
@@ -59,6 +58,7 @@ export const GroupDetails: React.FC = () => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
   const [policyDraft, setPolicyDraft] = useState<string[]>([]);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const { alert: appAlert, confirm } = useAlert();
   const authUser = useAuthStore((s) => s.user);
@@ -156,6 +156,30 @@ export const GroupDetails: React.FC = () => {
     },
   });
 
+  const updateDescriptionMutation = useMutation({
+    mutationFn: async (description: string) => {
+      if (!id) return;
+      await adminService.updateGroupDescription(id, description);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group-detail', id] });
+      queryClient.invalidateQueries({ queryKey: ['group-health'] });
+      void appAlert({
+        title: 'Workspace updated',
+        description: 'The workspace description has been saved.',
+        variant: 'success',
+      });
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { message?: string } }; message?: string };
+      void appAlert({
+        title: 'Update failed',
+        description: ax.response?.data?.message || ax.message || 'Could not update this workspace',
+        variant: 'danger',
+      });
+    },
+  });
+
   const updateSensitivityPolicyMutation = useMutation({
     mutationFn: async (levels: string[]) => {
       if (!id) return;
@@ -178,6 +202,10 @@ export const GroupDetails: React.FC = () => {
       });
     },
   });
+
+  React.useEffect(() => {
+    setDescriptionDraft(group?.description || '');
+  }, [group?.id, group?.description]);
 
   React.useEffect(() => {
     if (!group || activeTab !== 'settings') return;
@@ -259,6 +287,23 @@ export const GroupDetails: React.FC = () => {
       }
       return [...prev, k].sort((a, b) => sensitivityLevelIndex(a) - sensitivityLevelIndex(b));
     });
+  };
+
+  const savedDescription = group.description || '';
+  const descriptionDirty = descriptionDraft.trim() !== savedDescription.trim();
+
+  const resetDescription = () => {
+    setDescriptionDraft(savedDescription);
+  };
+
+  const saveDescription = async () => {
+    if (!descriptionDirty) return;
+    await updateDescriptionMutation.mutateAsync(descriptionDraft.trim());
+  };
+
+  const openGroupDocuments = () => {
+    useAuthStore.getState().setActiveGroup(String(group.id));
+    navigate('/documents');
   };
 
   const saveSensitivityPolicy = async () => {
@@ -427,7 +472,7 @@ export const GroupDetails: React.FC = () => {
                 </div>
               </div>
               <p className="text-muted-foreground/60 max-w-2xl leading-relaxed text-sm font-medium">
-                {group.description}
+                {group.description || 'Workspace details from your organization.'}
               </p>
             </div>
 
@@ -696,9 +741,9 @@ export const GroupDetails: React.FC = () => {
                                     Remove
                                   </button>
                                 ) : (
-                                  <button type="button" className="p-2 rounded-lg hover:bg-surface-highest/10 text-muted-foreground/30 transition-all" title="You cannot change your own role here">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </button>
+                                  <span className="text-[9px] font-bold text-muted-foreground/35 uppercase tracking-widest" title="You cannot change your own role here">
+                                    You
+                                  </span>
                                 )}
                               </div>
                             )
@@ -722,11 +767,31 @@ export const GroupDetails: React.FC = () => {
                   <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-wider">Internal Mapping</p>
                 </div>
                 {canManage ? (
-                <button type="button" className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all">
+                <button
+                  type="button"
+                  onClick={openGroupDocuments}
+                  title="Open documents to upload"
+                  className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all"
+                >
                   <Plus className="w-4 h-4" />
                 </button>
                 ) : null}
               </div>
+              {group.documents.length === 0 ? (
+                <div className="p-10 text-center space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground/70">No documents in this workspace yet.</p>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      onClick={openGroupDocuments}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Upload documents
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {group.documents.map((doc) => (
                   <div key={doc.id} className="p-4 rounded-xl bg-muted/10 border border-border/25 dark:border-border/35 hover:border-primary/25 transition-all group flex items-center justify-between">
@@ -765,6 +830,7 @@ export const GroupDetails: React.FC = () => {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
 
@@ -793,18 +859,27 @@ export const GroupDetails: React.FC = () => {
                 >
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">Identity Name</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30" htmlFor="group-identity-name">Identity Name</label>
                       <input
+                        id="group-identity-name"
                         type="text"
-                        defaultValue={group.name}
-                        className="w-full bg-background/50 border border-border/30 dark:border-border/40 rounded-xl p-3 text-base font-black focus:border-primary/50 outline-none transition-all"
+                        value={group.name}
+                        disabled
+                        readOnly
+                        aria-readonly="true"
+                        className="w-full bg-muted/30 border border-border/30 dark:border-border/40 rounded-xl p-3 text-base font-black outline-none cursor-not-allowed opacity-70"
                       />
+                      <p className="text-[9px] text-muted-foreground/40">Group name cannot be changed after creation.</p>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">Description</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30" htmlFor="group-description">Description</label>
                       <textarea
+                        id="group-description"
                         rows={3}
-                        defaultValue={group.description}
+                        value={descriptionDraft}
+                        onChange={(e) => setDescriptionDraft(e.target.value)}
+                        maxLength={2000}
+                        placeholder="Workspace details from your organization."
                         className="w-full bg-background/50 border border-border/30 dark:border-border/40 rounded-xl p-3 text-xs font-medium focus:border-primary/40 outline-none transition-all resize-none"
                       />
                     </div>
@@ -867,8 +942,22 @@ export const GroupDetails: React.FC = () => {
                     )}
                   </div>
                   <div className="pt-6 border-t border-border/20 dark:border-border/35 flex justify-end gap-2">
-                    <button type="button" className="px-4 py-2 rounded-lg hover:bg-muted text-[10px] font-bold transition-all">Reset</button>
-                    <button type="button" className="px-6 py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/10">Update Manifest</button>
+                    <button
+                      type="button"
+                      onClick={resetDescription}
+                      disabled={!descriptionDirty || updateDescriptionMutation.isPending}
+                      className="px-4 py-2 rounded-lg hover:bg-muted text-[10px] font-bold transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveDescription()}
+                      disabled={!descriptionDirty || updateDescriptionMutation.isPending}
+                      className="px-6 py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/10 disabled:opacity-50"
+                    >
+                      {updateDescriptionMutation.isPending ? 'Saving…' : 'Update Manifest'}
+                    </button>
                   </div>
                 </div>
 

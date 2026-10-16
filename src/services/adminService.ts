@@ -651,7 +651,7 @@ export const adminService = {
       docs: typeof g.documentCount === 'number' ? g.documentCount : docsRaw.length,
       status: 'Healthy',
       statusLabel: 'Healthy',
-      description: String(g.description || 'Workspace details from your organization.'),
+      description: String(g.description || ''),
       createdOn: g.createdAt
         ? new Date(String(g.createdAt)).toLocaleDateString('en-US', {
             month: 'short',
@@ -845,6 +845,10 @@ export const adminService = {
     return Array.isArray(data.enabledDocumentSensitivityLevels)
       ? data.enabledDocumentSensitivityLevels
       : null;
+  },
+
+  updateGroupDescription: async (groupId: string, description: string): Promise<void> => {
+    await apiClient.patch(`/groups/${encodeURIComponent(groupId)}`, { description });
   },
 
   updateGroupSensitivityPolicy: async (groupId: string, levels: string[]): Promise<void> => {
