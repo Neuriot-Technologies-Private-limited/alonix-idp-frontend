@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { useBrand } from '../../brand/useBrand';
 import { buildDataExportFilename, downloadJson, privacyApi } from '../../services/privacyApi';
 import { DeleteAccountModal } from './DeleteAccountModal';
+import { ActiveSessionsPanel } from './ActiveSessionsPanel';
 
 const AVATAR_MAX_BYTES = 1_400_000;
 
@@ -747,10 +748,12 @@ const ProfilePage: React.FC = () => {
                   </Link>
                 </div>
 
+                <ActiveSessionsPanel />
+
                 <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-6 sm:p-8">
-                  <h2 className="font-display text-lg font-black text-destructive">Sign out everywhere</h2>
+                  <h2 className="font-display text-lg font-black text-destructive">Sign out this device</h2>
                   <p className="mt-1 text-sm text-destructive/70">
-                    End this session on this browser. You can sign in again anytime.
+                    End only this browser session. Use Active sessions above to revoke other devices.
                   </p>
                   <button
                     type="button"

@@ -243,6 +243,19 @@ describe('apiClient request interceptor — org / group headers', () => {
     const result = await requestFulfilled(config);
     expect(result.headers['X-Group-Id']).toBeUndefined();
   });
+
+  it('does not overwrite an explicit X-Group-Id (upload target may differ from TopNav)', async () => {
+    setActiveSession({ activeGroupId: 'g-nav' });
+    setCsrfToken('csrf-token');
+    const config = makeConfig({
+      url: '/groups/g-upload/documents/upload',
+      method: 'post',
+      data: new FormData(),
+      headers: { 'X-Group-Id': 'g-upload' },
+    });
+    const result = await requestFulfilled(config);
+    expect(result.headers['X-Group-Id']).toBe('g-upload');
+  });
 });
 
 describe('apiClient request interceptor — CSRF on mutating requests', () => {

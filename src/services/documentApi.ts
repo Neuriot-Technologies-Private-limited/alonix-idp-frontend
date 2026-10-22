@@ -9,6 +9,12 @@ function documentsBase(groupId?: string | null) {
   return g ? `/groups/${encodeURIComponent(g)}/documents` : '/documents';
 }
 
+/** Align auth context with the upload target (multer body is not available at resolveContext). */
+function groupScopedHeaders(groupId?: string | null): Record<string, string> {
+  const g = groupId?.trim();
+  return g ? { 'X-Group-Id': g } : {};
+}
+
 export async function getGroupClaimIds(groupId?: string | null) {
   const base = documentsBase(groupId);
   return apiClient.get<{ claimIds: string[] }>(`${base}/claim-ids`);
@@ -54,7 +60,7 @@ export async function checkDocumentDedup(file: File, options: UploadDocumentOpti
   if (orgId) fd.append('orgId', orgId);
   const base = documentsBase(groupId);
   return apiClient.post<DedupCheckResult>(`${base}/dedup-check`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data', ...groupScopedHeaders(groupId) },
     timeout: UPLOAD_TIMEOUT_MS,
   });
 }
@@ -70,7 +76,9 @@ export async function cancelDocumentDedup(input: {
   };
   const hitlTaskId = String(input.hitlTaskId || '').trim();
   if (hitlTaskId) body.hitlTaskId = hitlTaskId;
-  return apiClient.post<{ ok: true }>(`${base}/dedup-cancel`, body);
+  return apiClient.post<{ ok: true }>(`${base}/dedup-cancel`, body, {
+    headers: groupScopedHeaders(input.groupId),
+  });
 }
 
 export async function uploadDocument(file: File, options: UploadDocumentOptions) {
@@ -96,7 +104,7 @@ export async function uploadDocument(file: File, options: UploadDocumentOptions)
     `${base}/upload`,
     fd,
     {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': 'multipart/form-data', ...groupScopedHeaders(groupId) },
       timeout: UPLOAD_TIMEOUT_MS,
     }
   );

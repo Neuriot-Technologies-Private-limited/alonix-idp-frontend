@@ -43,7 +43,7 @@ export const DocumentsPage: React.FC = () => {
   const upload = useDocumentUpload({
     isCompanyAdmin: list.isCompanyAdmin,
     groups: list.groups,
-    adminGroupIds: list.adminGroupIds,
+    activeGroupId: list.context?.activeGroupId ?? list.user?.groupID ?? list.user?.groupId,
     orgRole: list.context?.orgRole,
     orgId: list.context?.orgId ?? list.user?.orgId ?? null,
     user: list.user,
@@ -169,7 +169,7 @@ export const DocumentsPage: React.FC = () => {
       <DocumentUploadModal
         isOpen={upload.isUploadModalOpen}
         onClose={upload.closeUploadForm}
-        orgWideUpload={list.isCompanyAdmin}
+        orgWideUpload={upload.uploadGroupChoices.length > 0}
         groups={upload.uploadGroupChoices}
         targetGroupId={upload.targetGroupId}
         setTargetGroupId={upload.setTargetGroupId}

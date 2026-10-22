@@ -62,7 +62,7 @@ function setup() {
     useDocumentUpload({
       isCompanyAdmin: false,
       groups: [{ groupId: 'g1', groupName: 'Sales & Marketing', role: 'GROUP_ADMIN' }],
-      adminGroupIds: ['g1'],
+      activeGroupId: 'g1',
       orgRole: 'GROUP_ADMIN',
       orgId: 'org-1',
       user: { _id: 'user-1', email: 'a@x.com', displayName: 'Ada' },

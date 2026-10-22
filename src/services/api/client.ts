@@ -227,7 +227,9 @@ apiClient.interceptors.request.use(async (config) => {
     }
   }
 
-  if (activeGroupId) {
+  const existingGroupHeader =
+    config.headers['X-Group-Id'] ?? config.headers['x-group-id'];
+  if (activeGroupId && !existingGroupHeader) {
     config.headers['X-Group-Id'] = activeGroupId;
   }
 

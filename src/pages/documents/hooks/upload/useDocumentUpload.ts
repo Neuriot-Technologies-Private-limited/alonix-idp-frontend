@@ -21,6 +21,7 @@ import {
   setDedupChoice as chooseDedupFile,
 } from '../../backgroundDocumentUpload';
 import type { DedupReviewItem } from '../../dedupReview';
+import { resolveUploadTargetGroupId } from './resolveUploadTargetGroupId';
 
 export type { DedupReviewItem };
 
@@ -44,7 +45,8 @@ async function resolveUploadUserId(user: { _id?: string; id?: string } | null | 
 export function useDocumentUpload(opts: {
   isCompanyAdmin: boolean;
   groups: GroupContext[];
-  adminGroupIds?: string[] | null;
+  /** TopNav workspace — uploads should default here when the user can upload to it. */
+  activeGroupId?: string | null;
   orgRole?: string | null;
   orgId: string | null | undefined;
   user: {
@@ -58,7 +60,7 @@ export function useDocumentUpload(opts: {
   } | null;
   onUploadStarted?: () => void;
 }) {
-  const { isCompanyAdmin, groups, adminGroupIds, orgRole, orgId, user, onUploadStarted } = opts;
+  const { isCompanyAdmin, groups, activeGroupId, orgRole, orgId, user, onUploadStarted } = opts;
   const { alert: appAlert } = useAlert();
   const uploadJobs = useUploadStore((state) => state.jobs);
   const dedupReview = reviewItemsFromJobs(uploadJobs);
@@ -83,10 +85,20 @@ export function useDocumentUpload(opts: {
     return groups.filter((g) => g.role === 'GROUP_ADMIN');
   }, [isCompanyAdmin, groupHealthList, groups]);
 
-  const uploadTargetGroupId = React.useMemo(() => {
-    if (isCompanyAdmin) return String(targetGroupId || '').trim();
-    return String(targetGroupId || adminGroupIds?.[0] || '').trim();
-  }, [isCompanyAdmin, targetGroupId, adminGroupIds]);
+  const allowedUploadGroupIds = React.useMemo(
+    () => uploadGroupChoices.map((g) => String(g.groupId)).filter(Boolean),
+    [uploadGroupChoices]
+  );
+
+  const uploadTargetGroupId = React.useMemo(
+    () =>
+      resolveUploadTargetGroupId({
+        activeGroupId,
+        allowedGroupIds: allowedUploadGroupIds,
+        previousTargetId: targetGroupId,
+      }),
+    [activeGroupId, allowedUploadGroupIds, targetGroupId]
+  );
 
   const { data: uploadGroupEnabledLevels = null } = useQuery({
     queryKey: ['group-sensitivity-policy', uploadTargetGroupId],
@@ -124,30 +136,31 @@ export function useDocumentUpload(opts: {
   }, [uploadMaxKey, uploadGroupEnabledLevels]);
 
   React.useEffect(() => {
-    if (isUploadModalOpen && !isCompanyAdmin && adminGroupIds?.length) {
-      setTargetGroupId((prev) =>
-        prev && adminGroupIds.includes(prev) ? prev : adminGroupIds[0]
-      );
-    }
-  }, [isUploadModalOpen, isCompanyAdmin, adminGroupIds]);
+    if (!isUploadModalOpen || !allowedUploadGroupIds.length) return;
+    setTargetGroupId((prev) =>
+      resolveUploadTargetGroupId({
+        activeGroupId,
+        allowedGroupIds: allowedUploadGroupIds,
+        previousTargetId: prev,
+      })
+    );
+  }, [isUploadModalOpen, allowedUploadGroupIds, activeGroupId]);
 
   const releaseUploadForm = () => {
     setIsUploadModalOpen(false);
     setSelectedFiles([]);
     setAttachClaimId(false);
     setClaimId('');
-    if (isCompanyAdmin) setTargetGroupId('');
+    setTargetGroupId('');
   };
 
   const runUpload = () => {
     if (inflightRef.current) return;
-    const gid = isCompanyAdmin ? targetGroupId : targetGroupId || '';
+    const gid = String(targetGroupId || uploadTargetGroupId || '').trim();
     if (!gid) {
       void appAlert({
         title: 'Choose a workspace',
-        description: isCompanyAdmin
-          ? 'Select a target group before uploading.'
-          : 'Pick an admin workspace to upload into.',
+        description: 'Select a target workspace before uploading.',
         variant: 'warning',
       });
       return;

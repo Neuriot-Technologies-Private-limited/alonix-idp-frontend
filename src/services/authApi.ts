@@ -1,6 +1,16 @@
 import apiClient from './api/client';
 import type { UserDetails, AuthContextPayload } from '../types/auth';
 
+export type AuthSessionRow = {
+  id: string;
+  deviceLabel: string;
+  ip: string | null;
+  createdAt: string | null;
+  lastSeenAt: string | null;
+  expiresAt: string | null;
+  isCurrent: boolean;
+};
+
 /** Put the authenticated id back on a rehydrated profile that only kept email. */
 export function applySessionUserId(
   user: UserDetails,
@@ -185,5 +195,29 @@ export const authApi = {
   async removeAvatar(): Promise<{ avatarUrl: null; avatarKey: null }> {
     const { data } = await apiClient.delete('/users/me/avatar');
     return data as { avatarUrl: null; avatarKey: null };
+  },
+
+  async listSessions(): Promise<{
+    sessions: AuthSessionRow[];
+    currentSessionId: string | null;
+  }> {
+    const { data } = await apiClient.get('/users/me/sessions');
+    return {
+      sessions: Array.isArray(data?.sessions) ? (data.sessions as AuthSessionRow[]) : [],
+      currentSessionId:
+        typeof data?.currentSessionId === 'string' ? data.currentSessionId : null,
+    };
+  },
+
+  async revokeSession(sessionId: string): Promise<{ current?: boolean }> {
+    const { data } = await apiClient.delete(`/users/me/sessions/${encodeURIComponent(sessionId)}`);
+    return data as { current?: boolean };
+  },
+
+  async revokeOtherSessions(): Promise<{ revokedCount: number }> {
+    const { data } = await apiClient.delete('/users/me/sessions');
+    return {
+      revokedCount: typeof data?.revokedCount === 'number' ? data.revokedCount : 0,
+    };
   },
 };
