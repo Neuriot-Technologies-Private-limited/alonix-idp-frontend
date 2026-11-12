@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Download, Loader2, MessageSquarePlus, Trash2 } from 'lucide-react';
+import { Download, Loader2, MessageSquarePlus, Pin, Trash2 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import type { ChatSessionDto } from '../../../services/chatApi';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ type ChatSidebarProps = {
   onSelectSession: (id: string) => void | Promise<void>;
   onDownloadSession: (id: string, title: string) => void | Promise<void>;
   onDeleteSession: (id: string) => void | Promise<void>;
+  onTogglePinSession?: (id: string, pinned: boolean) => void | Promise<void>;
   formatSessionMeta: (iso: string) => string;
 };
 
@@ -33,6 +34,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectSession,
   onDownloadSession,
   onDeleteSession,
+  onTogglePinSession,
   formatSessionMeta,
 }) => {
   const { t } = useTranslation('chat');
@@ -125,9 +127,31 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <div
                   className={cn(
                     'flex shrink-0 items-center self-center opacity-0 transition group-hover:opacity-100',
-                    currentSession === session.session_id && 'opacity-100'
+                    currentSession === session.session_id && 'opacity-100',
+                    session.is_pinned && 'opacity-100'
                   )}
                 >
+                  {onTogglePinSession && (
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-lg p-2 transition hover:bg-primary/10 hover:text-primary',
+                        session.is_pinned
+                          ? 'text-primary'
+                          : 'text-muted-foreground/60'
+                      )}
+                      title={session.is_pinned ? t('unpinSession') : t('pinSession')}
+                      aria-label={session.is_pinned ? t('unpinSession') : t('pinSession')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void onTogglePinSession(session.session_id, !session.is_pinned);
+                      }}
+                    >
+                      <Pin
+                        className={cn('h-3.5 w-3.5', session.is_pinned && 'fill-current')}
+                      />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="rounded-lg p-2 text-muted-foreground/60 transition hover:bg-primary/10 hover:text-primary disabled:opacity-50"

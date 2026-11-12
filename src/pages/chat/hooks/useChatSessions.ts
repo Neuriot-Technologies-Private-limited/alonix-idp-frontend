@@ -15,7 +15,9 @@ import {
   deleteChat,
   getChatHistory,
   getChatSessionsPage,
+  setChatSessionPinned,
 } from '../../../services/chatApi';
+import type { ChatSessionDto } from '../../../services/chatApi';
 import { mapHistoryMessageToPair } from '../utils/mapChatMessages';
 import {
   buildChatTranscriptFilename,
@@ -227,6 +229,67 @@ export function useChatSessions({
     ]
   );
 
+  /** Sort helper: pinned first, then by last_updated descending. */
+  const sortSessionsPinnedFirst = useCallback(
+    (sessions: ChatSessionDto[]): ChatSessionDto[] =>
+      [...sessions].sort((a, b) => {
+        const aPinned = a.is_pinned ? 1 : 0;
+        const bPinned = b.is_pinned ? 1 : 0;
+        if (aPinned !== bPinned) return bPinned - aPinned;
+        return new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime();
+      }),
+    [],
+  );
+
+  const handleTogglePinSession = useCallback(
+    async (sessionId: string, pinned: boolean, setErrorText: (msg: string) => void) => {
+      if (!sessionId || !userEmail) return;
+
+      const sessionsKey = chatQueryKeys.sessions(groupKey);
+
+      // Optimistic update: toggle is_pinned and reorder
+      queryClient.setQueryData(
+        sessionsKey,
+        (old: { pages: Array<{ sessions?: ChatSessionDto[] }> } | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page, pageIdx) => ({
+              ...page,
+              sessions:
+                pageIdx === 0
+                  ? sortSessionsPinnedFirst(
+                      old.pages
+                        .flatMap((p) => p.sessions ?? [])
+                        .map((s) =>
+                          s.session_id === sessionId ? { ...s, is_pinned: pinned } : s,
+                        ),
+                    )
+                  : [],
+            })),
+          };
+        },
+      );
+
+      try {
+        await setChatSessionPinned(sessionId, pinned, groupKey || undefined);
+        invalidateChatSessions();
+      } catch (error: unknown) {
+        // Revert optimistic update
+        invalidateChatSessions();
+        const ax = error as { response?: { data?: { message?: string; error?: string } } };
+        const backendMsg =
+          ax?.response?.data?.message ||
+          ax?.response?.data?.error ||
+          (error instanceof Error ? error.message : '') ||
+          'Failed to update pin.';
+        setErrorText(backendMsg);
+        showToast(backendMsg, 'error');
+      }
+    },
+    [groupKey, invalidateChatSessions, queryClient, showToast, sortSessionsPinnedFirst, userEmail],
+  );
+
   const fetchNextSessionsPage = useCallback(() => {
     if (sessionsQuery.hasNextPage && !sessionsQuery.isFetchingNextPage) {
       void sessionsQuery.fetchNextPage();
@@ -252,6 +315,7 @@ export function useChatSessions({
     selectChatSession,
     handleDownloadChatSession,
     handleDeleteChatSession,
+    handleTogglePinSession,
     downloadingSessionId,
   };
 }

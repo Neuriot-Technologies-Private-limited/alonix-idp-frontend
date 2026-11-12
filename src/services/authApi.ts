@@ -1,6 +1,26 @@
 import apiClient from './api/client';
 import type { UserDetails, AuthContextPayload } from '../types/auth';
 
+export type AuthSessionRow = {
+  id: string;
+  deviceLabel: string;
+  ip: string | null;
+  createdAt: string | null;
+  lastSeenAt: string | null;
+  expiresAt: string | null;
+  isCurrent: boolean;
+};
+
+/** Put the authenticated id back on a rehydrated profile that only kept email. */
+export function applySessionUserId(
+  user: UserDetails,
+  userId: string | null | undefined
+): UserDetails {
+  const id = String(userId || user.id || user._id || '').trim();
+  if (!id) return user;
+  return { ...user, id, _id: id };
+}
+
 function mapApiUser(u: Record<string, unknown>): UserDetails {
   const email = String(u.email ?? '').trim();
   const username = String((u.username as string) || email || '').trim();
@@ -49,14 +69,22 @@ export const authApi = {
     }
   },
 
-  /** Rehydrate after reload: requires persisted user; refreshes context from server. */
+  /** Rehydrate after reload: requires persisted user; refreshes context and user id from server. */
   async fetchSession(
     persistedUser: UserDetails | null
   ): Promise<{ user: UserDetails; context: AuthContextPayload } | null> {
     if (!persistedUser?.email) return null;
-    const context = await this.fetchAuthContext();
-    if (!context) return null;
-    return { user: persistedUser, context };
+    try {
+      const { data } = await apiClient.get('/users/me/context');
+      if (!data?.context) return null;
+      const userId = typeof data.userId === 'string' ? data.userId : '';
+      return {
+        user: applySessionUserId(persistedUser, userId),
+        context: data.context as AuthContextPayload,
+      };
+    } catch {
+      return null;
+    }
   },
 
   async onboardCompany(payload: {
@@ -167,5 +195,29 @@ export const authApi = {
   async removeAvatar(): Promise<{ avatarUrl: null; avatarKey: null }> {
     const { data } = await apiClient.delete('/users/me/avatar');
     return data as { avatarUrl: null; avatarKey: null };
+  },
+
+  async listSessions(): Promise<{
+    sessions: AuthSessionRow[];
+    currentSessionId: string | null;
+  }> {
+    const { data } = await apiClient.get('/users/me/sessions');
+    return {
+      sessions: Array.isArray(data?.sessions) ? (data.sessions as AuthSessionRow[]) : [],
+      currentSessionId:
+        typeof data?.currentSessionId === 'string' ? data.currentSessionId : null,
+    };
+  },
+
+  async revokeSession(sessionId: string): Promise<{ current?: boolean }> {
+    const { data } = await apiClient.delete(`/users/me/sessions/${encodeURIComponent(sessionId)}`);
+    return data as { current?: boolean };
+  },
+
+  async revokeOtherSessions(): Promise<{ revokedCount: number }> {
+    const { data } = await apiClient.delete('/users/me/sessions');
+    return {
+      revokedCount: typeof data?.revokedCount === 'number' ? data.revokedCount : 0,
+    };
   },
 };

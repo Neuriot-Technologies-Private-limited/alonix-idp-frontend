@@ -28,11 +28,14 @@ describe('uploadStore', () => {
     expect(useUploadStore.getState().jobs).toHaveLength(0);
   });
 
-  it('clearFinished keeps only uploading jobs', () => {
+  it('clearFinished keeps checks, uploads, and duplicate reviews', () => {
     useUploadStore.getState().addJob(job('1', 'uploading'));
     useUploadStore.getState().addJob(job('2', 'done'));
     useUploadStore.getState().addJob(job('3', 'error'));
+    useUploadStore.getState().addJob(job('4', 'checking'));
+    useUploadStore.getState().addJob(job('5', 'review'));
+    useUploadStore.getState().addJob(job('6', 'skipped'));
     useUploadStore.getState().clearFinished();
-    expect(useUploadStore.getState().jobs.map((j) => j.id)).toEqual(['1']);
+    expect(useUploadStore.getState().jobs.map((j) => j.id)).toEqual(['1', '4', '5']);
   });
 });

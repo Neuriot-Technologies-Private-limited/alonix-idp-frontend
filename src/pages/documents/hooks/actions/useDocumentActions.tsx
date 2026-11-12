@@ -1,25 +1,53 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { deleteDocument, getDocumentAccessUrl } from '../../../../services/chatApi';
+import { bulkDeleteDocuments, deleteDocument, getDocumentAccessUrl } from '../../../../services/documentApi';
+import { mergePipeline } from '../../../../services/adminService';
 import { refreshPipelineDocuments } from '../../../../utils/pipelineDocumentsCache';
+import { isConnectorPendingDocumentId } from '../../../../utils/connectorIngestOptimistic';
 import { useAlert } from '../../../../components/alert';
 import type { DocumentRow } from '../../types/documentRow';
+
+const BULK_DELETE_CHUNK = 50;
+
+function isBulkDeletableDoc(doc: DocumentRow) {
+  if (isConnectorPendingDocumentId(doc.id)) return false;
+  const p = mergePipeline(doc.pipeline);
+  return (
+    p.ingestion.status !== 'processing' &&
+    p.extraction.status !== 'processing' &&
+    p.classification.status !== 'processing'
+  );
+}
 
 export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
   const { confirm, alert: appAlert } = useAlert();
   const queryClient = useQueryClient();
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+  const [bulkDeletingIds, setBulkDeletingIds] = useState<ReadonlySet<string>>(() => new Set());
+  const bulkDeletingIdsRef = React.useRef<Set<string>>(new Set());
   const [openDocBusyId, setOpenDocBusyId] = useState<string | null>(null);
+
+  const lockBulkDeleting = useCallback((ids: Iterable<string>) => {
+    const next = new Set(ids);
+    bulkDeletingIdsRef.current = next;
+    setBulkDeletingIds(next);
+  }, []);
+
+  const unlockBulkDeleting = useCallback(() => {
+    bulkDeletingIdsRef.current = new Set();
+    setBulkDeletingIds(new Set());
+  }, []);
 
   const handleDeleteDocument = React.useCallback(
     async (docItem: DocumentRow, onDeleted?: (id: string) => void) => {
-      if (!docCanManage(docItem)) return;
+      if (!docCanManage(docItem) || bulkDeletingIdsRef.current.has(docItem.id)) return;
       const name = docItem.fileName || 'this document';
       const ok = await confirm({
         title: 'Remove document?',
         description: (
           <>
-            Remove <span className="font-semibold text-foreground/95">“{name}”</span>? This cannot be
+            Remove <span className="font-semibold text-foreground/95">"{name}"</span>? This cannot be
             undone.
           </>
         ),
@@ -46,8 +74,96 @@ export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
     [appAlert, confirm, docCanManage, queryClient]
   );
 
+  const handleBulkDeleteDocuments = React.useCallback(
+    async (
+      selectedIds: Set<string> | string[],
+      documents: DocumentRow[] | undefined,
+      onDeleted?: (ids: string[]) => void
+    ) => {
+      const idList = Array.isArray(selectedIds) ? selectedIds : Array.from(selectedIds);
+      const targets = idList
+        .map((id) => documents?.find((d) => d.id === id))
+        .filter((d): d is DocumentRow => Boolean(d && docCanManage(d) && isBulkDeletableDoc(d)));
+      if (targets.length === 0) return;
+
+      const ok = await confirm({
+        title: 'Remove documents?',
+        description: (
+          <>
+            Remove{' '}
+            <span className="font-semibold text-foreground/95">
+              {targets.length} document{targets.length === 1 ? '' : 's'}
+            </span>
+            ? This cannot be undone.
+          </>
+        ),
+        variant: 'danger',
+        confirmLabel: 'Remove',
+        cancelLabel: 'Cancel',
+      });
+      if (!ok) return;
+
+      lockBulkDeleting(targets.map((d) => d.id));
+      setBulkDeleteBusy(true);
+      const deletedIds: string[] = [];
+      const failures: string[] = [];
+      try {
+        const byGroup = new Map<string, DocumentRow[]>();
+        for (const doc of targets) {
+          const key = doc.groupId ? String(doc.groupId) : '';
+          const list = byGroup.get(key) || [];
+          list.push(doc);
+          byGroup.set(key, list);
+        }
+
+        for (const [groupKey, docs] of byGroup) {
+          const gid = groupKey || null;
+          for (let i = 0; i < docs.length; i += BULK_DELETE_CHUNK) {
+            const chunk = docs.slice(i, i + BULK_DELETE_CHUNK);
+            const ids = chunk.map((d) => d.id);
+            try {
+              const res = await bulkDeleteDocuments(ids, gid);
+              const deleted = Array.isArray(res.data?.deleted) ? res.data.deleted : [];
+              const failed = Array.isArray(res.data?.failed) ? res.data.failed : [];
+              deletedIds.push(...deleted.map(String));
+              for (const f of failed) {
+                const row = chunk.find((d) => d.id === String(f.id));
+                failures.push(`${row?.fileName || f.id}: ${f.error || 'Could not delete'}`);
+              }
+            } catch (err: unknown) {
+              const ax = err as { response?: { data?: { error?: string } }; message?: string };
+              const msg = ax.response?.data?.error || ax.message || 'Could not delete documents.';
+              for (const d of chunk) {
+                failures.push(`${d.fileName || d.id}: ${msg}`);
+              }
+            }
+          }
+        }
+
+        if (deletedIds.length) {
+          onDeleted?.(deletedIds);
+          await refreshPipelineDocuments(queryClient);
+          await queryClient.invalidateQueries({ queryKey: ['documents'] });
+        }
+
+        if (failures.length) {
+          await appAlert({
+            title: deletedIds.length ? 'Some deletes failed' : 'Could not delete',
+            description: failures.slice(0, 5).join('\n'),
+            variant: 'danger',
+          });
+        }
+      } finally {
+        setBulkDeleteBusy(false);
+        unlockBulkDeleting();
+      }
+    },
+    [appAlert, confirm, docCanManage, lockBulkDeleting, queryClient, unlockBulkDeleting]
+  );
+
   const handleOpenDocument = React.useCallback(
     async (docItem: DocumentRow) => {
+      if (bulkDeletingIdsRef.current.has(String(docItem.id))) return;
       setOpenDocBusyId(String(docItem.id));
       try {
         const gid = docItem.groupId ? String(docItem.groupId) : undefined;
@@ -90,8 +206,11 @@ export function useDocumentActions(docCanManage: (d: DocumentRow) => boolean) {
 
   return {
     deleteBusyId,
+    bulkDeleteBusy,
+    bulkDeletingIds,
     openDocBusyId,
     handleDeleteDocument,
+    handleBulkDeleteDocuments,
     handleOpenDocument,
   };
 }

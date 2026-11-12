@@ -57,6 +57,9 @@ const ChatPage: React.FC = () => {
           void sessions.handleDownloadChatSession(id, title, composer.setErrorText)
         }
         onDeleteSession={(id) => void sessions.handleDeleteChatSession(id, composer.setErrorText)}
+        onTogglePinSession={(id, pinned) =>
+          void sessions.handleTogglePinSession(id, pinned, composer.setErrorText)
+        }
         formatSessionMeta={formatSessionMeta}
       />
 

@@ -43,7 +43,7 @@ export const DocumentsPage: React.FC = () => {
   const upload = useDocumentUpload({
     isCompanyAdmin: list.isCompanyAdmin,
     groups: list.groups,
-    adminGroupIds: list.adminGroupIds,
+    activeGroupId: list.context?.activeGroupId ?? list.user?.groupID ?? list.user?.groupId,
     orgRole: list.context?.orgRole,
     orgId: list.context?.orgId ?? list.user?.orgId ?? null,
     user: list.user,
@@ -58,6 +58,16 @@ export const DocumentsPage: React.FC = () => {
       list.setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
+        return next;
+      });
+    });
+  };
+
+  const handleBulkDeleteDocuments = () => {
+    void actions.handleBulkDeleteDocuments(list.selectedIds, documents, (ids) => {
+      list.setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
         return next;
       });
     });
@@ -102,10 +112,14 @@ export const DocumentsPage: React.FC = () => {
         bulkIngestCount={list.bulkIngestCount}
         bulkExtractCount={list.bulkExtractCount}
         bulkClassifyCount={list.bulkClassifyCount}
+        bulkDeleteCount={list.bulkDeleteCount}
+        bulkDeleteBusy={actions.bulkDeleteBusy}
+        bulkDeletingIds={actions.bulkDeletingIds}
         ingestQuotaBlocked={ingestQuotaBlocked}
         onBulkIngest={() => void pipeline.runBulkPipeline('ingest', list.selectedIds)}
         onBulkExtract={() => void pipeline.runBulkPipeline('extract', list.selectedIds)}
         onBulkClassify={() => void pipeline.runBulkPipeline('classify', list.selectedIds)}
+        onBulkDelete={handleBulkDeleteDocuments}
         onSelectAllFiltered={list.selectAllFiltered}
         onClearSelection={list.clearSelection}
         headerCheckboxRef={list.headerCheckboxRef}
@@ -154,8 +168,8 @@ export const DocumentsPage: React.FC = () => {
 
       <DocumentUploadModal
         isOpen={upload.isUploadModalOpen}
-        onClose={() => upload.setIsUploadModalOpen(false)}
-        orgWideUpload={list.isCompanyAdmin}
+        onClose={upload.closeUploadForm}
+        orgWideUpload={upload.uploadGroupChoices.length > 0}
         groups={upload.uploadGroupChoices}
         targetGroupId={upload.targetGroupId}
         setTargetGroupId={upload.setTargetGroupId}

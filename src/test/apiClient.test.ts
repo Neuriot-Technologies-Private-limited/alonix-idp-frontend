@@ -243,6 +243,19 @@ describe('apiClient request interceptor — org / group headers', () => {
     const result = await requestFulfilled(config);
     expect(result.headers['X-Group-Id']).toBeUndefined();
   });
+
+  it('does not overwrite an explicit X-Group-Id (upload target may differ from TopNav)', async () => {
+    setActiveSession({ activeGroupId: 'g-nav' });
+    setCsrfToken('csrf-token');
+    const config = makeConfig({
+      url: '/groups/g-upload/documents/upload',
+      method: 'post',
+      data: new FormData(),
+      headers: { 'X-Group-Id': 'g-upload' },
+    });
+    const result = await requestFulfilled(config);
+    expect(result.headers['X-Group-Id']).toBe('g-upload');
+  });
 });
 
 describe('apiClient request interceptor — CSRF on mutating requests', () => {
@@ -284,8 +297,27 @@ describe('apiClient response interceptor — CSRF token capture', () => {
 });
 
 describe('apiClient response interceptor — 403 CSRF retry', () => {
+  const originalLocation = window.location;
+
+  function setLocation(pathname: string): void {
+    const loc = {
+      ...originalLocation,
+      pathname,
+      href: '',
+      replace(url: string) {
+        this.href = url;
+      },
+    };
+    Object.defineProperty(window, 'location', { writable: true, value: loc });
+  }
+
+  beforeEach(() => {
+    setLocation('/dashboard');
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    Object.defineProperty(window, 'location', { writable: true, value: originalLocation });
   });
 
   it('retries the original request once with a fresh CSRF token after a 403 CSRF error', async () => {
@@ -322,6 +354,8 @@ describe('apiClient response interceptor — 403 CSRF retry', () => {
     expect(getSpy).not.toHaveBeenCalled();
     expect(error.response.data.message).toMatch(/verify your session/);
     expect(error.response.data.originalMessage).toBe('csrf mismatch');
+    expect(authState.logout).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe('/login?session=expired');
   });
 
   it('recognizes the CSRF_INVALID code even without "csrf" in the message text', async () => {
@@ -332,6 +366,8 @@ describe('apiClient response interceptor — 403 CSRF retry', () => {
     await expect(responseRejected(error)).rejects.toBe(error);
     expect(error.response.data.message).toMatch(/verify your session/);
     expect(error.response.data.originalMessage).toBe('Forbidden');
+    expect(authState.logout).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe('/login?session=expired');
   });
 
   it('leaves non-CSRF 403 errors untouched', async () => {
@@ -349,10 +385,15 @@ describe('apiClient response interceptor — 401 handling', () => {
   const originalLocation = window.location;
 
   function setLocation(pathname: string): void {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { ...originalLocation, pathname, href: '' },
-    });
+    const loc = {
+      ...originalLocation,
+      pathname,
+      href: '',
+      replace(url: string) {
+        this.href = url;
+      },
+    };
+    Object.defineProperty(window, 'location', { writable: true, value: loc });
   }
 
   beforeEach(() => {
@@ -399,7 +440,28 @@ describe('apiClient response interceptor — 401 handling', () => {
     };
     await expect(responseRejected(error)).rejects.toBe(error);
     expect(authState.logout).toHaveBeenCalledTimes(1);
-    expect(window.location.href).toBe('/login');
+    expect(window.location.href).toBe('/login?session=expired');
+  });
+
+  it('does not start another logout when the logout request itself returns 401', async () => {
+    const error: AnyConfig = {
+      response: { status: 401, data: { code: 'SESSION_EXPIRED' } },
+      config: { url: '/users/logout' },
+    };
+    await expect(responseRejected(error)).rejects.toBe(error);
+    expect(authState.logout).not.toHaveBeenCalled();
+    expect(window.location.href).toBe('');
+  });
+
+  it('still redirects to sign-in when logout fails', async () => {
+    authState.logout.mockRejectedValueOnce(new Error('network'));
+    const error: AnyConfig = {
+      response: { status: 401, data: { code: 'SESSION_EXPIRED' } },
+      config: { url: '/documents' },
+    };
+    await expect(responseRejected(error)).rejects.toBe(error);
+    expect(authState.logout).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe('/login?session=expired');
   });
 
   it('dedupes concurrent 401s into a single logout call', async () => {

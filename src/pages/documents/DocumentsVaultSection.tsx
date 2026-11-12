@@ -23,10 +23,14 @@ type DocumentsVaultSectionProps = {
   bulkIngestCount: number;
   bulkExtractCount: number;
   bulkClassifyCount: number;
+  bulkDeleteCount: number;
+  bulkDeleteBusy: boolean;
+  bulkDeletingIds: ReadonlySet<string>;
   ingestQuotaBlocked: boolean;
   onBulkIngest: () => void;
   onBulkExtract: () => void;
   onBulkClassify: () => void;
+  onBulkDelete: () => void;
   onSelectAllFiltered: () => void;
   onClearSelection: () => void;
   headerCheckboxRef: React.RefObject<HTMLInputElement | null>;
@@ -60,10 +64,14 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
   bulkIngestCount,
   bulkExtractCount,
   bulkClassifyCount,
+  bulkDeleteCount,
+  bulkDeleteBusy,
+  bulkDeletingIds,
   ingestQuotaBlocked,
   onBulkIngest,
   onBulkExtract,
   onBulkClassify,
+  onBulkDelete,
   onSelectAllFiltered,
   onClearSelection,
   headerCheckboxRef,
@@ -124,11 +132,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                     ? `Run ingest on ${bulkIngestCount} document(s)`
                     : 'No selected documents need ingest'
               }
-              disabled={bulkBusyActive || bulkIngestCount === 0 || ingestQuotaBlocked}
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkIngestCount === 0 || ingestQuotaBlocked}
               onClick={onBulkIngest}
               className={cn(
                 'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                bulkBusyActive || bulkIngestCount === 0
+                bulkBusyActive || bulkDeleteBusy || bulkIngestCount === 0
                   ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
                   : 'bg-success/10 text-success border-success/20 hover:bg-success/20'
               )}
@@ -139,11 +147,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
             <button
               type="button"
               title={bulkExtractCount ? `Run extract on ${bulkExtractCount} document(s)` : 'No selected documents need extract'}
-              disabled={bulkBusyActive || bulkExtractCount === 0}
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkExtractCount === 0}
               onClick={onBulkExtract}
               className={cn(
                 'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                bulkBusyActive || bulkExtractCount === 0
+                bulkBusyActive || bulkDeleteBusy || bulkExtractCount === 0
                   ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
                   : 'bg-violet/10 text-violet border-violet/20 hover:bg-violet/20'
               )}
@@ -154,11 +162,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
             <button
               type="button"
               title={bulkClassifyCount ? `Run classify on ${bulkClassifyCount} document(s)` : 'No selected documents need classify'}
-              disabled={bulkBusyActive || bulkClassifyCount === 0}
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkClassifyCount === 0}
               onClick={onBulkClassify}
               className={cn(
                 'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
-                bulkBusyActive || bulkClassifyCount === 0
+                bulkBusyActive || bulkDeleteBusy || bulkClassifyCount === 0
                   ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
                   : 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20'
               )}
@@ -166,11 +174,36 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
               {bulkBusy === 'classify' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Bulk classify{bulkClassifyCount ? ` (${bulkClassifyCount})` : ''}
             </button>
+            <button
+              type="button"
+              title={
+                bulkDeleteCount
+                  ? `Delete ${bulkDeleteCount} selected document(s)`
+                  : 'No selected documents can be deleted right now'
+              }
+              disabled={bulkBusyActive || bulkDeleteBusy || bulkDeleteCount === 0}
+              onClick={onBulkDelete}
+              className={cn(
+                'px-3 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center gap-1.5',
+                bulkBusyActive || bulkDeleteBusy || bulkDeleteCount === 0
+                  ? 'bg-surface-highest/10 text-muted-foreground/35 border-border/10'
+                  : 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20'
+              )}
+            >
+              {bulkDeleteBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Bulk delete{bulkDeleteCount ? ` (${bulkDeleteCount})` : ''}
+            </button>
             {filtered.length > paginatedDocuments.length && (
               <button
                 type="button"
                 onClick={onSelectAllFiltered}
-                className="px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-primary border border-transparent hover:border-border/10 transition-all"
+                disabled={bulkDeleteBusy}
+                className={cn(
+                  'px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border border-transparent transition-all',
+                  bulkDeleteBusy
+                    ? 'text-muted-foreground/35 cursor-not-allowed'
+                    : 'text-muted-foreground/60 hover:text-primary hover:border-border/10'
+                )}
               >
                 Select all {filtered.length}
               </button>
@@ -178,7 +211,13 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
             <button
               type="button"
               onClick={onClearSelection}
-              className="px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-muted-foreground/50 hover:text-destructive transition-all"
+              disabled={bulkDeleteBusy}
+              className={cn(
+                'px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all',
+                bulkDeleteBusy
+                  ? 'text-muted-foreground/35 cursor-not-allowed'
+                  : 'text-muted-foreground/50 hover:text-destructive'
+              )}
             >
               Clear
             </button>
@@ -210,7 +249,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                     type="checkbox"
                     checked={allPageSelected}
                     onChange={onToggleSelectPage}
-                    disabled={manageableOnPage.length === 0}
+                    disabled={manageableOnPage.length === 0 || bulkDeleteBusy}
                     className="h-3.5 w-3.5 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 cursor-pointer accent-primary disabled:opacity-40"
                     title="Select this page"
                   />
@@ -237,6 +276,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
             {paginatedDocuments.map((docItem) => {
               const docBusy = Boolean(actionBusyKey?.startsWith(`${docItem.id}:`));
               const isSelected = selectedIds.has(docItem.id);
+              const lockedByBulkDelete = bulkDeletingIds.has(docItem.id);
               return (
                 <tr
                   key={docItem.id}
@@ -250,12 +290,17 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        disabled={!docCanManage(docItem)}
-                        onChange={() => toggleSelected(docItem.id)}
+                        disabled={!docCanManage(docItem) || lockedByBulkDelete || bulkDeleteBusy}
+                        onChange={() => {
+                          if (lockedByBulkDelete || bulkDeleteBusy) return;
+                          toggleSelected(docItem.id);
+                        }}
                         onClick={(e) => e.stopPropagation()}
                         className={cn(
                           'h-3.5 w-3.5 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 accent-primary',
-                          docCanManage(docItem) ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
+                          docCanManage(docItem) && !lockedByBulkDelete && !bulkDeleteBusy
+                            ? 'cursor-pointer'
+                            : 'opacity-40 cursor-not-allowed'
                         )}
                       />
                     </td>
@@ -269,7 +314,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                       sensitivityLevel={docItem.sensitivityLevel}
                       canOpenFile={Boolean(docItem?.id)}
                       isOpening={openDocBusyId === String(docItem?.id)}
-                      onFileNameClick={() => onOpenDocument(docItem)}
+                      openDisabled={lockedByBulkDelete}
+                      onFileNameClick={() => {
+                        if (lockedByBulkDelete) return;
+                        onOpenDocument(docItem);
+                      }}
                     />
                   </td>
                   <td className="px-2 py-4">
@@ -299,6 +348,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                       onDeleteDocument={onDeleteDocument}
                       deleteBusyId={deleteBusyId}
                       resultsLoadingDocId={resultLoadingDocId}
+                      actionsLocked={lockedByBulkDelete}
                       variant="table"
                       readOnly={!docCanManage(docItem)}
                     />
@@ -319,6 +369,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
           paginatedDocuments.map((docItem) => {
             const docBusy = Boolean(actionBusyKey?.startsWith(`${docItem.id}:`));
             const isSelected = selectedIds.has(docItem.id);
+            const lockedByBulkDelete = bulkDeletingIds.has(docItem.id);
             return (
               <article
                 key={docItem.id}
@@ -332,11 +383,16 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      disabled={!docCanManage(docItem)}
-                      onChange={() => toggleSelected(docItem.id)}
+                      disabled={!docCanManage(docItem) || lockedByBulkDelete || bulkDeleteBusy}
+                      onChange={() => {
+                        if (lockedByBulkDelete || bulkDeleteBusy) return;
+                        toggleSelected(docItem.id);
+                      }}
                       className={cn(
                         'mt-1 h-4 w-4 shrink-0 rounded border-border/35 dark:border-border/55 bg-surface-highest/60 text-primary focus:ring-primary/30 accent-primary',
-                        docCanManage(docItem) ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
+                        docCanManage(docItem) && !lockedByBulkDelete && !bulkDeleteBusy
+                          ? 'cursor-pointer'
+                          : 'opacity-40 cursor-not-allowed'
                       )}
                     />
                   ) : null}
@@ -349,7 +405,11 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                       sensitivityLevel={docItem.sensitivityLevel}
                       canOpenFile={Boolean(docItem?.id)}
                       isOpening={openDocBusyId === String(docItem?.id)}
-                      onFileNameClick={() => onOpenDocument(docItem)}
+                      openDisabled={lockedByBulkDelete}
+                      onFileNameClick={() => {
+                        if (lockedByBulkDelete) return;
+                        onOpenDocument(docItem);
+                      }}
                     />
                     <DocumentPipelineLifecycle
                       pipeline={docItem.pipeline}
@@ -377,6 +437,7 @@ export const DocumentsVaultSection: React.FC<DocumentsVaultSectionProps> = ({
                         onDeleteDocument={onDeleteDocument}
                         deleteBusyId={deleteBusyId}
                         resultsLoadingDocId={resultLoadingDocId}
+                        actionsLocked={lockedByBulkDelete}
                         variant="card"
                         readOnly={!docCanManage(docItem)}
                       />

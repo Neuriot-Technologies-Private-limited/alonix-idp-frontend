@@ -1,19 +1,15 @@
 /**
  * Document human-review API (extraction & classification).
- * Paths mirror chatApi documentsBase: `/documents` or `/groups/:groupId/documents`.
+ * Paths match documentApi: `/documents` or `/groups/:groupId/documents`.
  */
 import apiClient from './api/client';
+import { documentsBase } from './documentApi';
 import {
   parseDocumentReviewResults,
   extractionReviewPatchBody,
   type DocumentReviewPayload,
 } from '../types/documentReview';
 import type { ExtractionReviewPage } from '../types/documentReview';
-
-function documentsBase(groupId?: string | null) {
-  const g = groupId?.trim();
-  return g ? `/groups/${encodeURIComponent(g)}/documents` : '/documents';
-}
 
 export async function getDocumentReviewResults(
   documentId: string,
