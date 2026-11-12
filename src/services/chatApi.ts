@@ -79,6 +79,19 @@ export interface ChatSessionDto {
   title: string;
   last_updated: string;
   claim_id?: string | null;
+  is_pinned?: boolean;
+}
+
+export async function setChatSessionPinned(
+  sessionId: string,
+  pinned: boolean,
+  groupId?: string | null,
+) {
+  const base = chatsBase(groupId);
+  return apiClient.post<{ session: ChatSessionDto }>(
+    `${base}/session/${encodeURIComponent(sessionId)}/pin`,
+    { pinned },
+  );
 }
 
 export type ChatResponseKind = 'answer' | 'clarification';
